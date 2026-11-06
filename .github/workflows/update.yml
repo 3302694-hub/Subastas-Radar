@@ -35,14 +35,14 @@ jobs:
           SITE_NAME: ${{ vars.SITE_NAME }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: python scraper/scrape.py --max-pages 10 --max-new 400
+        run: python scraper/scrape.py --max-pages 80 --max-new 400
       - name: Сохранить данные в репозиторий
         run: |
           git config user.name "subastas-bot"
           git config user.email "actions@users.noreply.github.com"
           git add site/data site/feed.xml
           git diff --cached --quiet || git commit -m "Обновление аукционов $(date -u +'%Y-%m-%d %H:%M')"
-          git push
+          git pull --rebase origin main && git push
 
   deploy:
     needs: [scrape]
