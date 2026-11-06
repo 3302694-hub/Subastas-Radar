@@ -315,7 +315,14 @@ def parse_assets(html: str) -> list[dict]:
             "visitable": p.get("Visitable", ""),
             "cargas": p.get("Cargas", ""),
             "matricula": p.get("Matrícula") or p.get("Matricula", ""),
+            "vivienda_habitual": p.get("Vivienda habitual", ""),
+            "marca": p.get("Marca", ""),
+            "modelo": p.get("Modelo", ""),
+            "fecha_matriculacion": p.get("Fecha de matriculación") or p.get("Fecha de matriculacion", ""),
+            "ubicacion": p.get("Depósito") or p.get("Deposito", ""),
+            "idufir": p.get("IDUFIR", ""),
         })
+        assets[-1] = {k: v for k, v in assets[-1].items() if v or k in ("descripcion",)}
     return assets
 
 
@@ -405,6 +412,26 @@ def parse_bids(html: str) -> dict:
     vals = [v for v in lots if v]
     return {"puja_maxima": round(sum(vals), 2) if vals else None, "pujas_lotes": lots,
             "sin_pujas": bool(lots) and not vals}
+
+
+def parse_docs(html: str, page_url: str = BASE) -> dict:
+    """Документы аукциона со вкладки ver=1 («Información complementaria»).
+
+    BOE отдаёт их без входа (verDocumento.php). Если орган закрыл документы,
+    на странице просят «Iniciar sesión» — тогда docs_login = True.
+    """
+    soup = BeautifulSoup(html, "html.parser")
+    docs = []
+    for a in soup.find_all("a", href=True):
+        href = unescape(a["href"])
+        if "verDocumento.php" in href or "verCertificadoCierre.php" in href:
+            name = clean(a.get_text(" ")).strip('"«» ') or "Documento"
+            u = urljoin(page_url, href)
+            if all(d["url"] != u for d in docs):
+                docs.append({"nombre": name[:90], "url": u})
+    text = clean(soup.get_text(" ")).lower()
+    login = "complementaria debe" in text and "iniciar sesi" in text and not docs
+    return {"documentos": docs[:8], "docs_login": login}
 
 
 # ------------------------------------------------------- форма поиска

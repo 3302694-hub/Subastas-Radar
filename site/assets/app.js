@@ -121,6 +121,8 @@
     else if (/ocupantes con derecho|arrendat|inquilin/i.test(pos)) occ = { tone: "bad", key: "occ_legal" };
     else if (/vivienda habitual/i.test(pos)) occ = { tone: "warn", key: "occ_home" };
     else occ = { tone: "warn", key: "occ_unknown" };
+    // отдельное поле BOE «Vivienda habitual: Sí» — жильё должника, выселение может затянуться
+    if (/^s[ií]/i.test(String(b.vivienda_habitual || "")) && occ.tone !== "bad") occ = { tone: "warn", key: "occ_home" };
     let visit;
     if (/^s[ií]/i.test(vis)) visit = { tone: "ok", key: "vis_yes" };
     else if (/^no consta/i.test(vis) || !vis) visit = { tone: "warn", key: "vis_unknown" };
@@ -146,6 +148,31 @@
     }).join("");
     return html + (small && r.unknown ? `<span class="rp warn sm">${esc(t("pill_unknown_n", { n: r.unknown }))}</span>` : "");
   }
+
+  // ---------- автомобиль: марка, модель, год (из полей BOE или из описания)
+  const capWords = (x) => String(x || "").trim().split(/\s+/)
+    .filter((w, i, arr) => i === 0 || w.toLowerCase() !== arr[i - 1].toLowerCase())
+    .map((w) => /[\d.]/.test(w) || w.length <= 3 ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+  function vehicleName(s) {
+    if (s.categoria !== "vehiculo") return "";
+    const b = asset0(s);
+    let name = b.marca ? [b.marca, b.modelo].filter(Boolean).join(" ") : "", m;
+    if (!name) {
+      let x = String(b.descripcion || s.titulo || "").replace(/\s+/g, " ");
+      if ((m = x.match(/marca\s+y\s+modelo[:\s]+(.+)/i))) x = m[1];
+      else if ((m = x.match(/marca[:\s]+([^,.;]+?)\s*[,.;]?\s*modelo[:\s]+([^,;]+)/i))) x = m[1] + " " + m[2];
+      x = x.replace(/\b(matr[ií]cula|bastidor|de color|color|valor de uso)\b.*$/i, "")
+        .replace(/\b\d{4}\s?[A-Z]{3}\b/g, " ")
+        .replace(/^(bien|descripci[oó]n)\s*:\s*/i, "")
+        .replace(/\b(veh[ií]culo|turismo|nacional\/importac|motocicleta|sin sidecar|tractocami[oó]n|mixto adaptable|cami[oó]n|furgoneta|marca|modelo)\b:?/gi, " ")
+        .replace(/[:,]/g, " ").replace(/\s+/g, " ").replace(/[.\s]+$/, "").trim();
+      name = x.split(" ").slice(0, 5).join(" ");
+    }
+    if (!name || name.length > 45) return "";
+    const year = String(b.fecha_matriculacion || "").match(/(19|20)\d\d/);
+    return capWords(name) + (year ? " · " + year[0] : "");
+  }
+  const what = (s) => vehicleName(s) || t("c_" + s.categoria);
 
   // ---------- вид объекта: фото BOE → фасад Кадастра → Google Maps
   const NO_MAP = ["vehiculo", "embarcacion", "maquinaria", "derechos", "joyas_arte"];
@@ -337,7 +364,7 @@
     return `<article class="n-card">
       ${locked() && done(s) ? `<div class="c-media m-empty">${ic(s.categoria)}</div>` : media(s)}
       <div class="n-body">
-        <div class="n-head"><div><h3><a href="#/s/${encodeURIComponent(s.id)}" data-open="${esc(s.id)}">${esc(t("card_title", { what: t("c_" + s.categoria), city }))}</a></h3>
+        <div class="n-head"><div><h3><a href="#/s/${encodeURIComponent(s.id)}" data-open="${esc(s.id)}">${esc(city === "—" ? what(s) : t("card_title", { what: what(s), city }))}</a></h3>
           <span class="n-sub">${esc([place(s._prov) !== city ? place(s._prov) : "", t("origin_" + s.origen)].filter(Boolean).join(" · "))}${isNew(s) ? ` <span class="tag new">${esc(t("new_badge"))}</span>` : ""}</span></div>
           ${favBtn(s)}</div>
         ${r.applies ? `<div class="risk">${riskPill(r)}</div>` : ""}
@@ -353,7 +380,7 @@
     const city = place(s.localidad) || place(s._prov) || "—";
     const l = left(s), d = disc(s), sel = selected === s.id;
     return `<tr data-id="${esc(s.id)}" aria-selected="${sel}">
-      <td><span class="who">${ic(s.categoria)}<button type="button" data-open="${esc(s.id)}"><b>${esc(city)}</b><small>${esc(t("c_" + s.categoria))} · ${esc(place(s._prov))}</small></button></span></td>
+      <td><span class="who">${ic(s.categoria)}<button type="button" data-open="${esc(s.id)}"><b>${esc(city)}</b><small>${esc(what(s))} · ${esc(place(s._prov))}</small></button></span></td>
       <td>${esc(t("o_" + s.origen))}</td>
       <td class="num"><b>${eur(s.valor_subasta)}</b></td>
       <td class="num">${s.tasacion ? eur(s.tasacion) : "—"}</td>
@@ -370,7 +397,7 @@
     const bad = s._risk.applies && s._risk.bad > 0;
     return `<button type="button" class="p-row" data-open="${esc(s.id)}" aria-selected="${selected === s.id}">
       <span class="p-thumb">${ic(s.categoria)}</span>
-      <span class="p-mid"><b>${esc(city)}</b><small>${esc(t("c_" + s.categoria))} · ${esc(t("o_" + s.origen))}</small>
+      <span class="p-mid"><b>${esc(city)}</b><small>${esc(what(s))} · ${esc(t("o_" + s.origen))}</small>
         ${done(s) ? `<small>${esc(t("ended_on", { d: day(s.fecha_fin) }))}</small>` : `<small class="${l.hot ? "hot" : ""}" style="${l.hot ? "color:var(--bad);font-weight:600" : ""}">${esc(t("closes_short", { d: dateFmt(s.fecha_fin) }))} · ${esc(l.short)}${bad ? " · " + esc(t("risk_high")) : ""}</small>`}</span>
       <span class="p-end"><b>${eur(s.valor_subasta)}</b>${done(s) ? `<small>${esc(t("col_bid"))}: ${esc((result(s) || {}).label || "—")}</small>` : `<small>${esc(t("deposit"))} ${eur(s.deposito)}</small>`}${disc(s) ? `<small style="color:var(--ok);font-weight:700">−${disc(s)}%</small>` : ""}</span>
     </button>`;
@@ -457,7 +484,7 @@
     const u = AUTH.user && AUTH.user();
     return `<div class="dv">
       <div class="c-media big m-empty">${ic(s.categoria)}</div>
-      <div class="dv-head"><div><span class="muted" style="font-size:13px">${esc(t("c_" + s.categoria))} · ${esc(t("origin_" + s.origen))}</span>
+      <div class="dv-head"><div><span class="muted" style="font-size:13px">${esc(what(s))} · ${esc(t("origin_" + s.origen))}</span>
         <h2 id="${idp}Title">${esc(city)}</h2><span class="dv-id">${esc(place(s._prov))}</span></div></div>
       <div class="dv-kv">
         <div><small>${esc(t("value"))}</small><b>${eur(s.valor_subasta)}</b></div>
@@ -494,7 +521,7 @@
     }).join("");
     return `<div class="dv">
       ${media(s, true)}
-      <div class="dv-head"><div><span class="muted" style="font-size:13px">${esc(t("c_" + s.categoria))} · ${esc(t("origin_" + s.origen))}</span>
+      <div class="dv-head"><div><span class="muted" style="font-size:13px">${esc(what(s))} · ${esc(t("origin_" + s.origen))}</span>
         <h2 id="${idp}Title">${esc(city)}</h2><span class="dv-id">${esc(s.id)}</span></div>${favBtn(s)}</div>
       <div class="dv-kv">
         <div><small>${esc(t("value"))}</small><b>${eur(s.valor_subasta)}</b></div>
@@ -506,8 +533,9 @@
       ${done(s) && result(s) && result(s).pct ? `<p class="muted" style="margin:0 0 14px">${esc(t("hist_explain", { p: result(s).pct, v: eur(s.valor_subasta) }))}</p>` : ""}
       <div class="dv-cta"><div><small>${esc(done(s) ? t("ended_on", { d: dateFmt(s.fecha_fin, true) }) : t("closes_on", { d: dateFmt(s.fecha_fin, true) }))}</small><b class="${l.hot ? "hot" : ""}">${esc(done(s) ? t("s_" + s.estado) : l.long)}</b></div>
         <a class="btn" href="${esc(s.url)}" target="_blank" rel="noopener">${esc(t("open_boe"))} ${ic("ext")}</a></div>
-      <div class="dv-more"><a class="btn ghost" href="${esc(gmapLink(mq))}" target="_blank" rel="noopener">${esc(t("open_map"))} ${ic("ext")}</a>
-        ${(s.documentos || []).slice(0, 3).map((u, i) => `<a class="btn ghost" href="${esc(u)}" target="_blank" rel="noopener">${esc(t("doc"))} ${i + 1} ${ic("ext")}</a>`).join("")}</div>
+      <div class="dv-more">${NO_MAP.includes(s.categoria) ? "" : `<a class="btn ghost" href="${esc(gmapLink(mq))}" target="_blank" rel="noopener">${esc(t("open_map"))} ${ic("ext")}</a>`}
+        ${(s.documentos || []).slice(0, 6).map((d, i) => { const u = typeof d === "string" ? d : d.url; const n = typeof d === "string" ? `${t("doc")} ${i + 1}` : sentence(d.nombre); return `<a class="btn ghost" href="${esc(u)}" target="_blank" rel="noopener">${ic("file")} ${esc(n.length > 42 ? n.slice(0, 40) + "…" : n)}</a>`; }).join("")}</div>
+      ${s.docs_login ? `<p class="fine" style="margin:8px 0 0">${esc(t("docs_login"))}</p>` : ""}
       <details><summary>${esc(t("d_all"))}</summary>
         <div class="asset"><dl>
           <dt>${esc(t("date_start"))}</dt><dd>${dateFmt(s.fecha_inicio, true)}</dd>

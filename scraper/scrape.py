@@ -228,7 +228,9 @@ def _pick_next(links: list[str], page: int) -> str:
 
 def fetch_detail(fetcher: Fetcher, listing: dict) -> dict:
     sid = listing["id"]
-    general = boe.parse_general(fetcher.get(boe.detail_url(sid, 1)))
+    html1 = fetcher.get(boe.detail_url(sid, 1))
+    general = boe.parse_general(html1)
+    dd = boe.parse_docs(html1, boe.detail_url(sid, 1))
     try:
         authority = boe.parse_authority(fetcher.get(boe.detail_url(sid, 2)))
     except RuntimeError:
@@ -237,13 +239,41 @@ def fetch_detail(fetcher: Fetcher, listing: dict) -> dict:
     try:
         html3 = fetcher.get(boe.detail_url(sid, 3))
         assets = boe.parse_assets(html3)
-        fotos, docs = boe.parse_media(html3, boe.detail_url(sid, 3))
+        fotos, _ = boe.parse_media(html3, boe.detail_url(sid, 3))
         _sample(sid, "ver3", html3)
     except RuntimeError:
         assets = []
     rec = boe.build_record(listing, general, authority, assets)
-    rec["fotos"], rec["documentos"] = fotos, docs
+    rec["fotos"] = fotos
+    rec["documentos"], rec["docs_login"] = dd["documentos"], dd["docs_login"]
+    rec["v"] = DETAIL_VERSION
     return rec
+
+
+DETAIL_VERSION = 2   # 2: документы с ver=1, авто (марка/модель), «vivienda habitual»
+
+
+def backfill(fetcher: Fetcher, db: dict[str, dict], limit: int, budget_s: float) -> int:
+    """Дозагружает новые поля у уже собранных текущих аукционов (по limit за запуск)."""
+    t0, n = time.monotonic(), 0
+    todo = [s for s in db.values() if s.get("estado") in ("activa", "proxima") and s.get("v") != DETAIL_VERSION]
+    for s in todo[:limit]:
+        if time.monotonic() - t0 > budget_s:
+            break
+        sid = s["id"]
+        try:
+            dd = boe.parse_docs(fetcher.get(boe.detail_url(sid, 1)), boe.detail_url(sid, 1))
+            s["documentos"], s["docs_login"] = dd["documentos"], dd["docs_login"]
+            if s.get("categoria") in ("vehiculo", "vivienda", "embarcacion"):
+                assets = boe.parse_assets(fetcher.get(boe.detail_url(sid, 3)))
+                if assets:
+                    s["bienes"] = assets
+            s["v"] = DETAIL_VERSION
+            n += 1
+        except Exception as e:  # noqa: BLE001
+            log(f"  дозагрузка {sid}: {e!r}")
+    log(f"дозагрузка новых полей: {n} (осталось {max(0, len(todo) - n)})")
+    return n
 
 
 _SAMPLED = set()
@@ -442,6 +472,7 @@ def main() -> int:
         if n % 20 == 0:
             log(f"  загружено {n}/{len(new)}")
 
+    backfill(fetcher, db, int(os.environ.get("BACKFILL", "300")), 20 * 60)
     before = set(db)
     refresh_states(db, now)
     prune(db, now)

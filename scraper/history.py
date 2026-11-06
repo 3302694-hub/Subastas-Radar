@@ -116,6 +116,9 @@ def compact(rec: dict, bids: dict, state: str, photos: list[str]) -> dict:
         "direccion": a.get("direccion", ""), "cp": a.get("cp", ""),
         "localidad": a.get("localidad", ""), "provincia": a.get("provincia", ""),
         "ref_catastral": a.get("ref_catastral", ""),
+        "vivienda_habitual": a.get("vivienda_habitual", ""),
+        "marca": a.get("marca", ""), "modelo": a.get("modelo", ""),
+        "fecha_matriculacion": a.get("fecha_matriculacion", ""),
         "situacion_posesoria": a.get("situacion_posesoria", ""),
         "visitable": a.get("visitable", ""), "cargas": (a.get("cargas") or "")[:160],
     }.items() if v}
@@ -141,13 +144,18 @@ def compact(rec: dict, bids: dict, state: str, photos: list[str]) -> dict:
 
 def fetch_one(f: Fetcher, listing: dict, state: str) -> dict:
     sid = listing["id"]
-    general = boe.parse_general(f.get(boe.detail_url(sid, 1)))
+    html1 = f.get(boe.detail_url(sid, 1))
+    general = boe.parse_general(html1)
+    dd = boe.parse_docs(html1, boe.detail_url(sid, 1))
     html3 = f.get(boe.detail_url(sid, 3))
     assets = boe.parse_assets(html3)
     photos, _ = boe.parse_media(html3, boe.detail_url(sid, 3))
     bids = boe.parse_bids(f.get(boe.detail_url(sid, 5)))
     rec = boe.build_record(listing, general, {}, assets)
-    return compact(rec, bids, state, photos)
+    out = compact(rec, bids, state, photos)
+    if dd["documentos"]:
+        out["documentos"] = dd["documentos"][:4]
+    return out
 
 
 def load_json(p: Path, default):
