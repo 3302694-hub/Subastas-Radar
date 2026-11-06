@@ -18,7 +18,7 @@
     { id: "g_terreno", cats: ["solar", "rustica"], icon: "rustica" },
     { id: "g_otros", cats: ["vehiculo", "embarcacion", "joyas_arte", "maquinaria", "derechos", "otros"], icon: "otros" }
   ];
-  const STATUSES = ["open", "activa", "proxima", "finalizada", "all"];
+  const STATUSES = ["open", "activa", "proxima", "finalizada", "cancelada", "all"];
   const MODES = ["novato", "inversor", "pro"];
   const PRICES = [25000, 50000, 100000, 150000, 250000, 500000, 1000000];
   const DEFAULTS = { q: "", origin: [], cat: "", prov: "", status: "open", min: "", max: "", fresh: "", sort: "end", norisk: "" };
@@ -38,6 +38,9 @@
   let selected = null;           // выбранный аукцион (таблица / список Про)
   let current = [];              // текущий отфильтрованный список
   let map, mapLayer;
+  let hist = null, histIdx = null, histLoading = null;   // архив завершённых (data/historico)
+  const histView = () => ["finalizada", "cancelada", "all"].includes(state.status);
+  const done = (s) => ["finalizada", "cancelada", "suspendida"].includes(s.estado);
   const state = Object.assign({}, DEFAULTS, { origin: [] });
 
   const AUTH = window.Auth || { enabled: false, hasAccess: () => true, user: () => null };
@@ -202,7 +205,7 @@
     return { hot: true, short: t("h_short", { n: Math.max(h, 1) }), long: t("hours_left", { n: Math.max(h, 1) }) };
   }
   const disc = (s) => (s.tasacion && s.valor_subasta && s.tasacion > s.valor_subasta) ? Math.round((1 - s.valor_subasta / s.tasacion) * 100) : 0;
-  const isNew = (s) => newShare < 0.3 && s.detectada && (Date.now() - new Date(s.detectada).getTime()) < 864e5;
+  const isNew = (s) => !s.historico && newShare < 0.3 && s.detectada && (Date.now() - new Date(s.detectada).getTime()) < 864e5;
   const depPct = (s) => (s.deposito && s.valor_subasta) ? Math.round((s.deposito / s.valor_subasta) * 100) : null;
 
   // ---------- фильтрация
@@ -219,14 +222,15 @@
     if (st.fresh && !(s.detectada && (Date.now() - new Date(s.detectada).getTime()) < +st.fresh * 36e5)) return false;
     if (st.norisk && (s._risk.bad || s._risk.unknown > 1)) return false;
     if (st.q) {
-      const words = st.q.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").split(/\s+/).filter(Boolean);
+      const words = st.q.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").split(/\s+/).filter(Boolean);
       if (!words.every((w) => s._text.includes(w))) return false;
     }
     return true;
   }
   function sorted(list) {
     const by = {
-      end: (a, b) => (a.fecha_fin || "9").localeCompare(b.fecha_fin || "9"),
+      end: histView() ? (a, b) => (b.fecha_fin || "").localeCompare(a.fecha_fin || "") : (a, b) => (a.fecha_fin || "9").localeCompare(b.fecha_fin || "9"),
+      bid_ratio: (a, b) => (ratio(a) ?? 9) - (ratio(b) ?? 9),
       new: (a, b) => (b.detectada || "").localeCompare(a.detectada || "") || (b.fecha_inicio || "").localeCompare(a.fecha_inicio || ""),
       price_asc: (a, b) => (a.valor_subasta ?? 1e15) - (b.valor_subasta ?? 1e15),
       price_desc: (a, b) => (b.valor_subasta ?? -1) - (a.valor_subasta ?? -1),
@@ -236,6 +240,16 @@
     }[state.sort] || ((a, b) => 0);
     return list.slice().sort(by);
   }
+  // Итог торгов: максимальная ставка и её доля от стоимости
+  const ratio = (s) => (s.puja_maxima && s.valor_subasta) ? s.puja_maxima / s.valor_subasta : null;
+  function result(s) {
+    if (!done(s)) return null;
+    if (s.estado === "cancelada") return { tone: "n", label: t("s_cancelada") };
+    if (s.puja_maxima) { const q = ratio(s); return { tone: "ok", label: eur(s.puja_maxima), pct: q ? Math.round(q * 100) : null }; }
+    if (s.sin_pujas) return { tone: "warn", label: t("hist_no_bids") };
+    return s.historico ? { tone: "n", label: "—" } : null;
+  }
+  const resultLine = (q) => q ? `<b class="res ${q.tone}">${esc(q.label)}</b>${q.pct ? `<small>${esc(t("hist_pct", { p: q.pct }))}</small>` : ""}` : "";
   function count(fn, list = all) { const o = {}; list.forEach((s) => { const k = fn(s); if (k != null) o[k] = (o[k] || 0) + 1; }); return o; }
   const openNow = () => all.filter((s) => ["activa", "proxima"].includes(s.estado));
 
@@ -264,7 +278,7 @@
     $("#fOrigin").innerHTML = ORIGINS.map((o) => `<button type="button" class="chip" data-o="${o}" aria-pressed="${state.origin.includes(o)}">${esc(t("o_" + o))}</button>`).join("");
     $("#fStatus").innerHTML = STATUSES.map((s) => opt(s, s === "open" ? t("st_open") : s === "all" ? t("any") : t("s_" + s), state.status === s)).join("");
     $("#fFresh").innerHTML = opt("", t("any_f"), !state.fresh) + opt("24", t("fresh_24"), state.fresh === "24") + opt("168", t("fresh_7"), state.fresh === "168");
-    const sorts = mode === "novato" ? ["end", "new", "price_asc", "price_desc", "risk"] : ["end", "new", "price_asc", "price_desc", "discount", "deposit", "risk"];
+    const sorts = histView() ? ["end", "price_asc", "price_desc", "bid_ratio"] : mode === "novato" ? ["end", "new", "price_asc", "price_desc", "risk"] : ["end", "new", "price_asc", "price_desc", "discount", "deposit", "risk"];
     if (!sorts.includes(state.sort)) state.sort = "end";
     $("#sort").innerHTML = sorts.map((s) => opt(s, t("sort_" + s), state.sort === s)).join("");
     $("#q").value = state.q; $("#pMin").value = state.min; $("#pMax").value = state.max; $("#fRisk").checked = !!state.norisk;
@@ -306,7 +320,8 @@
     const what = state.cat ? (GROUPS.some((g) => g.id === state.cat) ? t("grp_" + state.cat) : t("c_" + state.cat)) : t("title_any");
     const where = state.prov ? t("in_place", { p: place(state.prov) }) : t("in_spain");
     const price = state.max !== "" ? " · " + t("upto", { v: eur(+state.max) }) : "";
-    return `${what}${price} · ${where}`;
+    const st = histView() ? " · " + (state.status === "all" ? t("st_all") : t("title_" + state.status)) : "";
+    return `${what}${price} · ${where}${st}`;
   }
 
   // ---------- карточки и строки
@@ -322,8 +337,9 @@
           ${favBtn(s)}</div>
         ${r.applies ? `<div class="risk">${riskPill(r)}</div>` : ""}
         <div class="n-foot">
-          <div class="n-price"><small>${esc(t("start_price"))}</small><b>${eur(s.valor_subasta)}</b>${s.deposito ? `<span>${esc(t("deposit_needed", { v: eur(s.deposito) }))}</span>` : ""}</div>
-          <div class="n-when"><span>${esc(t("closes_on", { d: dateFmt(s.fecha_fin) }))}</span><b class="${l.hot ? "hot" : ""}">${esc(l.long)}</b></div>
+          <div class="n-price"><small>${esc(done(s) ? t("value") : t("start_price"))}</small><b>${eur(s.valor_subasta)}</b>${s.deposito && !done(s) ? `<span>${esc(t("deposit_needed", { v: eur(s.deposito) }))}</span>` : ""}</div>
+          ${done(s) ? `<div class="n-when n-res"><span>${esc(t("ended_on", { d: day(s.fecha_fin) }))} · ${esc(t("col_bid"))}</span>${resultLine(result(s)) || "—"}</div>`
+          : `<div class="n-when"><span>${esc(t("closes_on", { d: dateFmt(s.fecha_fin) }))}</span><b class="${l.hot ? "hot" : ""}">${esc(l.long)}</b></div>`}
         </div>
       </div>
     </article>`;
@@ -337,8 +353,8 @@
       <td class="num"><b>${eur(s.valor_subasta)}</b></td>
       <td class="num">${s.tasacion ? eur(s.tasacion) : "—"}</td>
       <td class="num">${d ? `<span class="d-good">−${d}%</span>` : "—"}</td>
-      <td class="num">${eur(s.deposito)}</td>
-      <td class="num"><span class="${l.hot ? "hot" : ""}">${esc(l.short)}</span></td>
+      ${histView() ? `<td class="num">${resultLine(result(s)) || "—"}</td><td class="num">${day(s.fecha_fin)}</td>`
+      : `<td class="num">${eur(s.deposito)}</td><td class="num"><span class="${l.hot ? "hot" : ""}">${esc(l.short)}</span></td>`}
       <td>${s._risk.applies ? `<span class="risk">${riskPill(s._risk, true)}</span>` : ""}</td>
       <td>${favBtn(s)}</td>
     </tr>`;
@@ -350,8 +366,8 @@
     return `<button type="button" class="p-row" data-open="${esc(s.id)}" aria-selected="${selected === s.id}">
       <span class="p-thumb">${ic(s.categoria)}</span>
       <span class="p-mid"><b>${esc(city)}</b><small>${esc(t("c_" + s.categoria))} · ${esc(t("o_" + s.origen))}</small>
-        <small class="${l.hot ? "hot" : ""}" style="${l.hot ? "color:var(--bad);font-weight:600" : ""}">${esc(t("closes_short", { d: dateFmt(s.fecha_fin) }))} · ${esc(l.short)}${bad ? " · " + esc(t("risk_high")) : ""}</small></span>
-      <span class="p-end"><b>${eur(s.valor_subasta)}</b><small>${esc(t("deposit"))} ${eur(s.deposito)}</small>${disc(s) ? `<small style="color:var(--ok);font-weight:700">−${disc(s)}%</small>` : ""}</span>
+        ${done(s) ? `<small>${esc(t("ended_on", { d: day(s.fecha_fin) }))}</small>` : `<small class="${l.hot ? "hot" : ""}" style="${l.hot ? "color:var(--bad);font-weight:600" : ""}">${esc(t("closes_short", { d: dateFmt(s.fecha_fin) }))} · ${esc(l.short)}${bad ? " · " + esc(t("risk_high")) : ""}</small>`}</span>
+      <span class="p-end"><b>${eur(s.valor_subasta)}</b>${done(s) ? `<small>${esc(t("col_bid"))}: ${esc((result(s) || {}).label || "—")}</small>` : `<small>${esc(t("deposit"))} ${eur(s.deposito)}</small>`}${disc(s) ? `<small style="color:var(--ok);font-weight:700">−${disc(s)}%</small>` : ""}</span>
     </button>`;
   }
 
@@ -377,19 +393,23 @@
 
   function render() {
     document.documentElement.dataset.mode = mode;
+    if (histView() && !hist) ensureHistory().then(() => { buildControls(); render(); });
     current = sorted(all.filter((s) => matches(s)));
     const n = current.length;
     $("#resTitle").textContent = resultTitle(n);
     const totalOpen = Math.max(openNow().length, meta.actuales || 0);
-    $("#resCount").textContent = t("res_count", { n: num(n), total: num(totalOpen) });
+    $("#resCount").textContent = histView()
+      ? (hist ? t("res_count_hist", { n: num(n) }) + (histIdx && histIdx.desde ? " · " + t("hist_since", { m: monthName(histIdx.desde) }) : "") : t("hist_loading"))
+      : t("res_count", { n: num(n), total: num(totalOpen) });
     activeChips();
     const page = current.slice(0, shown);
     let html;
-    if (!n) html = emptyBlock();
+    if (!n && histView() && !hist) html = `<div class="empty"><p>${esc(t("hist_loading"))}</p></div>`;
+    else if (!n) html = emptyBlock();
     else if (mode === "inversor" && !narrow()) {
       const th = (k, label, cls) => `<th scope="col" class="${cls || ""}">${k ? `<button type="button" data-sort="${k}" aria-pressed="${state.sort === k}">${esc(label)}${state.sort === k ? " ↓" : ""}</button>` : esc(label)}</th>`;
       html = `<div class="t-box"><div class="t-scroll"><table class="t" aria-describedby="resTitle"><thead><tr>
-        ${th("", t("col_what"))}${th("", t("col_origin"))}${th("price_asc", t("col_value"), "num")}${th("", t("appraisal"), "num")}${th("discount", t("col_disc"), "num")}${th("deposit", t("deposit"), "num")}${th("end", t("col_closes"), "num")}${th("risk", t("col_risks"))}<th scope="col"><span class="sr">${esc(t("fav_add"))}</span></th>
+        ${th("", t("col_what"))}${th("", t("col_origin"))}${th("price_asc", t("col_value"), "num")}${th("", t("appraisal"), "num")}${th("discount", t("col_disc"), "num")}${histView() ? th("bid_ratio", t("col_bid"), "num") + th("end", t("col_ended"), "num") : th("deposit", t("deposit"), "num") + th("end", t("col_closes"), "num")}${th("risk", t("col_risks"))}<th scope="col"><span class="sr">${esc(t("fav_add"))}</span></th>
         </tr></thead><tbody>${page.map(tableRow).join("")}</tbody></table></div>
         <div class="t-foot"><span>${esc(t("shown_of", { a: num(Math.min(shown, n)), n: num(n) }))}</span><span>${t("kbd_inline")}</span></div></div>`;
     } else if (mode === "pro" || mode === "inversor") {
@@ -429,14 +449,14 @@
     const r = s._risk, l = left(s), d = disc(s), b = asset0(s);
     const city = place(s.localidad) || place(s._prov) || "";
     const checks = [];
-    if (r.applies) {
+    if (r.applies && !done(s)) {
       const c = r.charges;
       checks.push(checkItem(c.tone, c.key === "car_amount" ? t("chk_car_amount", { v: eur(c.amount) }) : t("chk_" + c.key), c.key === "car_text" ? sentence(c.text).slice(0, 180) : t("chkd_" + c.key)));
       checks.push(checkItem(r.occ.tone, t("chk_" + r.occ.key), t("chkd_" + r.occ.key)));
       checks.push(checkItem(r.visit.tone, t("chk_" + r.visit.key), t("chkd_" + r.visit.key)));
     }
-    if (s.deposito) checks.push(checkItem("ok", t("chk_deposit", { v: eur(s.deposito), p: depPct(s) != null ? depPct(s) + "%" : "" }), t("chkd_deposit")));
-    if (s.origen === "hacienda" && d >= 30) checks.push(checkItem("n", t("chk_hacienda"), t("chkd_hacienda")));
+    if (s.deposito && !done(s)) checks.push(checkItem("ok", t("chk_deposit", { v: eur(s.deposito), p: depPct(s) != null ? depPct(s) + "%" : "" }), t("chkd_deposit")));
+    if (s.origen === "hacienda" && d >= 30 && !done(s)) checks.push(checkItem("n", t("chk_hacienda"), t("chkd_hacienda")));
     const mq = mapQuery(s) || { q: [city, place(s._prov), "España"].filter(Boolean).join(", ") };
     const assets = (s.bienes || []).map((a) => {
       const row = (k, v) => v ? `<dt>${esc(t(k))}</dt><dd>${esc(v)}</dd>` : "";
@@ -454,10 +474,12 @@
       <div class="dv-kv">
         <div><small>${esc(t("value"))}</small><b>${eur(s.valor_subasta)}</b></div>
         <div><small>${esc(t("appraisal"))}</small><b>${s.tasacion ? eur(s.tasacion) : "—"}</b></div>
-        ${d ? `<div class="good"><small>${esc(t("col_disc"))}</small><b>−${d}%</b></div>` : `<div><small>${esc(t("min_bid"))}</small><b>${s.puja_minima != null ? eur(s.puja_minima) : esc(t("no_min"))}</b></div>`}
+        ${done(s) ? `<div class="${(result(s) || {}).tone === "ok" ? "good" : ""}"><small>${esc(t("col_bid"))}</small><b>${esc((result(s) || {}).label || "—")}</b></div>`
+        : d ? `<div class="good"><small>${esc(t("col_disc"))}</small><b>−${d}%</b></div>` : `<div><small>${esc(t("min_bid"))}</small><b>${s.puja_minima != null ? eur(s.puja_minima) : esc(t("no_min"))}</b></div>`}
       </div>
       ${checks.length ? `<h3>${esc(t("before_bid"))}</h3><ul class="chk">${checks.join("")}</ul>` : ""}
-      <div class="dv-cta"><div><small>${esc(t("closes_on", { d: dateFmt(s.fecha_fin, true) }))}</small><b class="${l.hot ? "hot" : ""}">${esc(l.long)}</b></div>
+      ${done(s) && result(s) && result(s).pct ? `<p class="muted" style="margin:0 0 14px">${esc(t("hist_explain", { p: result(s).pct, v: eur(s.valor_subasta) }))}</p>` : ""}
+      <div class="dv-cta"><div><small>${esc(done(s) ? t("ended_on", { d: dateFmt(s.fecha_fin, true) }) : t("closes_on", { d: dateFmt(s.fecha_fin, true) }))}</small><b class="${l.hot ? "hot" : ""}">${esc(done(s) ? t("s_" + s.estado) : l.long)}</b></div>
         <a class="btn" href="${esc(s.url)}" target="_blank" rel="noopener">${esc(t("open_boe"))} ${ic("ext")}</a></div>
       <div class="dv-more"><a class="btn ghost" href="${esc(gmapLink(mq))}" target="_blank" rel="noopener">${esc(t("open_map"))} ${ic("ext")}</a>
         ${(s.documentos || []).slice(0, 3).map((u, i) => `<a class="btn ghost" href="${esc(u)}" target="_blank" rel="noopener">${esc(t("doc"))} ${i + 1} ${ic("ext")}</a>`).join("")}</div>
@@ -779,6 +801,7 @@
     $("#settingsBtn").onclick = () => $("#settingsDlg").showModal();
     $$("[data-nav]").forEach((a) => a.addEventListener("click", (e) => {
       const n = a.dataset.nav;
+      if (n === "hist") { e.preventDefault(); onlyFavs = false; state.status = "finalizada"; shown = CFG.pageSize; buildControls(); render(); $("#catalogo").scrollIntoView({ block: "start" }); }
       if (n === "list" || n === "saved") { e.preventDefault(); onlyFavs = n === "saved"; shown = CFG.pageSize; render(); $("#catalogo").scrollIntoView({ block: "start" }); }
       if (n === "map" && mode === "pro") { e.preventDefault(); $("#proMap").scrollIntoView({ block: "start" }); }
       $$(".nav a").forEach((x) => x.classList.toggle("on", x === a));
@@ -839,16 +862,39 @@
         if (!meta.actualizado) meta.actualizado = d.generado;
       }
     } catch (e) { console.error("data", e); all = []; }
-    all.forEach((s) => {
+    all.forEach(prep);
+    if (hist) mergeHist();
+    const fresh = all.filter((s) => s.detectada && (Date.now() - new Date(s.detectada).getTime()) < 864e5).length;
+    newShare = all.length ? fresh / all.length : 0;
+  }
+  function prep(s) {
       s._prov = window.normProvince(s.provincia);
       s._risk = riskOf(s);
       s._text = [s.id, s.titulo, s.localidad, s.provincia, s.direccion, s.cp, s.autoridad, s.tipo,
         ...(s.bienes || []).map((b) => [b.descripcion, b.ref_catastral, b.matricula].join(" "))]
-        .join(" ").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-    });
-    const fresh = all.filter((s) => s.detectada && (Date.now() - new Date(s.detectada).getTime()) < 864e5).length;
-    newShare = all.length ? fresh / all.length : 0;
+        .join(" ").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   }
+  function mergeHist() {
+    const byId = new Map(all.map((s) => [s.id, s]));
+    hist.forEach((s) => byId.set(s.id, s));   // в архиве есть итоговая ставка — он важнее
+    all = [...byId.values()];
+  }
+  // Архив грузится только когда пользователь выбрал завершённые
+  function ensureHistory() {
+    if (hist) return Promise.resolve();
+    if (histLoading) return histLoading;
+    histLoading = (async () => {
+      histIdx = await fetch("data/historico/index.json", { cache: "no-cache" }).then((x) => (x.ok ? x.json() : null)).catch(() => null);
+      const months = histIdx ? Object.keys(histIdx.meses || {}).filter((m) => histIdx.meses[m].count).sort().reverse() : [];
+      const v = histIdx && histIdx.actualizado ? encodeURIComponent(histIdx.actualizado) : "";
+      const parts = await Promise.all(months.map((m) => fetch(`data/historico/${m}.json?v=${v}`).then((x) => x.json()).then((d) => d.subastas || []).catch(() => [])));
+      hist = parts.flat();
+      hist.forEach(prep);
+      mergeHist();
+    })();
+    return histLoading;
+  }
+  function monthName(ym) { const [y, m] = ym.split("-").map(Number); return new Date(y, m - 1, 1).toLocaleDateString(locale(), { month: "long", year: "numeric" }); }
 
   // ---------- старт
   async function boot() {

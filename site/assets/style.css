@@ -422,3 +422,9 @@ html[data-mode="pro"] .foot,html[data-mode="pro"] #alertas{display:none}
 .n-price span{display:block;margin-top:4px;color:var(--ink-2)}
 @media (max-width:1000px){.cat-main{width:100%;flex:none}}
 .chk{list-style:none;padding:0;margin:0 0 16px}
+
+/* итог завершённых торгов */
+.res{font-weight:700;font-variant-numeric:tabular-nums}
+.res.ok{color:var(--ok)}.res.warn{color:var(--warn)}.res.n{color:var(--muted)}
+.n-res{align-items:flex-end}.n-res .res{font-size:18px}
+td .res+small,.n-res small{display:block;font-size:12px;color:var(--muted);font-weight:500}
