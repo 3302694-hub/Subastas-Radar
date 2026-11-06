@@ -378,25 +378,33 @@ def build_record(listing: dict, general: dict, authority: dict, assets: list[dic
 def parse_bids(html: str) -> dict:
     """Вкладка ver=5 «Pujas» завершённого аукциона: итоговая максимальная ставка.
 
-    Возвращает {"puja_maxima": float|None, "pujas_lotes": [float|None, ...]}.
+    Возвращает {"puja_maxima": float|None, "pujas_lotes": [float|None, ...], "sin_pujas": bool}.
     Для аукциона с лотами puja_maxima — сумма ставок по лотам (если хоть одна есть).
+    Если страница не распознана, puja_maxima = None и sin_pujas = False (итог неизвестен).
     """
-    text = clean(BeautifulSoup(html, "html.parser").get_text(" | "))
-    m = re.search(r"Puja m[aá]xima de la subasta\s*\|\s*([^|]+)", text, re.I)
-    if m:
-        v = parse_money(m.group(1))
-        return {"puja_maxima": v, "pujas_lotes": [], "sin_pujas": v is None}
+    soup = BeautifulSoup(html, "html.parser")
+    for tag in soup(["script", "style", "title", "head"]):
+        tag.decompose()
+    text = clean(soup.get_text(" | "))
+    no_bids = re.compile(r"(?i)no ha recibido pujas|sin pujas?\b")
+    for m in re.finditer(r"(?i)puja m[aá]xima de la subasta", text):
+        tail = text[m.end(): m.end() + 160].split("Volver")[0]
+        if no_bids.search(tail):
+            return {"puja_maxima": None, "pujas_lotes": [], "sin_pujas": True}
+        v = parse_money(tail)
+        if v is not None:
+            return {"puja_maxima": v, "pujas_lotes": [], "sin_pujas": False}
     lots = []
-    m = re.search(r"Pujas m[aá]ximas(.*?)(Volver a la p[aá]gina|$)", text, re.I)
+    m = re.search(r"(?i)pujas m[aá]ximas(.*?)(volver a la p[aá]gina|$)", text)
     if m:
         cells = [c.strip() for c in m.group(1).split("|") if c.strip()]
         cells = [c for c in cells if not re.match(r"(?i)^(lote|importe de la puja)$", c)]
         for i in range(0, len(cells) - 1, 2):
             if cells[i].isdigit():
-                lots.append(None if re.search(r"(?i)sin puja", cells[i + 1]) else parse_money(cells[i + 1]))
+                lots.append(None if no_bids.search(cells[i + 1]) else parse_money(cells[i + 1]))
     vals = [v for v in lots if v]
     return {"puja_maxima": round(sum(vals), 2) if vals else None, "pujas_lotes": lots,
-            "sin_pujas": bool(lots) and not vals or (not lots and bool(re.search(r"(?i)sin pujas?", text)))}
+            "sin_pujas": bool(lots) and not vals}
 
 
 # ------------------------------------------------------- форма поиска

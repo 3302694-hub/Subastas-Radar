@@ -34,12 +34,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import boe  # noqa: E402
-from scrape import Fetcher, log, SITE  # noqa: E402
+from scrape import Fetcher, log, SITE, _pick_next  # noqa: E402
 
 HIST_DIR = SITE / "data" / "historico"
 INDEX_FILE = HIST_DIR / "index.json"
 STATES = {"PC": "finalizada", "FS": "finalizada", "CA": "cancelada"}
 SAVE_EVERY = 50
+VERSION = 2   # версия формата записей: 2 — исправлено чтение итоговой ставки
 
 
 # ------------------------------------------------------------- периоды
@@ -89,7 +90,7 @@ class Search:
             return self.listing(state, d1, mid, depth + 1) + self.listing(state, mid + timedelta(days=1), d2, depth + 1)
         found: dict[str, dict] = {}
         seen = {url}
-        for _ in range(40):
+        for page in range(40):
             items, nexts = boe.parse_search_page(html, url)
             fresh = [i for i in items if i["id"] not in found]
             for i in items:
@@ -99,7 +100,7 @@ class Search:
             nexts = [n for n in nexts if n not in seen]
             if not nexts:
                 break
-            url = nexts[0]
+            url = _pick_next(nexts, page)   # та же логика выбора, что у основного сборщика
             seen.add(url)
             html = self.f.get(url)
         return list(found.values())
@@ -193,7 +194,7 @@ def main() -> int:
 
     for ym in months_back(today, args.months):
         info = index["meses"].setdefault(ym, {"count": 0, "done": False})
-        if info.get("done") and ym not in recent:
+        if info.get("done") and info.get("v") == VERSION and ym not in recent:
             continue
         if time.monotonic() > deadline or fetched >= args.max_new:
             break
@@ -219,6 +220,30 @@ def main() -> int:
                 uniq.append((l, st))
         log(f"[{ym}] в архиве {len(items)}, догрузить {len(uniq)}")
         complete = True
+        # v1 неверно читал вкладку «Pujas» — перечитываем итог у записей без ставки
+        if info.get("v") != VERSION:
+            fix = [x for x in items.values() if x.get("estado") != "cancelada" and not x.get("puja_maxima")]
+            log(f"[{ym}] перепроверка итога торгов: {len(fix)}")
+            for n, x in enumerate(fix, 1):
+                if time.monotonic() > deadline:
+                    complete = False
+                    break
+                try:
+                    b = boe.parse_bids(f.get(boe.detail_url(x["id"], 5)))
+                    x["puja_maxima"], x["sin_pujas"] = b.get("puja_maxima"), b.get("sin_pujas", False)
+                    if b.get("pujas_lotes"):
+                        x["pujas_lotes"] = b["pujas_lotes"]
+                    if x["puja_maxima"] is None:
+                        x.pop("puja_maxima", None)
+                except Exception as e:  # noqa: BLE001
+                    log(f"  пропуск {x['id']}: {e!r}")
+                if n % 100 == 0:
+                    save_month(ym, items)
+                    log(f"  [{ym}] перепроверено {n}/{len(fix)}")
+            if not complete:
+                save_month(ym, items)
+                save_index(index)
+                break
         for n, (l, st) in enumerate(uniq, 1):
             if time.monotonic() > deadline or fetched >= args.max_new:
                 complete = False
@@ -237,6 +262,8 @@ def main() -> int:
         save_month(ym, items)
         info["count"] = len(items)
         info["done"] = complete
+        if complete:
+            info["v"] = VERSION
         save_index(index)
         if not complete:
             break
