@@ -118,7 +118,8 @@
   };
 
   // ---------- действия
-  A.signUp = (email, password) => client.auth.signUp({ email, password, options: { emailRedirectTo: redirectTo() } });
+  // lang сохраняется в профиле Supabase — по нему письма приходят на языке сайта
+  A.signUp = (email, password, lang) => client.auth.signUp({ email, password, options: { emailRedirectTo: redirectTo(), data: { lang: lang || "es" } } });
   A.signIn = (email, password) => client.auth.signInWithPassword({ email, password });
   A.oauth = (provider) => client.auth.signInWithOAuth({ provider, options: { redirectTo: redirectTo() } });
   A.reset = (email) => client.auth.resetPasswordForEmail(email, { redirectTo: redirectTo() });

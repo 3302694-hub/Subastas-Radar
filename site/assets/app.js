@@ -710,7 +710,7 @@
     const btn = $("#authSubmit"); btn.disabled = true;
     try {
       if (authMode === "signup") {
-        const { data, error } = await AUTH.signUp(email, pw);
+        const { data, error } = await AUTH.signUp(email, pw, lang);
         if (error) throw error;
         if (data.session) $("#authDlg").close(); else authMsg(t("msg_check_email"), true);
       } else if (authMode === "login") {
