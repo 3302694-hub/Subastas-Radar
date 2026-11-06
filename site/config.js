@@ -6,7 +6,7 @@ window.SITE_CONFIG = {
   telegramUrl: "",               // например "https://t.me/mi_canal_subastas" (пусто — блок скрыт)
   rssUrl: "feed.xml",
   pageSize: 24,
-  contactEmail: "",              // адрес для вопросов о доступе (показывается пользователям без доступа)
+  contactEmail: "subastaradar@gmail.com",              // адрес для вопросов о доступе (показывается пользователям без доступа)
 
   // Supabase: Project Settings → API. Ключ anon публичный по замыслу, его можно хранить здесь.
   // Пока поля пустые, сайт работает в открытом режиме (все данные из site/data/subastas.json).
