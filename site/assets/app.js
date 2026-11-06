@@ -42,6 +42,17 @@
   // Без полного доступа по умолчанию показываем и завершённые аукционы (их список открыт всем)
   let statusTouched = false;
   const defStatus = () => (locked() ? "all" : "open");
+  // Тариф пользователя: novato < inversor < pro. В открытом режиме (без Supabase) — всё
+  const TIERS = ["novato", "inversor", "pro"];
+  function tier() {
+    if (!AUTH.enabled) return "pro";
+    if (locked() || !(AUTH.user && AUTH.user())) return "";
+    const st = AUTH.status || {};
+    if (st.trusted) return "pro";
+    const m = Array.isArray(st.allowed_modes) ? st.allowed_modes : TIERS;
+    return m.includes("pro") ? "pro" : m.includes("inversor") ? "inversor" : "novato";
+  }
+  const atLeast = (n) => TIERS.indexOf(tier()) >= TIERS.indexOf(n);
   const histView = () => ["finalizada", "cancelada", "all"].includes(state.status);
   const done = (s) => ["finalizada", "cancelada", "suspendida"].includes(s.estado);
   const state = Object.assign({}, DEFAULTS, { origin: [] });
@@ -188,7 +199,7 @@
     const parts = [addr, s.cp || b.cp, place(s.localidad || b.localidad), place((s.provincia || b.provincia || "").split("/")[0])].filter(Boolean);
     return parts.length ? { q: parts.join(", ") + ", España", exact: !!addr } : "";
   }
-  const gmapEmbed = (m) => `https://maps.google.com/maps?q=${encodeURIComponent(m.q)}&t=k&z=${m.exact ? 18 : 13}&hl=${lang}&output=embed`;
+  const gmapEmbed = (m) => `https://maps.google.com/maps?q=${encodeURIComponent(m.q)}&t=k&z=${m.exact ? 19 : 13}&hl=${lang}&output=embed`;
   const gmapLink = (m) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(m.q)}`;
   function cadastreRef(s) {
     for (const b of s.bienes || []) {
@@ -198,8 +209,11 @@
     return "";
   }
   const facadeUrl = (rc) => `https://ovc.catastro.meh.es/OVCServWeb/OVCWcfLibres/OVCFotoFachada.svc/RecuperarFotoFachadaGet?ReferenciaCatastral=${rc}`;
+  // Точное место по координатам Катастро — только в тарифе Про
+  const exact = (s) => (atLeast("pro") && s._pro && s._pro.lat) ? s._pro : null;
   function media(s, big) {
-    const m = mapQuery(s);
+    const ex = exact(s);
+    const m = ex ? { q: `${ex.lat},${ex.lon}`, exact: true } : mapQuery(s);
     const cls = big ? "c-media big" : "c-media";
     const photo = (s.fotos || [])[0];
     const rc = cadastreRef(s);
@@ -367,7 +381,7 @@
         <div class="n-head"><div><h3><a href="#/s/${encodeURIComponent(s.id)}" data-open="${esc(s.id)}">${esc(city === "—" ? what(s) : t("card_title", { what: what(s), city }))}</a></h3>
           <span class="n-sub">${esc([place(s._prov) !== city ? place(s._prov) : "", t("origin_" + s.origen)].filter(Boolean).join(" · "))}${isNew(s) ? ` <span class="tag new">${esc(t("new_badge"))}</span>` : ""}</span></div>
           ${favBtn(s)}</div>
-        ${r.applies ? `<div class="risk">${riskPill(r)}</div>` : ""}
+        ${r.applies ? `<div class="risk">${riskPill(r)}${s._inv && s._inv.valoracion && s._inv.valoracion.descuento > 0 && !done(s) ? `<span class="rp ok">${esc(t("mk_pill", { p: s._inv.valoracion.descuento }))}</span>` : ""}</div>` : ""}
         <div class="n-foot">
           <div class="n-price"><small>${esc(done(s) ? t("value") : t("start_price"))}</small><b>${eur(s.valor_subasta)}</b>${s.deposito && !done(s) ? `<span>${esc(t("deposit_needed", { v: eur(s.deposito) }))}</span>` : ""}</div>
           ${done(s) ? `<div class="n-when n-res"><span>${esc(t("ended_on", { d: day(s.fecha_fin) }))} · ${esc(t("col_bid"))}</span>${resultLine(result(s)) || "—"}</div>`
@@ -384,10 +398,10 @@
       <td>${esc(t("o_" + s.origen))}</td>
       <td class="num"><b>${eur(s.valor_subasta)}</b></td>
       <td class="num">${s.tasacion ? eur(s.tasacion) : "—"}</td>
-      <td class="num">${d ? `<span class="d-good">−${d}%</span>` : "—"}</td>
+      <td class="num">${d ? `<span class="d-good">−${d}%</span>` : "—"}${s._inv && s._inv.valoracion && s._inv.valoracion.descuento != null ? `<small class="mk ${s._inv.valoracion.descuento > 0 ? "d-good" : ""}">${esc(t("mk_short", { p: (s._inv.valoracion.descuento > 0 ? "−" : "+") + Math.abs(s._inv.valoracion.descuento) }))}</small>` : ""}</td>
       ${histView() ? `<td class="num">${resultLine(result(s)) || "—"}</td><td class="num">${day(s.fecha_fin)}</td>`
       : `<td class="num">${eur(s.deposito)}</td><td class="num"><span class="${l.hot ? "hot" : ""}">${esc(l.short)}</span></td>`}
-      <td>${s._risk.applies ? `<span class="risk">${riskPill(s._risk, true)}</span>` : ""}</td>
+      <td>${s._risk.applies ? `<span class="risk">${riskPill(s._risk, true)}</span>` : ""}${s._inv && s._inv.pujas && !done(s) ? `<span class="rp sm ${s._inv.pujas === "con_pujas" ? "warn" : "ok"}">${esc(t("bids_" + s._inv.pujas))}</span>` : ""}</td>
       <td>${favBtn(s)}</td>
     </tr>`;
   }
@@ -399,7 +413,7 @@
       <span class="p-thumb">${ic(s.categoria)}</span>
       <span class="p-mid"><b>${esc(city)}</b><small>${esc(what(s))} · ${esc(t("o_" + s.origen))}</small>
         ${done(s) ? `<small>${esc(t("ended_on", { d: day(s.fecha_fin) }))}</small>` : `<small class="${l.hot ? "hot" : ""}" style="${l.hot ? "color:var(--bad);font-weight:600" : ""}">${esc(t("closes_short", { d: dateFmt(s.fecha_fin) }))} · ${esc(l.short)}${bad ? " · " + esc(t("risk_high")) : ""}</small>`}</span>
-      <span class="p-end"><b>${eur(s.valor_subasta)}</b>${done(s) ? `<small>${esc(t("col_bid"))}: ${esc((result(s) || {}).label || "—")}</small>` : `<small>${esc(t("deposit"))} ${eur(s.deposito)}</small>`}${disc(s) ? `<small style="color:var(--ok);font-weight:700">−${disc(s)}%</small>` : ""}</span>
+      <span class="p-end"><b>${eur(s.valor_subasta)}</b>${done(s) ? `<small>${esc(t("col_bid"))}: ${esc((result(s) || {}).label || "—")}</small>` : `<small>${esc(t("deposit"))} ${eur(s.deposito)}</small>`}${disc(s) ? `<small style="color:var(--ok);font-weight:700">−${disc(s)}%</small>` : ""}${s._inv && s._inv.valoracion && s._inv.valoracion.descuento > 0 ? `<small style="color:var(--ok)">${esc(t("mk_short", { p: "−" + s._inv.valoracion.descuento }))}</small>` : ""}</span>
     </button>`;
   }
 
@@ -509,7 +523,17 @@
     }
     if (s.deposito && !done(s)) checks.push(checkItem("ok", t("chk_deposit", { v: eur(s.deposito), p: depPct(s) != null ? depPct(s) + "%" : "" }), t("chkd_deposit")));
     if (s.origen === "hacienda" && d >= 30 && !done(s)) checks.push(checkItem("n", t("chk_hacienda"), t("chkd_hacienda")));
-    const mq = mapQuery(s) || { q: [city, place(s._prov), "España"].filter(Boolean).join(", ") };
+    const ex = exact(s);
+    const mq = ex ? { q: `${ex.lat},${ex.lon}`, exact: true } : (mapQuery(s) || { q: [city, place(s._prov), "España"].filter(Boolean).join(", ") });
+    const cat = s.catastro, val = s._inv && s._inv.valoracion, pj = s._inv && s._inv.pujas;
+    const facts = cat ? [cat.sup ? t("cat_sup", { v: num(cat.sup) }) : "", cat.anio ? t("cat_year", { v: cat.anio }) : "", cat.uso || ""].filter(Boolean).join(" · ") : "";
+    const valBlock = !done(s) && s.categoria === "vivienda" && cat && cat.sup
+      ? (val ? `<div class="mv"><div><small>${esc(t("mv_title"))}</small><b>≈ ${eur(val.estimado)}</b></div>
+          <p>${esc(t(val.descuento > 0 ? "mv_below" : "mv_above", { p: Math.abs(val.descuento || 0) }))}</p>
+          <p class="fine">${esc(t("mv_how", { m2: eur(val.eur_m2), sup: num(val.sup), where: val.nivel === "municipio" ? city : place(s._prov), per: val.periodo || "" }))}</p></div>`
+        : !atLeast("inversor") ? `<div class="mv locked"><div><small>${esc(t("mv_title"))}</small><b>${ic("lock")} ${esc(t("tier_inversor"))}</b></div><p>${esc(t("mv_locked"))}</p></div>` : "")
+      : "";
+    const bidsLine = !done(s) && s.estado === "activa" ? (pj ? `<span class="rp ${pj === "con_pujas" ? "warn" : "ok"}">${esc(t("bids_" + pj))}</span>` : (!atLeast("inversor") ? `<span class="rp">${ic("lock")} ${esc(t("bids_locked"))}</span>` : "")) : "";
     const assets = (s.bienes || []).map((a) => {
       const row = (k, v) => v ? `<dt>${esc(t(k))}</dt><dd>${esc(v)}</dd>` : "";
       const rc = String(a.ref_catastral || "").replace(/\s/g, "");
@@ -529,11 +553,15 @@
         ${done(s) ? `<div class="${(result(s) || {}).tone === "ok" ? "good" : ""}"><small>${esc(t("col_bid"))}</small><b>${esc((result(s) || {}).label || "—")}</b></div>`
         : d ? `<div class="good"><small>${esc(t("col_disc"))}</small><b>−${d}%</b></div>` : `<div><small>${esc(t("min_bid"))}</small><b>${s.puja_minima != null ? eur(s.puja_minima) : esc(t("no_min"))}</b></div>`}
       </div>
+      ${facts || bidsLine ? `<p class="cat-facts">${facts ? `<span>${esc(facts)}</span>` : ""}${bidsLine}</p>` : ""}
+      ${ex && ex.dir ? `<p class="fine ex-dir">${ic("door")} ${esc(ex.dir)}</p>` : ""}
+      ${valBlock}
       ${checks.length ? `<h3>${esc(t("before_bid"))}</h3><ul class="chk">${checks.join("")}</ul>` : ""}
       ${done(s) && result(s) && result(s).pct ? `<p class="muted" style="margin:0 0 14px">${esc(t("hist_explain", { p: result(s).pct, v: eur(s.valor_subasta) }))}</p>` : ""}
       <div class="dv-cta"><div><small>${esc(done(s) ? t("ended_on", { d: dateFmt(s.fecha_fin, true) }) : t("closes_on", { d: dateFmt(s.fecha_fin, true) }))}</small><b class="${l.hot ? "hot" : ""}">${esc(done(s) ? t("s_" + s.estado) : l.long)}</b></div>
         <a class="btn" href="${esc(s.url)}" target="_blank" rel="noopener">${esc(t("open_boe"))} ${ic("ext")}</a></div>
-      <div class="dv-more">${NO_MAP.includes(s.categoria) ? "" : `<a class="btn ghost" href="${esc(gmapLink(mq))}" target="_blank" rel="noopener">${esc(t("open_map"))} ${ic("ext")}</a>`}
+      <div class="dv-more">${NO_MAP.includes(s.categoria) ? "" : `<a class="btn ghost" href="${esc(gmapLink(mq))}" target="_blank" rel="noopener">${esc(t(ex ? "open_map_exact" : "open_map"))} ${ic("ext")}</a>`}
+        ${ex && ex.mapa ? `<a class="btn ghost" href="${esc(ex.mapa)}" target="_blank" rel="noopener">${esc(t("open_cat_map"))} ${ic("ext")}</a>` : ""}
         ${(s.documentos || []).slice(0, 6).map((d, i) => { const u = typeof d === "string" ? d : d.url; const n = typeof d === "string" ? `${t("doc")} ${i + 1}` : sentence(d.nombre); return `<a class="btn ghost" href="${esc(u)}" target="_blank" rel="noopener">${ic("file")} ${esc(n.length > 42 ? n.slice(0, 40) + "…" : n)}</a>`; }).join("")}</div>
       ${s.docs_login ? `<p class="fine" style="margin:8px 0 0">${esc(t("docs_login"))}</p>` : ""}
       <details><summary>${esc(t("d_all"))}</summary>
@@ -591,6 +619,12 @@
     const st = Object.assign({}, state, { prov: "" });
     const c = count((s) => (matches(s, st) ? s._prov : null));
     const max = Math.max(1, ...Object.values(c));
+    if (mode === "pro" && atLeast("pro")) {
+      current.filter((s) => s._pro && s._pro.lat).slice(0, 600).forEach((s) => {
+        L.circleMarker([s._pro.lat, s._pro.lon], { radius: 4, color: "#D24A0D", weight: 1, fillColor: "#D24A0D", fillOpacity: .9 })
+          .bindTooltip(`${what(s)} · ${place(s.localidad) || ""} · ${eur(s.valor_subasta)}`).on("click", () => openDetail(s.id)).addTo(mapLayer);
+      });
+    }
     Object.entries(c).forEach(([p, n]) => {
       const ll = PROVINCES[p]; if (!ll) return;
       const sel = state.prov === p;
@@ -956,7 +990,11 @@
   async function loadData() {
     meta = await fetch("data/meta.json", { cache: "no-cache" }).then((r) => r.json()).catch(() => ({}));
     try {
-      if (AUTH.enabled) { all = await AUTH.loadSubastas(); isDemo = false; }
+      if (AUTH.enabled) {
+        all = await AUTH.loadSubastas(); isDemo = false;
+        const ex = await AUTH.loadExtra().catch(() => ({}));
+        all.forEach((s) => { const e = ex[s.id]; if (e) { s._inv = e.inversor; s._pro = e.pro; } });
+      }
       // база ещё пустая (первый запуск) — показываем открытый файл, если он есть
       if (!AUTH.enabled || !all.length) {
         const d = await fetch("data/subastas.json", { cache: "no-cache" }).then((r) => r.json());

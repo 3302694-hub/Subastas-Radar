@@ -142,5 +142,20 @@
     }
   };
 
+  // Данные по тарифам (оценка рынка, ставки, точное место) — сервер отдаёт только то, что разрешено тарифу
+  A.loadExtra = async function () {
+    if (!enabled || !A.session) return {};
+    const out = {};
+    let from = 0;
+    const PAGE = 1000;
+    for (;;) {
+      const { data, error } = await client.from("subastas_extra").select("id,nivel,data").order("id").range(from, from + PAGE - 1);
+      if (error) { console.error("extra", error); return out; }
+      data.forEach((r) => { (out[r.id] = out[r.id] || {})[r.nivel] = r.data; });
+      if (data.length < PAGE) return out;
+      from += PAGE;
+    }
+  };
+
   window.Auth = A;
 })();

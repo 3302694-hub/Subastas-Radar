@@ -34,6 +34,7 @@ from xml.sax.saxutils import escape
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import boe  # noqa: E402
 from store import SupabaseStore  # noqa: E402
+import enrich as enrich_mod  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 SITE = ROOT / "site"
@@ -473,6 +474,11 @@ def main() -> int:
             log(f"  загружено {n}/{len(new)}")
 
     backfill(fetcher, db, int(os.environ.get("BACKFILL", "300")), 20 * 60)
+    try:
+        prices = enrich_mod.load_prices(SITE / "data" / "precios_m2.json")
+        enrich_mod.enrich(fetcher, db, prices, float(os.environ.get("ENRICH_MIN", "15")) * 60, log)
+    except Exception as e:  # noqa: BLE001 — обогащение не должно ломать основной сбор
+        log(f"обогащение: ошибка {e!r}")
     before = set(db)
     refresh_states(db, now)
     prune(db, now)

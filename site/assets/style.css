@@ -432,3 +432,16 @@ td .res+small,.n-res small{display:block;font-size:12px;color:var(--muted);font-
 .user-menu a:hover{background:var(--surf);color:var(--ink)}
 
 .gsi-btn{display:flex;justify-content:center;min-height:44px}
+
+/* оценка рынка и данные Катастро */
+.cat-facts{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0 0 12px;font-size:14px;color:var(--ink-2)}
+.mv{border:1px solid var(--line);border-radius:var(--r-s);padding:12px 14px;margin:0 0 16px}
+.mv>div{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.mv small{color:var(--muted);font-size:13px}
+.mv b{font-size:20px}
+.mv p{margin:6px 0 0}
+.mv.locked b{font-size:15px;color:var(--muted);display:inline-flex;gap:6px;align-items:center}
+.mv.locked b svg,.rp svg{width:14px;height:14px}
+td small.mk{display:block;font-size:12px;color:var(--muted)}
+.ex-dir{display:flex;align-items:center;gap:6px;margin:0 0 12px}
+.ex-dir svg{width:16px;height:16px;flex:none}

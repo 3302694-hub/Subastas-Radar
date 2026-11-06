@@ -15,10 +15,14 @@ BATCH = 200
 
 
 class SupabaseStore:
-    def __init__(self, url: str, service_key: str, table: str = "subastas"):
+    # Поля по тарифам хранятся отдельно (таблица subastas_extra, свои правила доступа)
+    EXTRA = {"_inv": "inversor", "_pro": "pro"}
+
+    def __init__(self, url: str, service_key: str, table: str = "subastas", extra_table: str = "subastas_extra"):
         self.base = url.rstrip("/") + "/rest/v1/"
         self.key = service_key
         self.table = table
+        self.extra = extra_table
 
     def _req(self, method: str, path: str, body=None, headers: dict | None = None):
         h = {
@@ -47,6 +51,20 @@ class SupabaseStore:
             for r in rows or []:
                 out[r["id"]] = r["data"]
             if not rows or len(rows) < PAGE:
+                break
+            start += PAGE
+        back = {v: k for k, v in self.EXTRA.items()}
+        start = 0
+        while True:
+            try:
+                rows = self._req("GET", f"{self.extra}?select=id,nivel,data&order=id,nivel",
+                                 headers={"Range-Unit": "items", "Range": f"{start}-{start + PAGE - 1}"})
+            except RuntimeError:
+                break   # таблицы ещё нет — не страшно
+            for r in rows or []:
+                if r["id"] in out and r["nivel"] in back:
+                    out[r["id"]][back[r["nivel"]]] = r["data"]
+            if not rows or len(rows) < PAGE:
                 return out
             start += PAGE
 
@@ -54,7 +72,7 @@ class SupabaseStore:
         now = datetime.now(timezone.utc).isoformat()
         rows = [{
             "id": s["id"],
-            "data": s,
+            "data": {k: v for k, v in s.items() if k not in self.EXTRA},
             "estado": s.get("estado"),
             "detectada": s.get("detectada"),
             "fecha_fin": s.get("fecha_fin"),
@@ -63,6 +81,11 @@ class SupabaseStore:
         } for s in records]
         for i in range(0, len(rows), BATCH):
             self._req("POST", f"{self.table}?on_conflict=id", rows[i:i + BATCH],
+                      headers={"Prefer": "resolution=merge-duplicates,return=minimal"})
+        extra = [{"id": s["id"], "nivel": nivel, "data": s[key], "updated_at": now}
+                 for s in records for key, nivel in self.EXTRA.items() if s.get(key)]
+        for i in range(0, len(extra), BATCH):
+            self._req("POST", f"{self.extra}?on_conflict=id,nivel", extra[i:i + BATCH],
                       headers={"Prefer": "resolution=merge-duplicates,return=minimal"})
 
     def delete(self, ids: list[str]) -> None:
