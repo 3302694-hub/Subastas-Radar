@@ -51,9 +51,14 @@ create table if not exists public.profiles (
   duplicate_of        uuid,             -- с каким аккаунтом совпал
   device_checked      boolean default false,
   note                text,             -- ваша заметка
+  view_mode           text default 'novato',                       -- novato | inversor | pro
+  allowed_modes       text[] default array['novato','inversor','pro'],  -- какие режимы доступны (тариф)
   created_at          timestamptz default now(),
   last_seen           timestamptz
 );
+-- для баз, созданных предыдущей версией схемы
+alter table public.profiles add column if not exists view_mode text default 'novato';
+alter table public.profiles add column if not exists allowed_modes text[] default array['novato','inversor','pro'];
 create index if not exists profiles_email_norm_idx on public.profiles (email_norm);
 
 -- ---------- Устройства (для поиска повторных регистраций)
@@ -209,8 +214,26 @@ begin
     'access_until', prof.access_until,
     'trusted', public.is_trusted(),
     'has_access', public.has_access(),
-    'reason', prof.trial_denied_reason);
+    'reason', prof.trial_denied_reason,
+    'view_mode', prof.view_mode,
+    'allowed_modes', prof.allowed_modes);
 end $$;
+
+-- Пользователь выбирает режим отображения (только из разрешённых ему)
+create or replace function public.set_view_mode(p_mode text)
+returns json language plpgsql security definer set search_path = public as $$
+declare prof public.profiles;
+begin
+  if auth.uid() is null then raise exception 'not authenticated'; end if;
+  if p_mode not in ('novato', 'inversor', 'pro') then raise exception 'unknown mode %', p_mode; end if;
+  select * into prof from public.profiles where id = auth.uid();
+  if not (public.is_trusted() or p_mode = any (coalesce(prof.allowed_modes, array['novato']))) then
+    raise exception 'mode % not allowed', p_mode using errcode = '42501';
+  end if;
+  update public.profiles set view_mode = p_mode where id = auth.uid();
+  return json_build_object('view_mode', p_mode);
+end $$;
+grant execute on function public.set_view_mode(text) to authenticated;
 
 grant execute on function public.register_device(text, text) to authenticated;
 grant execute on function public.has_access() to anon, authenticated;
@@ -246,7 +269,7 @@ using (
 --  Удобные представления для администратора (видны только в панели)
 -- =====================================================================
 create or replace view public.admin_users with (security_invoker = true) as
-select p.email, p.provider, p.access_until, p.trial_granted, p.trial_denied_reason,
+select p.email, p.provider, p.access_until, p.view_mode, p.allowed_modes, p.trial_granted, p.trial_denied_reason,
        d.email as duplicate_of_email, p.created_at, p.last_seen, p.note, p.id
 from public.profiles p
 left join public.profiles d on d.id = p.duplicate_of

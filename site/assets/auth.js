@@ -66,6 +66,14 @@
   A.hasAccess = () => !enabled || !!(A.status && A.status.has_access);
   A.user = () => (A.session && A.session.user) || null;
   A.on = (fn) => A._subs.push(fn);
+  // Режим отображения хранится в профиле (Новичок / Инвестор / Про)
+  A.setViewMode = async (m) => {
+    if (!enabled || !A.session) return null;
+    const { data, error } = await A.client.rpc("set_view_mode", { p_mode: m });
+    if (error) throw error;
+    if (A.status) A.status.view_mode = m;
+    return data;
+  };
   function emit(type) { A._subs.forEach((fn) => { try { fn(type); } catch (e) { console.error(e); } }); }
 
   A.refreshStatus = async function () {

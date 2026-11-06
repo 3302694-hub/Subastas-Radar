@@ -1,17 +1,18 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-mode="novato">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SubastaRadar — subastas públicas en España</title>
-<meta name="description" content="Subastas judiciales, notariales y de Hacienda del Portal de Subastas del BOE, actualizadas automáticamente varias veces al día.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%229%22 fill=%22%232546F0%22/%3E%3Cpath d=%22M8 22a8 8 0 0116 0M12 22a4 4 0 018 0M16 22l5-7%22 stroke=%22white%22 stroke-width=%222.4%22 fill=%22none%22 stroke-linecap=%22round%22/%3E%3C/svg%3E">
+<meta name="description" content="Subastas judiciales, notariales y de Hacienda del Portal de Subastas del BOE, con cargas, ocupación y depósito explicados. Actualizado varias veces al día.">
+<meta name="theme-color" content="#0B6B66">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%230B6B66%22/%3E%3Cpath d=%22M8 22a8 8 0 0116 0M12 22a4 4 0 018 0M16 22l5-7%22 stroke=%22white%22 stroke-width=%222.4%22 fill=%22none%22 stroke-linecap=%22round%22/%3E%3C/svg%3E">
 <link rel="alternate" type="application/rss+xml" title="SubastaRadar" href="feed.xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
-<link rel="stylesheet" href="assets/style.css?v=20261106b">
+<link rel="stylesheet" href="assets/style.css?v=20261106d">
 </head>
 <body>
 <a class="skip" href="#catalogo" data-i="skip"></a>
@@ -19,28 +20,30 @@
 <header class="top">
   <div class="wrap top-in">
     <a class="brand" href="#" data-nav="list">
-      <span class="brand-mark" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 18a8 8 0 0116 0"/><path d="M8 18a4 4 0 018 0"/><path d="M12 18l5-7"/></svg>
-      </span>
+      <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 18a8 8 0 0116 0"/><path d="M8 18a4 4 0 018 0"/><path d="M12 18l5-7"/></svg></span>
       <span id="brandName">SubastaRadar</span>
     </a>
-    <nav class="nav" aria-label="menu">
+    <nav class="nav" aria-label="principal">
       <a href="#catalogo" data-nav="list" data-i="nav_list"></a>
-      <a href="#mapa" data-nav="map" data-i="nav_map"></a>
-      <a href="#alertas" data-nav="alerts" data-i="nav_alerts"></a>
+      <a href="#mapSec" data-nav="map" data-i="nav_map"></a>
       <a href="#catalogo" data-nav="saved"><span data-i="nav_saved"></span> <span class="pill" id="favCount">0</span></a>
+      <a href="#alertas" data-nav="alerts" data-i="nav_alerts"></a>
     </nav>
-    <div class="lang" role="group" aria-label="Language">
+    <div class="modes" role="group" id="modeSwitch" data-i-aria="mode_label">
+      <button data-mode="novato" data-i="mode_novato"></button><button data-mode="inversor" data-i="mode_inversor"></button><button data-mode="pro" data-i="mode_pro"></button>
+    </div>
+    <div class="lang" role="group" aria-label="Idioma / Language">
       <button data-lang="es" lang="es">ES</button><button data-lang="en" lang="en">EN</button><button data-lang="ru" lang="ru">RU</button>
     </div>
-    <div class="account" id="account">
+    <div class="account" id="account" hidden>
       <button class="link-btn" id="loginBtn" data-i="login" hidden></button>
       <button class="btn" id="signupTop" data-i="cta_start" hidden></button>
       <div class="user-chip" id="userChip" hidden>
-        <button class="user-btn" id="userBtn" aria-haspopup="true"><span id="userEmail"></span><small id="userAccess"></small></button>
+        <button class="user-btn" id="userBtn" aria-haspopup="true" aria-expanded="false"><span id="userEmail"></span><small id="userAccess"></small></button>
         <div class="user-menu" id="userMenu" hidden><button id="logoutBtn" data-i="logout"></button></div>
       </div>
     </div>
+    <button class="icon-btn settings-btn" id="settingsBtn" data-i-aria="settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg></button>
   </div>
 </header>
 
@@ -48,108 +51,120 @@
 <div id="savedNotice" class="banner dark" hidden><div class="wrap"></div></div>
 <div id="lockBanner" class="banner accent" hidden><div class="wrap banner-in"><span id="lockText"></span><button class="btn white" id="lockBtn"></button></div></div>
 
-<main>
-  <!-- Поиск-фраза -->
-  <section class="wrap hero-wrap">
-    <div class="hero">
-      <div class="hero-meta">
-        <p class="hero-kicker" id="heroKicker"></p>
-        <dl class="hero-stats">
-          <div><dd id="stActive">—</dd><dt data-i="stat_active"></dt></div>
-          <div><dd id="stNew">—</dd><dt data-i="stat_new24"></dt></div>
-          <div><dt data-i="stat_updated"></dt><dd id="stUpdated">—</dd></div>
-        </dl>
-      </div>
-      <div class="hero-row">
-        <h1 class="sentence">
-          <span data-i="s_busco"></span>
-          <label class="pick"><span class="sr" data-i="f_category"></span><select id="fCat"></select></label>
-          <span data-i="s_en"></span>
-          <label class="pick"><span class="sr" data-i="f_province"></span><select id="fProv"></select></label>
-          <span data-i="s_hasta"></span>
-          <label class="pick"><span class="sr" data-i="f_price"></span><select id="fPrice"></select></label>
-        </h1>
-        <a class="btn" href="#catalogo" id="heroGo"></a>
-      </div>
-      <span id="heroUpdated" hidden></span>
-    </div>
-  </section>
-
-  <!-- По типу -->
-  <section class="wrap block">
-    <h2 data-i="by_type"></h2>
-    <div class="tiles" id="tiles"></div>
-  </section>
-
-  <!-- Скоро закрываются -->
-  <section class="wrap block" id="soonBlock">
-    <div class="block-head"><h2 data-i="closing_soon"></h2><a href="#catalogo" class="more-link" id="soonAll"></a></div>
-    <div class="cards cards-4" id="soon"></div>
-  </section>
-
-  <!-- Каталог -->
-  <section class="wrap block results" id="catalogo">
-    <div class="block-head"><h2 data-i="all_auctions"></h2><p class="muted"><b id="resCount">0</b> <span data-i="results"></span></p></div>
-    <div class="filters" id="filters">
-      <label class="f-search"><span class="sr" data-i="search_ph"></span>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
-        <input id="q" type="search" data-i-ph="search_ph" autocomplete="off">
-      </label>
-      <div class="chips" id="fOrigin" role="group"></div>
-      <div class="f-row">
-        <label><span data-i="f_status"></span><select id="fStatus"></select></label>
-        <label><span data-i="f_fresh"></span><select id="fFresh"></select></label>
-        <label class="f-range"><span data-i="f_price"></span>
-          <span class="range"><input id="pMin" type="number" min="0" step="1000" inputmode="numeric"><i>—</i><input id="pMax" type="number" min="0" step="1000" inputmode="numeric"></span>
+<main id="main">
+  <!-- Поиск и фильтры: один источник правды для всех режимов -->
+  <section class="searchbar" role="search" aria-labelledby="resTitle">
+    <div class="wrap sb-in">
+      <div class="segs" id="segs" role="group"></div>
+      <div class="sb-row">
+        <label class="f-search"><span class="sr" data-i="search_label"></span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+          <input id="q" type="search" data-i-ph="search_ph" autocomplete="off" enterkeyhint="search">
+          <kbd class="kbd-hint" aria-hidden="true">/</kbd>
         </label>
-        <label><span data-i="f_sort"></span><select id="sort"></select></label>
-        <div class="f-actions">
+        <label class="f-sel f-cat"><span data-i="f_category"></span><select id="fCat"></select></label>
+        <label class="f-sel"><span data-i="f_province"></span><select id="fProv"></select></label>
+        <label class="f-sel"><span data-i="f_price_max"></span><select id="fPrice"></select></label>
+        <button class="btn soft more-f" id="moreFilters" aria-expanded="false" aria-controls="adv"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg><span data-i="more_filters"></span><span class="pill" id="advCount" hidden>0</span></button>
+      </div>
+      <div class="adv" id="adv" hidden>
+        <fieldset><legend data-i="f_origin"></legend><div class="chips" id="fOrigin"></div></fieldset>
+        <label class="f-sel"><span data-i="f_status"></span><select id="fStatus"></select></label>
+        <label class="f-sel"><span data-i="f_fresh"></span><select id="fFresh"></select></label>
+        <fieldset class="f-range"><legend data-i="f_price"></legend>
+          <span class="range"><label><span class="sr" data-i="f_min"></span><input id="pMin" type="number" min="0" step="1000" inputmode="numeric"></label><i aria-hidden="true">—</i><label><span class="sr" data-i="f_max"></span><input id="pMax" type="number" min="0" step="1000" inputmode="numeric"></label></span>
+          <span class="f-err" id="rangeErr" role="alert" hidden></span>
+        </fieldset>
+        <label class="f-check"><input type="checkbox" id="fRisk"><span data-i="f_norisk"></span></label>
+      </div>
+      <div class="sb-foot">
+        <h1 id="resTitle" class="res-title"></h1>
+        <p class="res-count" aria-live="polite"><span id="resCount"></span></p>
+        <div class="active" id="active" aria-label="filtros activos"></div>
+        <div class="sb-tools">
+          <label class="sort"><span data-i="f_sort"></span><select id="sort"></select></label>
           <button id="saveSearch" class="btn soft" data-i="save_search"></button>
-          <button id="reset" class="link-btn" data-i="reset"></button>
         </div>
       </div>
     </div>
-    <div id="list" class="cards"></div>
-    <div class="more-row"><button id="more" class="btn soft" data-i="more" hidden></button></div>
   </section>
 
-  <!-- Карта -->
-  <section class="wrap block" id="mapa">
+  <!-- Каталог: разметка зависит от режима -->
+  <section class="wrap catalog" id="catalogo" tabindex="-1">
+    <div class="cat-main" id="catMain">
+      <div class="pro-map" id="proMap" hidden></div>
+      <div class="results" id="results">
+        <div id="list"></div>
+        <div class="more-row"><button id="more" class="btn soft" data-i="more" hidden></button></div>
+      </div>
+    </div>
+    <aside class="cat-side" id="catSide">
+      <div class="panel" id="panel" hidden></div>
+      <div class="guide" id="guide">
+        <h2 data-i="guide_title"></h2>
+        <ul>
+          <li><b data-i="g1_t"></b><span data-i="g1_d"></span></li>
+          <li><b data-i="g2_t"></b><span data-i="g2_d"></span></li>
+          <li><b data-i="g3_t"></b><span data-i="g3_d"></span></li>
+          <li><b data-i="g4_t"></b><span data-i="g4_d"></span></li>
+        </ul>
+        <p class="fine" id="guideTrial"></p>
+      </div>
+    </aside>
+  </section>
+
+  <!-- Карта (в режимах Новичок и Инвестор — отдельный блок; в Про — главная часть) -->
+  <section class="wrap block" id="mapSec">
     <div class="block-head"><h2 data-i="map_title"></h2><p class="muted" data-i="map_hint"></p></div>
-    <div class="map-wrap">
-      <div id="map"></div>
+    <div class="map-wrap" id="mapWrap">
+      <div id="map" role="region" data-i-aria="map_title"><p class="map-off" data-i="map_off"></p></div>
       <div class="prov-list" id="provList"></div>
     </div>
   </section>
 
-  <!-- Как это работает -->
-  <section class="wrap block">
-    <h2 data-i="how_title"></h2>
-    <div class="steps">
-      <div class="step"><b>01</b><h3 data-i="how1_t"></h3><p id="how1d"></p></div>
-      <div class="step"><b>02</b><h3 data-i="how2_t"></h3><p data-i="how2_d"></p></div>
-      <div class="step"><b>03</b><h3 data-i="how3_t"></h3><p data-i="how3_d"></p></div>
-    </div>
-  </section>
-
-  <!-- Уведомления -->
+  <!-- Уведомления и сохранённые поиски -->
   <section class="wrap block" id="alertas">
     <h2 data-i="alerts_title"></h2>
-    <div class="alert-cards">
-      <a class="acard" id="rssLink" href="feed.xml"><b data-i="alerts_rss"></b><span data-i="alerts_rss_d"></span><em data-i="subscribe"></em></a>
-      <a class="acard" id="tgLink" href="#" target="_blank" rel="noopener" hidden><b data-i="alerts_tg"></b><span data-i="alerts_tg_d"></span><em data-i="subscribe"></em></a>
-      <div class="acard"><b data-i="alerts_saved"></b><span data-i="alerts_saved_d"></span></div>
+    <div class="alert-grid">
+      <div class="acard">
+        <h3 data-i="alerts_saved"></h3>
+        <p data-i="alerts_saved_d"></p>
+        <ul class="saved-list" id="savedList"></ul>
+      </div>
+      <a class="acard" id="rssLink" href="feed.xml"><h3 data-i="alerts_rss"></h3><p data-i="alerts_rss_d"></p><em data-i="subscribe"></em></a>
+      <a class="acard" id="tgLink" href="#" target="_blank" rel="noopener" hidden><h3 data-i="alerts_tg"></h3><p data-i="alerts_tg_d"></p><em data-i="subscribe"></em></a>
     </div>
   </section>
 </main>
 
-<footer class="foot"><div class="wrap foot-in"><p data-i="footer_src"></p><p data-i="footer_ind"></p></div></footer>
+<footer class="foot"><div class="wrap foot-in"><p data-i="footer_src"></p><p data-i="footer_ind"></p><p class="kbd-help" data-i="kbd_help"></p></div></footer>
 
-<dialog id="detail" class="dlg"><div id="detailBody"></div></dialog>
+<!-- Нижняя панель на телефоне -->
+<nav class="tabbar" id="tabbar" aria-label="móvil">
+  <a href="#main" data-tab="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span data-i="tab_search"></span></a>
+  <a href="#mapSec" data-tab="map"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg><span data-i="nav_map"></span></a>
+  <a href="#catalogo" data-tab="saved"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z"/></svg><span data-i="nav_saved"></span><b class="tab-badge" id="favCountTab" hidden>0</b></a>
+  <a href="#alertas" data-tab="alerts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16V11a6 6 0 0112 0v5l2 2H4z"/><path d="M10 20a2 2 0 004 0"/></svg><span data-i="nav_alerts"></span></a>
+  <button data-tab="settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 0"/></svg><span data-i="tab_me"></span></button>
+</nav>
 
-<dialog id="authDlg" class="dlg auth">
+<dialog id="detail" class="dlg detail" aria-labelledby="dTitle"><div id="detailBody"></div></dialog>
+
+<dialog id="settingsDlg" class="dlg settings" aria-labelledby="setTitle">
+  <div class="d-head"><button class="d-close" data-close data-i-aria="close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button><h2 id="setTitle" data-i="settings"></h2></div>
+  <div class="d-body">
+    <h3 data-i="mode_label"></h3>
+    <div class="mode-cards" id="modeCards" role="radiogroup"></div>
+    <p class="fine" id="modeNote" hidden></p>
+    <h3 data-i="language"></h3>
+    <div class="lang lang-big" role="group" aria-label="Idioma / Language"><button data-lang="es" lang="es">Español</button><button data-lang="en" lang="en">English</button><button data-lang="ru" lang="ru">Русский</button></div>
+    <div class="set-account" id="setAccount"></div>
+  </div>
+</dialog>
+
+<dialog id="authDlg" class="dlg auth" aria-labelledby="authLead">
   <div class="d-head">
-    <button class="d-close" data-close aria-label="×">×</button>
+    <button class="d-close" data-close data-i-aria="close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     <div class="tabs" id="authTabs">
       <button data-mode="signup" data-i="signup"></button>
       <button data-mode="login" data-i="login"></button>
@@ -158,7 +173,7 @@
   </div>
   <div class="d-body">
     <div class="oauth" id="oauthBox">
-      <button class="btn oauth-btn" data-provider="google"><span class="o-ic">G</span><span data-i="with_google"></span></button>
+      <button class="btn oauth-btn" data-provider="google"><span class="o-ic" aria-hidden="true">G</span><span data-i="with_google"></span></button>
       <button class="btn oauth-btn" data-provider="apple"><span data-i="with_apple"></span></button>
       <div class="or"><span data-i="or"></span></div>
     </div>
@@ -168,17 +183,17 @@
       <button class="btn big" type="submit" id="authSubmit"></button>
       <button class="link-btn" type="button" id="forgotBtn" data-i="forgot"></button>
     </form>
-    <p class="auth-msg" id="authMsg" hidden></p>
+    <p class="auth-msg" id="authMsg" role="status" hidden></p>
     <p class="fine" data-i="device_note"></p>
   </div>
 </dialog>
 
-<script src="config.js?v=20261106b"></script>
+<script src="config.js?v=20261106d"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/i18n.js?v=20261106b"></script>
-<script src="assets/provinces.js?v=20261106b"></script>
+<script src="assets/i18n.js?v=20261106d"></script>
+<script src="assets/provinces.js?v=20261106d"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-<script src="assets/auth.js?v=20261106b"></script>
-<script src="assets/app.js?v=20261106b"></script>
+<script src="assets/auth.js?v=20261106d"></script>
+<script src="assets/app.js?v=20261106d"></script>
 </body>
 </html>

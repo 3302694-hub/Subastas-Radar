@@ -5,24 +5,44 @@
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   const store = {
     get(k, d) { try { const v = localStorage.getItem("sr_" + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
-    set(k, v) { try { localStorage.setItem("sr_" + k, JSON.stringify(v)); } catch (e) { /* ignore */ } }
+    set(k, v) { try { localStorage.setItem("sr_" + k, JSON.stringify(v)); } catch (e) { /* хранилище недоступно */ } }
   };
 
   const ORIGINS = ["judicial", "notarial", "hacienda", "seguridad_social", "administracion"];
   const CATS = ["vivienda", "garaje", "trastero", "local", "nave", "solar", "rustica", "vehiculo", "embarcacion", "joyas_arte", "maquinaria", "derechos", "otros"];
+  // Группы для режима «Новичок»
+  const GROUPS = [
+    { id: "vivienda", cats: ["vivienda"], icon: "vivienda" },
+    { id: "g_garaje", cats: ["garaje", "trastero"], icon: "garaje" },
+    { id: "g_local", cats: ["local", "nave"], icon: "local" },
+    { id: "g_terreno", cats: ["solar", "rustica"], icon: "rustica" },
+    { id: "g_otros", cats: ["vehiculo", "embarcacion", "joyas_arte", "maquinaria", "derechos", "otros"], icon: "otros" }
+  ];
   const STATUSES = ["open", "activa", "proxima", "finalizada", "all"];
+  const MODES = ["novato", "inversor", "pro"];
+  const PRICES = [25000, 50000, 100000, 150000, 250000, 500000, 1000000];
+  const DEFAULTS = { q: "", origin: [], cat: "", prov: "", status: "open", min: "", max: "", fresh: "", sort: "end", norisk: "" };
 
   const LANGS = ["es", "en", "ru"];
   const browserLang = ((navigator.language || "").slice(0, 2) || "").toLowerCase();
   let lang = store.get("lang", null) || (LANGS.includes(browserLang) ? browserLang : (CFG.defaultLang || "es"));
   if (!LANGS.includes(lang)) lang = "es";
-  let all = [], meta = {}, isDemo = false;
+
+  let mode = store.get("mode", null) || CFG.defaultMode || "novato";
+  if (!MODES.includes(mode)) mode = "novato";
+
+  let all = [], meta = {}, isDemo = false, newShare = 0;
   let shown = CFG.pageSize || 24;
   let favs = new Set(store.get("favs", []));
   let onlyFavs = false;
+  let selected = null;           // выбранный аукцион (таблица / список Про)
+  let current = [];              // текущий отфильтрованный список
   let map, mapLayer;
+  const state = Object.assign({}, DEFAULTS, { origin: [] });
 
-  const state = { q: "", origin: [], cat: "", prov: "", status: "open", min: "", max: "", fresh: "", sort: "new" };
+  const AUTH = window.Auth || { enabled: false, hasAccess: () => true, user: () => null };
+  const narrow = () => window.matchMedia("(max-width:760px)").matches;
+  const locked = () => AUTH.enabled && !AUTH.hasAccess();
 
   // ---------- i18n
   const t = (k, vars) => {
@@ -30,46 +50,30 @@
     if (vars) Object.keys(vars).forEach((n) => { v = v.split("{" + n + "}").join(vars[n]); });
     return v;
   };
-  const AUTH = window.Auth || { enabled: false, hasAccess: () => true };
-  const locked = () => AUTH.enabled && !AUTH.hasAccess();
-  function applyI18n() {
-    document.documentElement.lang = lang;
-    $$("[data-i]").forEach((el) => (el.textContent = t(el.dataset.i)));
-    $$("[data-i-ph]").forEach((el) => (el.placeholder = t(el.dataset.iPh)));
-    $$(".lang button").forEach((b) => b.classList.toggle("on", b.dataset.lang === lang));
-    $("#pMin").placeholder = t("f_min"); $("#pMax").placeholder = t("f_max");
-    buildControls();
-    render();
-    renderAccount();
-  }
-
-  // ---------- formatting
   const locale = () => ({ ru: "ru-RU", en: "en-GB", es: "es-ES" }[lang] || "es-ES");
+  const num = (v) => Number(v).toLocaleString(locale());
   const eur = (v) => v == null ? "—" : new Intl.NumberFormat(locale(), { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(v);
-  const dateFmt = (iso) => { if (!iso) return "—"; const d = new Date(iso); return isNaN(d) ? iso : d.toLocaleString(locale(), { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }); };
+  const dateFmt = (iso, withYear) => {
+    if (!iso) return "—";
+    const d = new Date(iso);
+    return isNaN(d) ? iso : d.toLocaleString(locale(), { day: "numeric", month: "short", ...(withYear ? { year: "numeric" } : {}), hour: "2-digit", minute: "2-digit" });
+  };
+  const day = (d) => { if (!d) return "—"; const x = new Date(d + (String(d).length === 10 ? "T12:00:00" : "")); return isNaN(x) ? d : x.toLocaleDateString(locale(), { day: "2-digit", month: "2-digit", year: "numeric" }); };
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const sentence = (s) => { s = String(s || ""); if (s !== s.toUpperCase()) return s; s = s.toLowerCase(); return s.charAt(0).toUpperCase() + s.slice(1); };
-  const title = (s) => (s || "").toLowerCase().replace(/(^|[\s/(-])\S/g, (m) => m.toUpperCase());
-  function timeLeft(s) {
-    const now = Date.now();
-    const start = s.fecha_inicio ? new Date(s.fecha_inicio).getTime() : null;
-    const end = s.fecha_fin ? new Date(s.fecha_fin).getTime() : null;
-    let label, target;
-    if (start && start > now) { label = t("starts"); target = start; }
-    else if (end && end > now) { label = t("ends"); target = end; }
-    else if (end) return `${t("ended")} ${dateFmt(s.fecha_fin)}`;
-    else return "";
-    let ms = target - now;
-    const d = Math.floor(ms / 864e5); ms -= d * 864e5;
-    const h = Math.floor(ms / 36e5); ms -= h * 36e5;
-    const m = Math.floor(ms / 6e4);
-    const txt = d > 0 ? `${d} ${t("left_d")} ${h} ${t("left_h")}` : `${h} ${t("left_h")} ${m} ${t("left_m")}`;
-    return `${label}: ${txt}`;
+  // Названия мест: исправляем битую кодировку BOE и испанские/каталанские служебные слова
+  const LOWER = new Set(["de", "del", "la", "las", "los", "el", "y", "i", "en", "les", "dels", "da", "do"]);
+  function place(s) {
+    s = String(s || "").replace(/\b([LD])\s?¿\s?/g, "$1'").replace(/¿/g, "'");
+    return s.toLowerCase().split(/(\s+|-|\/|\()/).map((w, i) => {
+      if (!w.trim() || /^(\s+|-|\/|\()$/.test(w)) return w;
+      if (i > 0 && LOWER.has(w)) return w;
+      if (/^[ld]'/.test(w)) return w.charAt(0).toUpperCase() + "'" + w.charAt(2).toUpperCase() + w.slice(3);
+      return w.charAt(0).toUpperCase() + w.slice(1);
+    }).join("");
   }
-  const day = (d) => { if (!d) return "—"; const x = new Date(d + (String(d).length === 10 ? "T12:00:00" : "")); return isNaN(x) ? d : x.toLocaleDateString(locale(), { day: "2-digit", month: "2-digit", year: "numeric" }); };
-  const isNew = (s, hours = 24) => s.detectada && (Date.now() - new Date(s.detectada).getTime()) < hours * 36e5;
 
-  // ---------- icons (stroke SVG)
+  // ---------- icons
   const ICONS = {
     vivienda: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>',
     garaje: '<path d="M3 20V9l9-5 9 5v11"/><path d="M7 20v-7h10v7"/><path d="M7 16h10"/>',
@@ -85,90 +89,74 @@
     derechos: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 13h7M9 17h5"/>',
     otros: '<rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/>',
     star: '<path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z"/>',
-    lock: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/>'
+    lock: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/>',
+    x: '<path d="M6 6l12 12M18 6L6 18"/>',
+    alert: '<path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/>',
+    check: '<path d="M5 12l5 5L20 7"/>',
+    door: '<path d="M5 21V4h11v17"/><path d="M3 21h18"/><circle cx="13" cy="12.5" r=".8"/>',
+    eye: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+    file: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/>',
+    clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    coin: '<circle cx="12" cy="12" r="9"/><path d="M15 9.5a3 3 0 00-3-1.5c-1.7 0-3 1-3 2.2 0 2.8 6 1.6 6 4.4 0 1.3-1.3 2.4-3 2.4a3.2 3.2 0 01-3-1.7M12 6v2M12 16v2"/>',
+    ext: '<path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M19 14v6H4V5h6"/>',
+    info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.5"/>'
   };
-  const ic = (k, fill) => `<svg viewBox="0 0 24 24" fill="${fill ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[k] || ICONS.otros}</svg>`;
-  const PRICES = [25000, 50000, 100000, 150000, 250000, 500000, 1000000];
+  const ic = (k) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[k] || ICONS.otros}</svg>`;
 
-  // ---------- controls
-  function opt(v, label, sel) { return `<option value="${esc(v)}"${sel ? " selected" : ""}>${esc(label)}</option>`; }
-  function buildControls() {
-    $("#fOrigin").innerHTML = ORIGINS.map((o) => `<button type="button" class="chip${state.origin.includes(o) ? " on" : ""}" data-o="${o}">${esc(t("o_" + o))}</button>`).join("");
-    const catCounts = count((s) => s.categoria);
-    $("#fCat").innerHTML = opt("", t("s_any_type"), !state.cat) + CATS.filter((c) => catCounts[c]).map((c) => opt(c, t("c_" + c), state.cat === c)).join("");
-    const provCounts = count((s) => s._prov);
-    const provs = Object.keys(provCounts).filter(Boolean).sort((a, b) => a.localeCompare(b, "es"));
-    $("#fProv").innerHTML = opt("", t("s_any_place"), !state.prov) + provs.map((p) => opt(p, title(p), state.prov === p)).join("");
-    const maxIsPreset = PRICES.map(String).includes(String(state.max));
-    $("#fPrice").innerHTML = opt("", t("s_any_price"), state.max === "") + PRICES.map((v) => opt(String(v), eur(v), String(state.max) === String(v))).join("")
-      + (state.max !== "" && !maxIsPreset ? opt(String(state.max), eur(+state.max), true) : "");
-    $("#fStatus").innerHTML = STATUSES.map((s) => opt(s, s === "open" ? `${t("s_activa")} + ${t("s_proxima")}` : s === "all" ? t("any") : t("s_" + s), state.status === s)).join("");
-    $("#fFresh").innerHTML = opt("", t("any_f"), !state.fresh) + opt("24", t("fresh_24"), state.fresh === "24") + opt("168", t("fresh_7"), state.fresh === "168");
-    $("#sort").innerHTML = ["new", "end", "price_asc", "price_desc", "discount"].map((s) => opt(s, t("sort_" + s), state.sort === s)).join("");
-    $("#q").value = state.q; $("#pMin").value = state.min; $("#pMax").value = state.max;
-    fitPicks();
+  // ---------- риски: разбор полей BOE
+  const MONEY = /(\d{1,3}(?:\.\d{3})*(?:,\d+)?|\d+(?:,\d+)?)\s*€/;
+  const asset0 = (s) => (s.bienes || [])[0] || {};
+  function riskOf(s) {
+    const b = asset0(s);
+    const pos = String(b.situacion_posesoria || ""), vis = String(b.visitable || ""), car = String(b.cargas || "");
+    let occ;
+    if (/sin ocupantes/i.test(pos)) occ = { tone: "ok", key: "occ_free" };
+    else if (/ocupantes sin derecho/i.test(pos)) occ = { tone: "bad", key: "occ_illegal" };
+    else if (/ocupantes con derecho|arrendat|inquilin/i.test(pos)) occ = { tone: "bad", key: "occ_legal" };
+    else if (/vivienda habitual/i.test(pos)) occ = { tone: "warn", key: "occ_home" };
+    else occ = { tone: "warn", key: "occ_unknown" };
+    let visit;
+    if (/^s[ií]/i.test(vis)) visit = { tone: "ok", key: "vis_yes" };
+    else if (/^no consta/i.test(vis) || !vis) visit = { tone: "warn", key: "vis_unknown" };
+    else visit = { tone: "warn", key: "vis_no" };
+    let charges;
+    const m = car.match(MONEY);
+    const amount = m ? Number(m[1].replace(/\./g, "").replace(",", ".")) : null;
+    if (amount != null && amount > 0) charges = { tone: "bad", key: "car_amount", amount };
+    else if (amount === 0 || /sin cargas|libre de cargas/i.test(car)) charges = { tone: "ok", key: "car_none" };
+    else if (car.trim()) charges = { tone: "n", key: "car_text", text: car };
+    else charges = { tone: "warn", key: "car_missing" };
+    const bad = [occ, visit, charges].filter((r) => r.tone === "bad").length;
+    const unknown = [occ, visit, charges].filter((r) => r.tone === "warn").length;
+    return { occ, visit, charges, bad, unknown, score: bad * 3 + unknown, applies: !["vehiculo", "embarcacion", "maquinaria", "derechos", "joyas_arte"].includes(s.categoria) };
   }
-  // Ширина «пилюль» поиска-фразы — по выбранному тексту: невидимая копия текста задаёт ширину
-  function fitPicks() {
-    $$(".pick select").forEach((sel) => {
-      let sz = sel.parentNode.querySelector(".sz");
-      if (!sz) { sz = document.createElement("span"); sz.className = "sz"; sz.setAttribute("aria-hidden", "true"); sel.parentNode.appendChild(sz); }
-      const o = sel.options[sel.selectedIndex];
-      sz.textContent = o ? o.textContent : "";
-    });
+  function riskPill(r, small) {
+    const icon = { occ: "door", visit: "eye", charges: "file" };
+    const parts = [["occ", r.occ], ["visit", r.visit], ["charges", r.charges]];
+    // В таблице — только важное: плохие и хорошие признаки, а «нет данных» одной плашкой
+    const html = parts.filter(([, x]) => !(small && (x.tone === "n" || x.tone === "warn"))).map(([k, x]) => {
+      const label = x.key === "car_amount" ? t("pill_car_amount", { amount: eur(x.amount) }) : t("pill_" + x.key);
+      return `<span class="rp ${x.tone}${small ? " sm" : ""}">${small ? "" : ic(icon[k])}${esc(label)}</span>`;
+    }).join("");
+    return html + (small && r.unknown ? `<span class="rp warn sm">${esc(t("pill_unknown_n", { n: r.unknown }))}</span>` : "");
   }
-  function count(fn) { const o = {}; all.forEach((s) => { const k = fn(s); o[k] = (o[k] || 0) + 1; }); return o; }
 
-  // ---------- filtering
-  function matches(s, st = state) {
-    if (onlyFavs && !favs.has(s.id)) return false;
-    if (st.origin.length && !st.origin.includes(s.origen)) return false;
-    if (st.cat && s.categoria !== st.cat) return false;
-    if (st.prov && s._prov !== st.prov) return false;
-    if (st.status === "open" && !["activa", "proxima"].includes(s.estado)) return false;
-    if (!["open", "all"].includes(st.status) && s.estado !== st.status) return false;
-    const v = s.valor_subasta;
-    if (st.min !== "" && (v == null || v < +st.min)) return false;
-    if (st.max !== "" && (v == null || v > +st.max)) return false;
-    if (st.fresh && !isNew(s, +st.fresh)) return false;
-    if (st.q) {
-      const words = st.q.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").split(/\s+/).filter(Boolean);
-      if (!words.every((w) => s._text.includes(w))) return false;
-    }
-    return true;
-  }
-  function sorted(list) {
-    const by = {
-      new: (a, b) => (b.detectada || "").localeCompare(a.detectada || "") || (b.fecha_inicio || "").localeCompare(a.fecha_inicio || ""),
-      end: (a, b) => (a.fecha_fin || "9").localeCompare(b.fecha_fin || "9"),
-      price_asc: (a, b) => (a.valor_subasta ?? 1e15) - (b.valor_subasta ?? 1e15),
-      price_desc: (a, b) => (b.valor_subasta ?? -1) - (a.valor_subasta ?? -1),
-      discount: (a, b) => disc(b) - disc(a)
-    }[state.sort];
-    return list.slice().sort(by);
-  }
-  const disc = (s) => (s.tasacion && s.valor_subasta && s.tasacion > s.valor_subasta) ? (1 - s.valor_subasta / s.tasacion) : -1;
-
-  // ---------- render
-  // ---------- вид объекта: фото из BOE → фасад из Кадастра → Google Maps (спутник)
+  // ---------- вид объекта: фото BOE → фасад Кадастра → Google Maps
   const NO_MAP = ["vehiculo", "embarcacion", "maquinaria", "derechos", "joyas_arte"];
   function cleanAddress(a) {
-    return String(a || "")
-      .replace(/\bn[º°o]\.?\s*/gi, "")
+    return String(a || "").replace(/\bn[º°o]\.?\s*/gi, "")
       .replace(/,?\s*\b(esc(alera)?\.?|planta|pl\.|puerta|pta\.?|piso|bajo|bloque|portal|local|apartamento|plaza\s+\d|letra)\b.*$/i, "")
       .replace(/\s+/g, " ").trim();
   }
   function mapQuery(s) {
     if (NO_MAP.includes(s.categoria)) return "";
-    const b = (s.bienes || [])[0] || {};
+    const b = asset0(s);
     const addr = cleanAddress(s.direccion || b.direccion);
-    const parts = [addr, s.cp || b.cp, title(s.localidad || b.localidad), title((s.provincia || b.provincia || "").split("/")[0])].filter(Boolean);
+    const parts = [addr, s.cp || b.cp, place(s.localidad || b.localidad), place((s.provincia || b.provincia || "").split("/")[0])].filter(Boolean);
     return parts.length ? { q: parts.join(", ") + ", España", exact: !!addr } : "";
   }
-  function gmapEmbed(m) {
-    return `https://maps.google.com/maps?q=${encodeURIComponent(m.q)}&t=k&z=${m.exact ? 18 : 13}&hl=${lang}&output=embed`;
-  }
-  function gmapLink(m) { return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(m.q)}`; }
+  const gmapEmbed = (m) => `https://maps.google.com/maps?q=${encodeURIComponent(m.q)}&t=k&z=${m.exact ? 18 : 13}&hl=${lang}&output=embed`;
+  const gmapLink = (m) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(m.q)}`;
   function cadastreRef(s) {
     for (const b of s.bienes || []) {
       const rc = String(b.ref_catastral || "").replace(/[^0-9A-Za-z]/g, "").toUpperCase();
@@ -182,254 +170,428 @@
     const cls = big ? "c-media big" : "c-media";
     const photo = (s.fotos || [])[0];
     const rc = cadastreRef(s);
-    const fb = m ? ` data-map="${esc(gmapEmbed(m))}"` : "";
+    const where = place(s.localidad) || place(s._prov);
+    const fb = m ? ` data-map="${esc(gmapEmbed(m))}" data-title="${esc(t("map_of", { place: where }))}"` : "";
     if (photo) return `<div class="${cls}"><img src="${esc(photo)}" loading="lazy" alt="${esc(t("photo_boe"))}"${fb}><span class="m-tag">BOE</span></div>`;
-    if (rc && !NO_MAP.includes(s.categoria)) return `<div class="${cls}"><img src="${facadeUrl(rc)}" loading="lazy" alt="${esc(t("photo_cadastre"))}"${fb}><span class="m-tag">${esc(t("src_cadastre"))}</span></div>`;
-    if (m) return `<div class="${cls}"><iframe src="${esc(gmapEmbed(m))}" loading="lazy" tabindex="-1" aria-hidden="true" referrerpolicy="no-referrer-when-downgrade"></iframe><span class="m-tag">Google Maps</span></div>`;
+    if (rc && !NO_MAP.includes(s.categoria)) return `<div class="${cls}"><img src="${facadeUrl(rc)}" loading="lazy" alt="${esc(t("photo_cadastre") + " · " + where)}"${fb}><span class="m-tag">${esc(t("src_cadastre"))}</span></div>`;
+    if (m) return `<div class="${cls}"><iframe src="${esc(gmapEmbed(m))}" loading="lazy" title="${esc(t("map_of", { place: where }))}" tabindex="-1" referrerpolicy="no-referrer-when-downgrade"></iframe><span class="m-tag">Google Maps</span></div>`;
     return `<div class="${cls} m-empty">${ic(s.categoria)}</div>`;
   }
-  // Фото не загрузилось (нет фасада в Кадастре и т.п.) → показываем карту, а если адреса нет — значок
   document.addEventListener("error", (e) => {
     const img = e.target;
     if (!img || img.tagName !== "IMG" || !img.closest(".c-media")) return;
     const box = img.closest(".c-media");
-    if (img.dataset.map) {
-      box.innerHTML = `<iframe src="${img.dataset.map}" loading="lazy" tabindex="-1" aria-hidden="true"></iframe><span class="m-tag">Google Maps</span>`;
-    } else { box.classList.add("m-empty"); img.remove(); const tg = box.querySelector(".m-tag"); if (tg) tg.remove(); }
+    if (img.dataset.map) box.innerHTML = `<iframe src="${img.dataset.map}" loading="lazy" title="${img.dataset.title || "Google Maps"}" tabindex="-1"></iframe><span class="m-tag">Google Maps</span>`;
+    else { box.classList.add("m-empty"); img.remove(); const tg = box.querySelector(".m-tag"); if (tg) tg.remove(); }
   }, true);
-  // Кадастр отдаёт крошечную картинку-заглушку, если фото фасада нет
   document.addEventListener("load", (e) => {
     const img = e.target;
     if (img && img.tagName === "IMG" && img.closest(".c-media") && img.naturalWidth > 0 && img.naturalWidth < 60) img.dispatchEvent(new Event("error"));
   }, true);
 
-  function daysLeft(s) {
+  // ---------- время и цифры
+  function left(s) {
     const now = Date.now();
     const start = s.fecha_inicio ? new Date(s.fecha_inicio).getTime() : null;
     const end = s.fecha_fin ? new Date(s.fecha_fin).getTime() : null;
-    if (start && start > now) return { cls: "", txt: timeLeft(s), pct: 100 };
-    if (!end) return { cls: "", txt: "", pct: 0 };
-    if (end <= now) return { cls: "", txt: t("s_finalizada"), pct: 0 };
+    if (start && start > now) { const d = Math.ceil((start - now) / 864e5); return { hot: false, short: t("opens_in", { n: d }), long: t("opens_in", { n: d }) }; }
+    if (!end) return { hot: false, short: "—", long: "" };
+    if (end <= now) return { hot: false, short: t("s_finalizada"), long: t("s_finalizada") };
     const ms = end - now, d = Math.floor(ms / 864e5), h = Math.floor(ms / 36e5);
-    const total = start ? Math.max(end - start, 1) : 20 * 864e5;
-    const pct = Math.max(3, Math.min(100, Math.round((ms / total) * 100)));
-    return { cls: d < 3 ? "hot" : "", txt: d >= 1 ? t("days_left", { n: d }) : t("hours_left", { n: Math.max(h, 1) }), pct };
+    if (d >= 1) return { hot: d < 3, short: t("d_short", { n: d }), long: d === 1 ? t("day_left_1") : t("days_left", { n: d }) };
+    return { hot: true, short: t("h_short", { n: Math.max(h, 1) }), long: t("hours_left", { n: Math.max(h, 1) }) };
+  }
+  const disc = (s) => (s.tasacion && s.valor_subasta && s.tasacion > s.valor_subasta) ? Math.round((1 - s.valor_subasta / s.tasacion) * 100) : 0;
+  const isNew = (s) => newShare < 0.3 && s.detectada && (Date.now() - new Date(s.detectada).getTime()) < 864e5;
+  const depPct = (s) => (s.deposito && s.valor_subasta) ? Math.round((s.deposito / s.valor_subasta) * 100) : null;
+
+  // ---------- фильтрация
+  function matches(s, st = state) {
+    if (onlyFavs && !favs.has(s.id)) return false;
+    if (st.origin.length && !st.origin.includes(s.origen)) return false;
+    if (st.cat) { const g = GROUPS.find((x) => x.id === st.cat); if (g ? !g.cats.includes(s.categoria) : s.categoria !== st.cat) return false; }
+    if (st.prov && s._prov !== st.prov) return false;
+    if (st.status === "open" && !["activa", "proxima"].includes(s.estado)) return false;
+    if (!["open", "all"].includes(st.status) && s.estado !== st.status) return false;
+    const v = s.valor_subasta;
+    if (st.min !== "" && (v == null || v < +st.min)) return false;
+    if (st.max !== "" && (v == null || v > +st.max)) return false;
+    if (st.fresh && !(s.detectada && (Date.now() - new Date(s.detectada).getTime()) < +st.fresh * 36e5)) return false;
+    if (st.norisk && (s._risk.bad || s._risk.unknown > 1)) return false;
+    if (st.q) {
+      const words = st.q.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").split(/\s+/).filter(Boolean);
+      if (!words.every((w) => s._text.includes(w))) return false;
+    }
+    return true;
+  }
+  function sorted(list) {
+    const by = {
+      end: (a, b) => (a.fecha_fin || "9").localeCompare(b.fecha_fin || "9"),
+      new: (a, b) => (b.detectada || "").localeCompare(a.detectada || "") || (b.fecha_inicio || "").localeCompare(a.fecha_inicio || ""),
+      price_asc: (a, b) => (a.valor_subasta ?? 1e15) - (b.valor_subasta ?? 1e15),
+      price_desc: (a, b) => (b.valor_subasta ?? -1) - (a.valor_subasta ?? -1),
+      discount: (a, b) => disc(b) - disc(a),
+      deposit: (a, b) => (a.deposito ?? 1e15) - (b.deposito ?? 1e15),
+      risk: (a, b) => a._risk.score - b._risk.score || (a.fecha_fin || "9").localeCompare(b.fecha_fin || "9")
+    }[state.sort] || ((a, b) => 0);
+    return list.slice().sort(by);
+  }
+  function count(fn, list = all) { const o = {}; list.forEach((s) => { const k = fn(s); if (k != null) o[k] = (o[k] || 0) + 1; }); return o; }
+  const openNow = () => all.filter((s) => ["activa", "proxima"].includes(s.estado));
+
+  // ---------- элементы управления
+  const opt = (v, label, sel) => `<option value="${esc(v)}"${sel ? " selected" : ""}>${esc(label)}</option>`;
+  function buildControls() {
+    const catCounts = count((s) => s.categoria, openNow());
+    const base = locked() && meta.por_categoria ? meta.por_categoria : catCounts;
+    $("#segs").setAttribute("aria-label", t("f_category"));
+    $("#segs").innerHTML = `<button type="button" class="seg" data-cat="" aria-pressed="${!state.cat}">${esc(t("all_types"))}</button>` +
+      GROUPS.map((g) => {
+        const n = g.cats.reduce((a, c) => a + (base[c] || 0), 0);
+        if (!n) return "";
+        return `<button type="button" class="seg" data-cat="${g.id}" aria-pressed="${state.cat === g.id}">${ic(g.icon)}${esc(t("grp_" + g.id))}<em>${num(n)}</em></button>`;
+      }).join("");
+    const isGroup = GROUPS.some((g) => g.id === state.cat && g.cats.length > 1);
+    $("#fCat").innerHTML = opt("", t("all_types"), !state.cat) +
+      (isGroup ? opt(state.cat, t("grp_" + state.cat), true) : "") +
+      CATS.filter((c) => base[c]).map((c) => opt(c, `${t("c_" + c)} · ${num(base[c])}`, state.cat === c)).join("");
+    const provCounts = count((s) => s._prov || null, openNow());
+    const provs = Object.keys(provCounts).sort((a, b) => a.localeCompare(b, "es"));
+    $("#fProv").innerHTML = opt("", t("all_spain"), !state.prov) + provs.map((p) => opt(p, `${place(p)} · ${provCounts[p]}`, state.prov === p)).join("");
+    const preset = PRICES.map(String).includes(String(state.max));
+    $("#fPrice").innerHTML = opt("", t("any_price"), state.max === "") + PRICES.map((v) => opt(String(v), t("upto", { v: eur(v) }), String(state.max) === String(v))).join("")
+      + (state.max !== "" && !preset ? opt(String(state.max), t("upto", { v: eur(+state.max) }), true) : "");
+    $("#fOrigin").innerHTML = ORIGINS.map((o) => `<button type="button" class="chip" data-o="${o}" aria-pressed="${state.origin.includes(o)}">${esc(t("o_" + o))}</button>`).join("");
+    $("#fStatus").innerHTML = STATUSES.map((s) => opt(s, s === "open" ? t("st_open") : s === "all" ? t("any") : t("s_" + s), state.status === s)).join("");
+    $("#fFresh").innerHTML = opt("", t("any_f"), !state.fresh) + opt("24", t("fresh_24"), state.fresh === "24") + opt("168", t("fresh_7"), state.fresh === "168");
+    const sorts = mode === "novato" ? ["end", "new", "price_asc", "price_desc", "risk"] : ["end", "new", "price_asc", "price_desc", "discount", "deposit", "risk"];
+    if (!sorts.includes(state.sort)) state.sort = "end";
+    $("#sort").innerHTML = sorts.map((s) => opt(s, t("sort_" + s), state.sort === s)).join("");
+    $("#q").value = state.q; $("#pMin").value = state.min; $("#pMax").value = state.max; $("#fRisk").checked = !!state.norisk;
+    const adv = (state.origin.length ? 1 : 0) + (state.status !== "open" ? 1 : 0) + (state.fresh ? 1 : 0) + (state.min !== "" ? 1 : 0) + (state.norisk ? 1 : 0);
+    $("#advCount").textContent = adv; $("#advCount").hidden = !adv;
   }
 
-  function card(s) {
-    const city = title(s.localidad) || title(s._prov) || "—";
-    const prov = title(s._prov) && title(s._prov) !== city ? title(s._prov) : "";
-    const dl = daysLeft(s);
-    const sub = [s.tasacion ? `${t("appraisal")} ${eur(s.tasacion)}` : "", s.deposito ? `${t("deposit")} ${eur(s.deposito)}` : ""].filter(Boolean).join(" · ");
-    const fav = favs.has(s.id);
-    return `<article class="card" data-id="${esc(s.id)}" tabindex="0" aria-label="${esc(t("c_" + s.categoria) + " · " + city)}">
+  // Активные фильтры — снимаются одним нажатием
+  function activeChips() {
+    const chips = [];
+    const x = ic("x");
+    if (state.q) chips.push(["q", `“${state.q}”`]);
+    if (state.cat) chips.push(["cat", GROUPS.some((g) => g.id === state.cat) ? t("grp_" + state.cat) : t("c_" + state.cat)]);
+    if (state.prov) chips.push(["prov", place(state.prov)]);
+    if (state.min !== "" || state.max !== "") chips.push(["price", state.min !== "" && state.max !== "" ? `${eur(+state.min)} – ${eur(+state.max)}` : state.max !== "" ? t("upto", { v: eur(+state.max) }) : t("from", { v: eur(+state.min) })]);
+    state.origin.forEach((o) => chips.push(["origin:" + o, t("o_" + o)]));
+    if (state.status !== "open") chips.push(["status", state.status === "all" ? t("st_all") : t("s_" + state.status)]);
+    if (state.fresh) chips.push(["fresh", state.fresh === "24" ? t("fresh_24") : t("fresh_7")]);
+    if (state.norisk) chips.push(["norisk", t("f_norisk")]);
+    if (onlyFavs) chips.push(["favs", t("nav_saved")]);
+    $("#active").innerHTML = chips.map(([k, l]) => `<button type="button" class="a-chip" data-rm="${esc(k)}" aria-label="${esc(t("remove_filter", { f: l }))}">${esc(l)}${x}</button>`).join("")
+      + (chips.length > 1 ? `<button type="button" class="a-chip clear" data-rm="*">${esc(t("clear_all"))}</button>` : "");
+  }
+  function removeFilter(k) {
+    if (k === "*") { Object.assign(state, DEFAULTS, { origin: [], sort: state.sort }); onlyFavs = false; }
+    else if (k === "q") state.q = "";
+    else if (k === "cat") state.cat = "";
+    else if (k === "prov") state.prov = "";
+    else if (k === "price") { state.min = ""; state.max = ""; }
+    else if (k.startsWith("origin:")) state.origin = state.origin.filter((o) => o !== k.slice(7));
+    else if (k === "favs") onlyFavs = false;
+    else state[k] = DEFAULTS[k];
+    shown = CFG.pageSize; buildControls(); render();
+  }
+
+  // Заголовок, который описывает выбор: «264 viviendas hasta 150.000 €, en toda España»
+  function resultTitle(n) {
+    if (onlyFavs) return t("title_favs");
+    const what = state.cat ? (GROUPS.some((g) => g.id === state.cat) ? t("grp_" + state.cat) : t("c_" + state.cat)) : t("title_any");
+    const where = state.prov ? t("in_place", { p: place(state.prov) }) : t("in_spain");
+    const price = state.max !== "" ? " · " + t("upto", { v: eur(+state.max) }) : "";
+    return `${what}${price} · ${where}`;
+  }
+
+  // ---------- карточки и строки
+  const favBtn = (s) => { const on = favs.has(s.id); return `<button type="button" class="fav" data-fav="${esc(s.id)}" aria-pressed="${on}" aria-label="${esc(on ? t("fav_del") : t("fav_add"))}">${ic("star")}</button>`; };
+  function novCard(s) {
+    const city = place(s.localidad) || place(s._prov) || "—";
+    const l = left(s), r = s._risk;
+    return `<article class="n-card">
       ${media(s)}
-      <div class="c-top">
-        <span class="c-tags">${isNew(s) ? `<span class="tag new">${t("new_badge")}</span>` : ""}<span class="tag">${esc(t("o_" + s.origen))}</span>${s.estado !== "activa" ? `<span class="st ${s.estado}">${esc(t("s_" + s.estado))}</span>` : ""}</span>
-        <button class="fav${fav ? " on" : ""}" data-fav="${esc(s.id)}" aria-pressed="${fav}" aria-label="${esc(fav ? t("fav_del") : t("fav_add"))}">${ic("star", fav)}</button>
+      <div class="n-body">
+        <div class="n-head"><div><h3><a href="#/s/${encodeURIComponent(s.id)}" data-open="${esc(s.id)}">${esc(t("card_title", { what: t("c_" + s.categoria), city }))}</a></h3>
+          <span class="n-sub">${esc([place(s._prov) !== city ? place(s._prov) : "", t("origin_" + s.origen)].filter(Boolean).join(" · "))}${isNew(s) ? ` <span class="tag new">${esc(t("new_badge"))}</span>` : ""}</span></div>
+          ${favBtn(s)}</div>
+        ${r.applies ? `<div class="risk">${riskPill(r)}</div>` : ""}
+        <div class="n-foot">
+          <div class="n-price"><small>${esc(t("start_price"))}</small><b>${eur(s.valor_subasta)}</b>${s.deposito ? `<span>${esc(t("deposit_needed", { v: eur(s.deposito) }))}</span>` : ""}</div>
+          <div class="n-when"><span>${esc(t("closes_on", { d: dateFmt(s.fecha_fin) }))}</span><b class="${l.hot ? "hot" : ""}">${esc(l.long)}</b></div>
+        </div>
       </div>
-      <div class="c-body">
-        <span class="c-cat">${ic(s.categoria)}<span>${esc(t("c_" + s.categoria))}</span></span>
-        <h3>${esc(city)}</h3>
-        ${prov ? `<span class="c-prov">${esc(prov)}</span>` : ""}
-        <span class="c-desc">${esc(sentence(s.titulo))}</span>
-        <span class="c-price">${eur(s.valor_subasta)}</span>
-        ${sub ? `<span class="c-sub">${esc(sub)}</span>` : ""}
-        ${dl.pct ? `<span class="c-bar" aria-hidden="true"><i style="width:${dl.pct}%"></i></span>` : ""}
-      </div>
-      <div class="c-foot"><span>${esc(t("see_details"))}</span><span class="c-left ${dl.cls}">${esc(dl.txt)}</span></div>
     </article>`;
   }
-
-  function renderTiles() {
-    const c = count((s) => (["activa", "proxima"].includes(s.estado) ? s.categoria : null));
-    const base = locked() && meta.por_categoria ? meta.por_categoria : c;
-    $("#tiles").innerHTML = CATS.filter((k) => base[k]).map((k) => `<button class="tile${state.cat === k ? " on" : ""}" data-cat="${k}">
-      <span class="ic">${ic(k)}</span><span class="tile-t"><b>${(base[k] || 0).toLocaleString(locale())}</b><span class="l">${esc(t("c_" + k))}</span></span></button>`).join("");
+  function tableRow(s) {
+    const city = place(s.localidad) || place(s._prov) || "—";
+    const l = left(s), d = disc(s), sel = selected === s.id;
+    return `<tr data-id="${esc(s.id)}" aria-selected="${sel}">
+      <td><span class="who">${ic(s.categoria)}<button type="button" data-open="${esc(s.id)}"><b>${esc(city)}</b><small>${esc(t("c_" + s.categoria))} · ${esc(place(s._prov))}</small></button></span></td>
+      <td>${esc(t("o_" + s.origen))}</td>
+      <td class="num"><b>${eur(s.valor_subasta)}</b></td>
+      <td class="num">${s.tasacion ? eur(s.tasacion) : "—"}</td>
+      <td class="num">${d ? `<span class="d-good">−${d}%</span>` : "—"}</td>
+      <td class="num">${eur(s.deposito)}</td>
+      <td class="num"><span class="${l.hot ? "hot" : ""}">${esc(l.short)}</span></td>
+      <td>${s._risk.applies ? `<span class="risk">${riskPill(s._risk, true)}</span>` : ""}</td>
+      <td>${favBtn(s)}</td>
+    </tr>`;
+  }
+  function proRow(s) {
+    const city = place(s.localidad) || place(s._prov) || "—";
+    const l = left(s);
+    const bad = s._risk.applies && s._risk.bad > 0;
+    return `<button type="button" class="p-row" data-open="${esc(s.id)}" aria-selected="${selected === s.id}">
+      <span class="p-thumb">${ic(s.categoria)}</span>
+      <span class="p-mid"><b>${esc(city)}</b><small>${esc(t("c_" + s.categoria))} · ${esc(t("o_" + s.origen))}</small>
+        <small class="${l.hot ? "hot" : ""}" style="${l.hot ? "color:var(--bad);font-weight:600" : ""}">${esc(t("closes_short", { d: dateFmt(s.fecha_fin) }))} · ${esc(l.short)}${bad ? " · " + esc(t("risk_high")) : ""}</small></span>
+      <span class="p-end"><b>${eur(s.valor_subasta)}</b><small>${esc(t("deposit"))} ${eur(s.deposito)}</small>${disc(s) ? `<small style="color:var(--ok);font-weight:700">−${disc(s)}%</small>` : ""}</span>
+    </button>`;
   }
 
-  function renderSoon() {
-    const now = Date.now();
-    const soon = all.filter((s) => s.estado === "activa" && s.fecha_fin && new Date(s.fecha_fin).getTime() > now)
-      .sort((a, b) => (a.fecha_fin || "").localeCompare(b.fecha_fin || "")).slice(0, 4);
-    $("#soonBlock").hidden = !soon.length;
-    $("#soon").innerHTML = soon.map(card).join("");
+  // ---------- рендер
+  function hiddenCount() { return Math.max(0, (meta.actuales || 0) - openNow().length); }
+  function lockedBlock() {
+    const hidden = hiddenCount();
+    if (!locked() || !hidden || onlyFavs) return "";
+    const u = AUTH.user && AUTH.user();
+    return `<div class="locked-row"><span><b>${esc(t("locked_card", { n: num(hidden) }))}</b></span><button type="button" class="btn" data-locked="1">${esc(u ? t("lock_cta_user") : t("lock_cta_guest"))}</button></div>`;
   }
-
-  function renderHero() {
-    const n = Math.max(all.filter((s) => ["activa", "proxima"].includes(s.estado)).length, meta.actuales || 0);
-    $("#heroKicker").textContent = t("hero_kicker", { n: n.toLocaleString(locale()) });
-    const cnt = all.filter((s) => matches(s)).length;
-    $("#heroGo").textContent = cnt ? t("see_n", { n: cnt.toLocaleString(locale()) }) : t("see_all");
-    $("#heroUpdated").textContent = meta.actualizado ? t("updated_line", { date: new Date(meta.actualizado).toLocaleString(locale(), { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) }) : "";
-    $("#soonAll").textContent = t("all_auctions_link");
-    $("#how1d").textContent = t("how1_d", { date: trialDate() });
+  function emptyBlock() {
+    const blockers = [];
+    if (state.q) blockers.push(`“${state.q}”`);
+    if (state.cat) blockers.push(GROUPS.some((g) => g.id === state.cat) ? t("grp_" + state.cat) : t("c_" + state.cat));
+    if (state.prov) blockers.push(place(state.prov));
+    if (state.max !== "" || state.min !== "") blockers.push(t("f_price_max").replace(/\.$/, ""));
+    return `<div class="empty"><h2>${esc(onlyFavs ? t("saved_empty_t") : t("none_t"))}</h2>
+      <p>${esc(onlyFavs ? t("saved_empty") : blockers.length ? t("none_because", { f: blockers.join(", ") }) : t("none"))}</p>
+      <div>${state.q ? `<button type="button" class="btn ghost" data-rm="q">${esc(t("clear_search"))}</button>` : ""}
+      ${(blockers.length || onlyFavs) ? `<button type="button" class="btn" data-rm="*">${esc(t("clear_all"))}</button>` : ""}</div></div>`;
   }
 
   function render() {
-    const list = sorted(all.filter((s) => matches(s)));
-    $("#resCount").textContent = list.length.toLocaleString(locale());
-    let html = list.length ? list.slice(0, shown).map(card).join("") : (locked() ? "" : `<div class="empty">${onlyFavs ? t("saved_empty") : t("none")}</div>`);
-    const hidden = hiddenCount();
-    if (locked() && hidden > 0 && !onlyFavs && list.length <= shown && ["open", "activa", "proxima", "all"].includes(state.status)) {
-      html += `<article class="card locked-card" data-locked="1" tabindex="0"><div class="lock-ic">${ic("lock")}</div>
-        <h3>${esc(t("locked_card", { n: hidden.toLocaleString(locale()) }))}</h3>
-        <button class="btn" data-locked="1">${esc(AUTH.user && AUTH.user() ? t("lock_cta_user") : t("lock_cta_guest"))}</button></article>`;
+    document.documentElement.dataset.mode = mode;
+    current = sorted(all.filter((s) => matches(s)));
+    const n = current.length;
+    $("#resTitle").textContent = resultTitle(n);
+    const totalOpen = Math.max(openNow().length, meta.actuales || 0);
+    $("#resCount").textContent = t("res_count", { n: num(n), total: num(totalOpen) });
+    activeChips();
+    const page = current.slice(0, shown);
+    let html;
+    if (!n) html = emptyBlock();
+    else if (mode === "inversor" && !narrow()) {
+      const th = (k, label, cls) => `<th scope="col" class="${cls || ""}">${k ? `<button type="button" data-sort="${k}" aria-pressed="${state.sort === k}">${esc(label)}${state.sort === k ? " ↓" : ""}</button>` : esc(label)}</th>`;
+      html = `<div class="t-box"><div class="t-scroll"><table class="t" aria-describedby="resTitle"><thead><tr>
+        ${th("", t("col_what"))}${th("", t("col_origin"))}${th("price_asc", t("col_value"), "num")}${th("", t("appraisal"), "num")}${th("discount", t("col_disc"), "num")}${th("deposit", t("deposit"), "num")}${th("end", t("col_closes"), "num")}${th("risk", t("col_risks"))}<th scope="col"><span class="sr">${esc(t("fav_add"))}</span></th>
+        </tr></thead><tbody>${page.map(tableRow).join("")}</tbody></table></div>
+        <div class="t-foot"><span>${esc(t("shown_of", { a: num(Math.min(shown, n)), n: num(n) }))}</span><span>${t("kbd_inline")}</span></div></div>`;
+    } else if (mode === "pro" || mode === "inversor") {
+      html = `<div class="p-head"><h2>${esc(state.prov ? place(state.prov) : t("all_spain"))}</h2><span class="muted">${esc(t("res_short", { n: num(n) }))}</span></div><div class="p-list">${page.map(proRow).join("")}</div>`;
+    } else {
+      html = `<div class="n-list">${page.map(novCard).join("")}</div>`;
     }
-    $("#list").innerHTML = html;
-    $("#more").hidden = list.length <= shown;
-    renderLock(); renderTiles(); renderHero(); renderSoon();
-    renderMap(list);
+    $("#list").innerHTML = html + lockedBlock();
+    $("#more").hidden = n <= shown;
+    renderLock();
+    renderSide();
+    placeMap();
+    renderMap();
     renderProvList();
     writeUrl();
   }
 
-  function renderStats() {
-    const active = Math.max(all.filter((s) => ["activa", "proxima"].includes(s.estado)).length, meta.actuales || 0);
-    $("#stActive").textContent = active.toLocaleString(locale());
-    $("#stNew").textContent = all.filter((s) => isNew(s)).length.toLocaleString(locale());
-    $("#stUpdated").textContent = meta.actualizado ? new Date(meta.actualizado).toLocaleString(locale(), { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "—";
+  // Боковая панель: в «Инвесторе» — детали выбранного, в «Новичке» — памятка
+  function renderSide() {
+    const panel = $("#panel");
+    if (mode === "inversor" && window.matchMedia("(min-width:1001px)").matches) {
+      if (!selected || !current.some((s) => s.id === selected)) selected = current[0] ? current[0].id : null;
+      const s = all.find((x) => x.id === selected);
+      panel.hidden = !s;
+      if (s) panel.innerHTML = detailHTML(s, "p");
+      $$(".t tbody tr").forEach((tr) => tr.setAttribute("aria-selected", tr.dataset.id === selected));
+    } else panel.hidden = true;
+    $("#guideTrial").textContent = AUTH.enabled ? t("guide_trial", { date: trialDate() }) : "";
   }
 
-  function renderProvList() {
-    const st = Object.assign({}, state, { prov: "" });
-    const c = {}; all.filter((s) => matches(s, st)).forEach((s) => { if (s._prov) c[s._prov] = (c[s._prov] || 0) + 1; });
-    $("#provList").innerHTML = Object.entries(c).sort((a, b) => b[1] - a[1])
-      .map(([p, n]) => `<button data-prov="${esc(p)}"><span>${esc(title(p))}</span><em>${n}</em></button>`).join("");
+  // ---------- карточка аукциона (панель и окно)
+  function checkItem(tone, title, text) {
+    const icon = tone === "ok" ? "check" : tone === "n" ? "info" : "alert";
+    return `<li class="${tone}">${ic(icon)}<div><b>${esc(title)}</b><span>${esc(text)}</span></div></li>`;
   }
-
-  function renderMap(list) {
-    if (!window.L) return;
-    if (!map) {
-      map = L.map("map", { scrollWheelZoom: false }).setView([39.6, -4.2], 5.4);
-      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>', maxZoom: 18
-      }).addTo(map);
-      map.fitBounds([[35.6, -9.6], [43.9, 4.5]]);
-      mapLayer = L.layerGroup().addTo(map);
+  function detailHTML(s, idp) {
+    const r = s._risk, l = left(s), d = disc(s), b = asset0(s);
+    const city = place(s.localidad) || place(s._prov) || "";
+    const checks = [];
+    if (r.applies) {
+      const c = r.charges;
+      checks.push(checkItem(c.tone, c.key === "car_amount" ? t("chk_car_amount", { v: eur(c.amount) }) : t("chk_" + c.key), c.key === "car_text" ? sentence(c.text).slice(0, 180) : t("chkd_" + c.key)));
+      checks.push(checkItem(r.occ.tone, t("chk_" + r.occ.key), t("chkd_" + r.occ.key)));
+      checks.push(checkItem(r.visit.tone, t("chk_" + r.visit.key), t("chkd_" + r.visit.key)));
     }
-    mapLayer.clearLayers();
-    const st = Object.assign({}, state, { prov: "" });
-    const c = {}; all.filter((s) => matches(s, st)).forEach((s) => { c[s._prov] = (c[s._prov] || 0) + 1; });
-    const max = Math.max(1, ...Object.values(c));
-    Object.entries(c).forEach(([p, n]) => {
-      const ll = PROVINCES[p]; if (!ll) return;
-      const sel = state.prov === p;
-      L.circleMarker(ll, {
-        radius: 7 + 22 * Math.sqrt(n / max), color: sel ? "#0B1020" : "#2546F0", weight: sel ? 3 : 1.5,
-        fillColor: "#2546F0", fillOpacity: sel ? .8 : .45
-      }).bindTooltip(`${title(p)}: ${n}`).on("click", () => { state.prov = sel ? "" : p; shown = CFG.pageSize; buildControls(); render(); })
-        .addTo(mapLayer);
-    });
+    if (s.deposito) checks.push(checkItem("ok", t("chk_deposit", { v: eur(s.deposito), p: depPct(s) != null ? depPct(s) + "%" : "" }), t("chkd_deposit")));
+    if (s.origen === "hacienda" && d >= 30) checks.push(checkItem("n", t("chk_hacienda"), t("chkd_hacienda")));
+    const mq = mapQuery(s) || { q: [city, place(s._prov), "España"].filter(Boolean).join(", ") };
+    const assets = (s.bienes || []).map((a) => {
+      const row = (k, v) => v ? `<dt>${esc(t(k))}</dt><dd>${esc(v)}</dd>` : "";
+      const rc = String(a.ref_catastral || "").replace(/\s/g, "");
+      const rcLink = rc.length >= 14 ? `<a href="https://www1.sedecatastro.gob.es/CYCBienInmueble/OVCListaBienes.aspx?rc1=${encodeURIComponent(rc.slice(0, 7))}&rc2=${encodeURIComponent(rc.slice(7, 14))}" target="_blank" rel="noopener">${esc(a.ref_catastral)}</a>` : esc(a.ref_catastral || "");
+      return `<div class="asset"><p>${esc(sentence(a.descripcion))}</p><dl>
+        ${row("d_address", [a.direccion, a.cp, place(a.localidad), place(a.provincia)].filter(Boolean).join(", "))}
+        ${rc ? `<dt>${esc(t("d_cadastre"))}</dt><dd>${rcLink}</dd>` : ""}
+        ${row("d_possession", a.situacion_posesoria)}${row("d_visitable", a.visitable)}${row("d_charges", a.cargas)}</dl></div>`;
+    }).join("");
+    return `<div class="dv">
+      ${media(s, true)}
+      <div class="dv-head"><div><span class="muted" style="font-size:13px">${esc(t("c_" + s.categoria))} · ${esc(t("origin_" + s.origen))}</span>
+        <h2 id="${idp}Title">${esc(city)}</h2><span class="dv-id">${esc(s.id)}</span></div>${favBtn(s)}</div>
+      <div class="dv-kv">
+        <div><small>${esc(t("value"))}</small><b>${eur(s.valor_subasta)}</b></div>
+        <div><small>${esc(t("appraisal"))}</small><b>${s.tasacion ? eur(s.tasacion) : "—"}</b></div>
+        ${d ? `<div class="good"><small>${esc(t("col_disc"))}</small><b>−${d}%</b></div>` : `<div><small>${esc(t("min_bid"))}</small><b>${s.puja_minima != null ? eur(s.puja_minima) : esc(t("no_min"))}</b></div>`}
+      </div>
+      ${checks.length ? `<h3>${esc(t("before_bid"))}</h3><ul class="chk">${checks.join("")}</ul>` : ""}
+      <div class="dv-cta"><div><small>${esc(t("closes_on", { d: dateFmt(s.fecha_fin, true) }))}</small><b class="${l.hot ? "hot" : ""}">${esc(l.long)}</b></div>
+        <a class="btn" href="${esc(s.url)}" target="_blank" rel="noopener">${esc(t("open_boe"))} ${ic("ext")}</a></div>
+      <div class="dv-more"><a class="btn ghost" href="${esc(gmapLink(mq))}" target="_blank" rel="noopener">${esc(t("open_map"))} ${ic("ext")}</a>
+        ${(s.documentos || []).slice(0, 3).map((u, i) => `<a class="btn ghost" href="${esc(u)}" target="_blank" rel="noopener">${esc(t("doc"))} ${i + 1} ${ic("ext")}</a>`).join("")}</div>
+      <details><summary>${esc(t("d_all"))}</summary>
+        <div class="asset"><dl>
+          <dt>${esc(t("date_start"))}</dt><dd>${dateFmt(s.fecha_inicio, true)}</dd>
+          <dt>${esc(t("date_end"))}</dt><dd>${dateFmt(s.fecha_fin, true)}</dd>
+          ${s.cantidad_reclamada ? `<dt>${esc(t("claimed"))}</dt><dd>${eur(s.cantidad_reclamada)}</dd>` : ""}
+          ${s.tipo ? `<dt>${esc(t("d_type"))}</dt><dd>${esc(s.tipo)}</dd>` : ""}
+          ${s.anuncio_boe ? `<dt>${esc(t("d_boe"))}</dt><dd>${esc(s.anuncio_boe)}</dd>` : ""}
+          ${s.lotes ? `<dt>${esc(t("d_lots"))}</dt><dd>${esc(s.lotes)}</dd>` : ""}
+          ${s.autoridad ? `<dt>${esc(t("d_authority"))}</dt><dd>${esc(s.autoridad)}</dd>` : ""}
+        </dl></div>${assets}</details>
+    </div>`;
   }
-
-  // ---------- detail
   function openDetail(id) {
     const s = all.find((x) => x.id === id);
-    if (!s) { if (locked()) openLockedDetail(); return; }
-    const kv = (k, v) => v == null || v === "" ? "" : `<div><small>${t(k)}</small><b>${typeof v === "number" ? eur(v) : esc(v)}</b></div>`;
-    const assets = (s.bienes || []).map((b) => {
-      const row = (k, v) => v ? `<dt>${t(k)}</dt><dd>${esc(v)}</dd>` : "";
-      const rc = (b.ref_catastral || "").replace(/\s/g, "");
-      const cat = rc.length >= 14 ? `<a href="https://www1.sedecatastro.gob.es/CYCBienInmueble/OVCListaBienes.aspx?rc1=${rc.slice(0, 7)}&rc2=${rc.slice(7, 14)}" target="_blank" rel="noopener">${esc(b.ref_catastral)}</a>` : esc(b.ref_catastral || "");
-      return `<div class="asset"><p><b>${esc(b.titulo || "")}</b><br>${esc(sentence(b.descripcion))}</p><dl>
-        ${row("d_address", [b.direccion, b.cp, title(b.localidad), title(b.provincia)].filter(Boolean).join(", "))}
-        ${rc ? `<dt>${t("d_cadastre")}</dt><dd>${cat}</dd>` : ""}
-        ${row("d_possession", b.situacion_posesoria)}${row("d_visitable", b.visitable)}${row("d_charges", b.cargas)}
-      </dl></div>`;
-    }).join("");
-    const mq = mapQuery(s) || { q: [s.localidad, s._prov, "España"].filter(Boolean).join(", ") };
-    $("#detailBody").innerHTML = `
-      <div class="d-head">
-        <button class="d-close" aria-label="${t("close")}">×</button>
-        <div class="c-tags">${isNew(s) ? `<span class="tag new">${t("new_badge")}</span>` : ""}<span class="tag">${esc(t("o_" + s.origen))}</span><span class="tag">${esc(t("c_" + s.categoria))}</span><span class="st ${s.estado}">${esc(t("s_" + s.estado))}</span></div>
-        <h2>${esc(t("c_" + s.categoria))} · ${esc(title(s.localidad) || title(s._prov) || "")}</h2>
-        <div class="muted">${esc([title(s.localidad), title(s._prov)].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(", "))} · ${esc(s.id)}</div>
-      </div>
-      <div class="d-body">
-        ${media(s, true)}
-        <div class="kv">
-          ${kv("value", s.valor_subasta)}${kv("appraisal", s.tasacion)}${kv("deposit", s.deposito)}
-          ${s.puja_minima != null ? kv("min_bid", s.puja_minima) : `<div><small>${t("min_bid")}</small><b>${t("no_min")}</b></div>`}
-          ${kv("claimed", s.cantidad_reclamada)}
-        </div>
-        <h4>${t("d_general")}</h4>
-        <div class="kv">
-          <div><small>${t("date_start")}</small><b>${dateFmt(s.fecha_inicio)}</b></div>
-          <div><small>${t("date_end")}</small><b>${dateFmt(s.fecha_fin)}</b></div>
-          ${kv("d_type", s.tipo)}${kv("d_boe", s.anuncio_boe)}${kv("d_lots", s.lotes)}
-        </div>
-        ${s.autoridad ? `<h4>${t("d_authority")}</h4><p>${esc(s.autoridad)}</p>` : ""}
-        ${assets ? `<h4>${t("d_assets")}</h4>${assets}` : ""}
-        <div class="d-links">
-          <a class="btn" href="${esc(s.url)}" target="_blank" rel="noopener">${t("open_boe")} ↗</a>
-          <a class="btn soft" href="${esc(gmapLink(mq))}" target="_blank" rel="noopener">${t("open_map")} ↗</a>
-          ${(s.documentos || []).slice(0, 3).map((d, i) => `<a class="btn soft" href="${esc(d)}" target="_blank" rel="noopener">${t("doc")} ${i + 1} ↗</a>`).join("")}
-          <button class="btn soft" data-fav="${esc(s.id)}">${favs.has(s.id) ? t("fav_del") : t("fav_add")}</button>
-        </div>
-      </div>`;
+    if (mode === "inversor" && s && window.matchMedia("(min-width:1001px)").matches) { selected = id; renderSide(); return; }
+    const body = $("#detailBody");
+    if (!s) {
+      if (!locked()) return;
+      body.innerHTML = `<div class="d-head"><button class="d-close" data-close aria-label="${esc(t("close"))}">${ic("x")}</button><h2 id="dTitle">${esc(t("locked_detail"))}</h2></div>
+        <div class="d-body locked-box"><p class="muted">${esc(AUTH.user && AUTH.user() ? "" : t("lead_signup", { date: trialDate() }))}</p>${AUTH.user && AUTH.user() ? "" : `<button class="btn" data-locked="1">${esc(t("lock_cta_guest"))}</button>`}</div>`;
+    } else {
+      selected = id;
+      body.innerHTML = `<div class="d-head"><button class="d-close" data-close aria-label="${esc(t("close"))}">${ic("x")}</button><h2 style="font-size:16px;color:var(--muted);font-weight:600">${esc(t("c_" + s.categoria))}</h2></div><div class="d-body">${detailHTML(s, "d")}</div>`;
+    }
     const dlg = $("#detail");
     if (!dlg.open) dlg.showModal();
-    if (location.hash !== "#/s/" + id) history.replaceState(null, "", location.pathname + location.search + "#/s/" + id);
+    if (s && location.hash !== "#/s/" + encodeURIComponent(id)) history.replaceState(null, "", location.pathname + location.search + "#/s/" + encodeURIComponent(id));
+    if (mode === "pro") $$(".p-row").forEach((b) => b.setAttribute("aria-selected", b.dataset.open === selected));
   }
   function closeDetail() {
     $("#detail").close();
     if (location.hash.startsWith("#/s/")) history.replaceState(null, "", location.pathname + location.search);
   }
 
-  // ---------- account & access
-  function visibleCurrent() { return all.filter((s) => ["activa", "proxima"].includes(s.estado)).length; }
-  function hiddenCount() { return Math.max(0, (meta.actuales || 0) - visibleCurrent()); }
-  function trialDate() { return day(AUTH.trialUntil || "2027-12-31"); }
-
-  function renderAccount() {
-    if (!AUTH.enabled) { $("#account").hidden = true; return; }
-    const u = AUTH.user();
-    $("#loginBtn").hidden = !!u;
-    $("#signupTop").hidden = !!u;
-    $("#userChip").hidden = !u;
-    if (u) {
-      const st = AUTH.status || {};
-      $("#userEmail").textContent = u.email || "";
-      $("#userAccess").textContent = st.trusted ? t("access_unlimited")
-        : st.has_access ? t("access_until", { date: day(st.access_until) }) : t("access_none");
-      $("#userChip").classList.toggle("no-access", !st.has_access);
+  // ---------- карта
+  function placeMap() {
+    const m = $("#map");
+    const target = mode === "pro" ? $("#proMap") : $("#mapWrap");
+    $("#proMap").hidden = mode !== "pro";
+    if (m.parentNode !== target) { target.insertBefore(m, target.firstChild); if (map) setTimeout(() => map.invalidateSize(), 50); }
+  }
+  function renderMap() {
+    if (!window.L) return;
+    if (!map) {
+      map = L.map("map", { scrollWheelZoom: mode === "pro" });
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>', maxZoom: 18 }).addTo(map);
+      map.fitBounds([[35.6, -9.6], [43.9, 4.5]]);
+      mapLayer = L.layerGroup().addTo(map);
     }
+    mapLayer.clearLayers();
+    const st = Object.assign({}, state, { prov: "" });
+    const c = count((s) => (matches(s, st) ? s._prov : null));
+    const max = Math.max(1, ...Object.values(c));
+    Object.entries(c).forEach(([p, n]) => {
+      const ll = PROVINCES[p]; if (!ll) return;
+      const sel = state.prov === p;
+      L.circleMarker(ll, { radius: 7 + 20 * Math.sqrt(n / max), color: sel ? "#16201D" : "#0B6B66", weight: sel ? 3 : 1.5, fillColor: sel ? "#D24A0D" : "#0B6B66", fillOpacity: sel ? .85 : .45 })
+        .bindTooltip(`${place(p)}: ${n}`).on("click", () => { state.prov = sel ? "" : p; shown = CFG.pageSize; buildControls(); render(); })
+        .addTo(mapLayer);
+    });
+  }
+  function renderProvList() {
+    const st = Object.assign({}, state, { prov: "" });
+    const c = count((s) => (matches(s, st) ? s._prov || null : null));
+    $("#provList").innerHTML = Object.entries(c).sort((a, b) => b[1] - a[1])
+      .map(([p, n]) => `<button type="button" data-prov="${esc(p)}" aria-pressed="${state.prov === p}"><span>${esc(place(p))}</span><em>${n}</em></button>`).join("");
   }
 
+  // ---------- режим отображения
+  function allowedModes() {
+    const st = AUTH.status || {};
+    if (!AUTH.enabled || !AUTH.user || !AUTH.user() || st.trusted) return MODES;
+    return Array.isArray(st.allowed_modes) && st.allowed_modes.length ? st.allowed_modes : MODES;
+  }
+  async function setMode(m, fromUser) {
+    if (!MODES.includes(m) || !allowedModes().includes(m)) { if (fromUser) note(t("mode_locked")); return; }
+    mode = m; store.set("mode", m);
+    if (fromUser && AUTH.enabled && AUTH.user && AUTH.user() && AUTH.setViewMode) {
+      try { await AUTH.setViewMode(m); } catch (e) { console.error(e); }
+    }
+    selected = null; shown = CFG.pageSize;
+    renderModes(); buildControls(); render();
+    if (map) setTimeout(() => { map.invalidateSize(); map.scrollWheelZoom[mode === "pro" ? "enable" : "disable"](); }, 60);
+  }
+  function renderModes() {
+    const allow = allowedModes();
+    $$("#modeSwitch button").forEach((b) => { b.setAttribute("aria-pressed", b.dataset.mode === mode); b.disabled = !allow.includes(b.dataset.mode); b.title = allow.includes(b.dataset.mode) ? t("mode_" + b.dataset.mode + "_d") : t("mode_locked"); });
+    $("#modeCards").innerHTML = MODES.map((m) => `<button type="button" class="mode-card" role="radio" data-mode="${m}" aria-checked="${m === mode}"${allow.includes(m) ? "" : " disabled"}><div><b>${esc(t("mode_" + m))}</b><span>${esc(t("mode_" + m + "_d"))}</span></div></button>`).join("");
+    $("#modeNote").hidden = allow.length === MODES.length;
+    $("#modeNote").textContent = t("mode_locked");
+  }
+
+  // ---------- аккаунт и доступ
+  function trialDate() { return day(AUTH.trialUntil || "2027-12-31"); }
+  function renderAccount() {
+    if (!AUTH.enabled) { $("#account").hidden = true; $("#setAccount").innerHTML = ""; return; }
+    $("#account").hidden = false;
+    const u = AUTH.user();
+    $("#loginBtn").hidden = !!u; $("#signupTop").hidden = !!u; $("#userChip").hidden = !u;
+    const st = AUTH.status || {};
+    const access = u ? (st.trusted ? t("access_unlimited") : st.has_access ? t("access_until", { date: day(st.access_until) }) : t("access_none")) : "";
+    if (u) {
+      $("#userEmail").textContent = u.email || "";
+      $("#userAccess").textContent = access;
+      $("#userChip").classList.toggle("no-access", !st.has_access);
+    }
+    $("#setAccount").innerHTML = u
+      ? `<p class="fine" style="width:100%;margin:0">${esc(u.email || "")} · ${esc(access)}</p><button class="btn ghost" data-act="logout">${esc(t("logout"))}</button>`
+      : `<button class="btn" data-act="signup">${esc(t("cta_start"))}</button><button class="btn ghost" data-act="login">${esc(t("login"))}</button>`;
+  }
   function renderLock() {
     const b = $("#lockBanner");
     if (!locked()) { b.hidden = true; return; }
     const u = AUTH.user && AUTH.user();
     const st = AUTH.status || {};
-    const v = visibleCurrent().toLocaleString(locale()), n = Math.max(meta.actuales || 0, visibleCurrent()).toLocaleString(locale());
-    let text;
-    if (!u) text = t("lock_guest", { v, n, date: trialDate() });
-    else if (st.reason && !st.access_until) text = t("lock_denied");
-    else text = t("lock_expired", { v, n });
+    const v = num(openNow().length), n = num(Math.max(meta.actuales || 0, openNow().length));
+    let text = !u ? t("lock_guest", { v, n, date: trialDate() }) : (st.reason && !st.access_until) ? t("lock_denied") : t("lock_expired", { v, n });
     if (u && CFG.contactEmail) text += " " + t("lock_contact", { email: CFG.contactEmail });
     $("#lockText").textContent = text;
     $("#lockBtn").textContent = u ? t("lock_cta_user") : t("lock_cta_guest");
     $("#lockBtn").hidden = !!u && !CFG.contactEmail;
     b.hidden = false;
   }
-
   function lockAction() {
     if (AUTH.user && AUTH.user()) { if (CFG.contactEmail) location.href = "mailto:" + CFG.contactEmail; }
-    else openAuth("signup");
+    else { if ($("#detail").open) $("#detail").close(); openAuth("signup"); }
   }
-
-  function openLockedDetail() {
-    $("#detailBody").innerHTML = `<div class="d-head"><button class="d-close">×</button><h2>${esc(t("locked_detail"))}</h2>
-      <p class="muted">${esc(AUTH.user && AUTH.user() ? "" : t("lead_signup", { date: trialDate() }))}</p></div>
-      <div class="d-body"><div class="d-links">${AUTH.user && AUTH.user() ? "" : `<button class="btn" id="lockedSignup">${esc(t("lock_cta_guest"))}</button>`}</div></div>`;
-    if (!$("#detail").open) $("#detail").showModal();
-    const b = $("#lockedSignup"); if (b) b.onclick = () => { $("#detail").close(); openAuth("signup"); };
-  }
-
   let authMode = "signup";
-  function openAuth(mode) {
-    authMode = mode || "signup";
+  function openAuth(m) {
+    if (!AUTH.enabled) return;
+    authMode = m || "signup";
     const dlg = $("#authDlg");
     $$("#authTabs button").forEach((b) => b.classList.toggle("on", b.dataset.mode === authMode));
     $("#authTabs").hidden = authMode === "reset" || authMode === "recovery";
@@ -446,10 +608,10 @@
     $("#authSubmit").textContent = { signup: t("signup"), login: t("login"), reset: t("send_link"), recovery: t("save") }[authMode];
     $("#forgotBtn").hidden = authMode !== "login";
     $("#authMsg").hidden = true;
+    if ($("#settingsDlg").open) $("#settingsDlg").close();
     if (!dlg.open) dlg.showModal();
   }
   function authMsg(text, ok) { const m = $("#authMsg"); m.textContent = text; m.className = "auth-msg" + (ok ? " ok" : " err"); m.hidden = false; }
-
   async function submitAuth(e) {
     e.preventDefault();
     const email = $("#authEmail").value.trim(), pw = $("#authPw").value;
@@ -464,20 +626,185 @@
         if (error) return authMsg(t("err_login"));
         $("#authDlg").close();
       } else if (authMode === "reset") {
-        await AUTH.reset(email);
-        authMsg(t("msg_reset_sent"), true);
+        await AUTH.reset(email); authMsg(t("msg_reset_sent"), true);
       } else if (authMode === "recovery") {
         const { error } = await AUTH.updatePassword(pw);
         if (error) throw error;
-        authMsg(t("msg_pw_updated"), true);
-        setTimeout(() => $("#authDlg").close(), 1200);
+        authMsg(t("msg_pw_updated"), true); setTimeout(() => $("#authDlg").close(), 1200);
       }
     } catch (err) {
       console.error(err);
-      authMsg((err && err.message) ? `${t("err_generic")} (${err.message})` : t("err_generic"));
+      authMsg(err && err.message ? `${t("err_generic")} (${err.message})` : t("err_generic"));
     } finally { btn.disabled = false; }
   }
 
+  // ---------- избранное и сохранённые поиски
+  function toggleFav(id) {
+    favs.has(id) ? favs.delete(id) : favs.add(id);
+    store.set("favs", [...favs]);
+    updateFavCount();
+    $$(`[data-fav="${CSS.escape(id)}"]`).forEach((b) => { const on = favs.has(id); b.setAttribute("aria-pressed", on); b.setAttribute("aria-label", on ? t("fav_del") : t("fav_add")); });
+    if (onlyFavs) render();
+  }
+  function updateFavCount() {
+    $("#favCount").textContent = favs.size;
+    $("#favCountTab").textContent = favs.size; $("#favCountTab").hidden = !favs.size;
+  }
+  const searches = () => store.get("searches", (() => { const old = store.get("saved", null); return old ? [{ id: "s1", name: "", state: old.state, seen: old.seen || [] }] : []; })());
+  function saveSearch() {
+    const list = searches();
+    const st = Object.assign({}, state, { origin: state.origin.slice() });
+    const name = resultTitle(current.length);
+    const same = list.find((x) => JSON.stringify(x.state) === JSON.stringify(st));
+    if (same) { note(t("saved_dup")); return; }
+    list.unshift({ id: "s" + Date.now(), name, state: st, seen: all.filter((s) => matches(s, st)).map((s) => s.id) });
+    store.set("searches", list.slice(0, 10));
+    renderSaved(); note(t("saved_ok"));
+  }
+  function renderSaved() {
+    const list = searches();
+    $("#savedList").innerHTML = list.length ? list.map((x) => {
+      const seen = new Set(x.seen || []);
+      const fresh = all.filter((s) => matches(s, Object.assign({}, DEFAULTS, x.state)) && !seen.has(s.id)).length;
+      return `<li><span>${esc(x.name || "—")}${fresh ? ` · <b>${esc(t("n_new", { n: fresh }))}</b>` : ""}</span><div><button class="btn soft" data-ss="${x.id}">${esc(t("show"))}</button><button class="btn ghost" data-ssdel="${x.id}" aria-label="${esc(t("remove"))}">${ic("x")}</button></div></li>`;
+    }).join("") : `<li><span class="muted">${esc(t("saved_none"))}</span></li>`;
+  }
+  function applySaved(id) {
+    const list = searches(); const x = list.find((y) => y.id === id); if (!x) return;
+    Object.assign(state, DEFAULTS, x.state, { origin: (x.state.origin || []).slice() });
+    x.seen = all.filter((s) => matches(s, Object.assign({}, DEFAULTS, x.state))).map((s) => s.id);
+    store.set("searches", list); onlyFavs = false; shown = CFG.pageSize;
+    buildControls(); render(); renderSaved(); $("#savedNotice").hidden = true;
+    $("#catalogo").scrollIntoView({ block: "start" }); $("#catalogo").focus({ preventScroll: true });
+  }
+  function checkSaved() {
+    const list = searches();
+    let total = 0, first = null;
+    list.forEach((x) => { const seen = new Set(x.seen || []); const n = all.filter((s) => matches(s, Object.assign({}, DEFAULTS, x.state)) && !seen.has(s.id)).length; if (n && !first) first = x; total += n; });
+    if (!total) return;
+    note(`<b>${num(total)}</b> ${esc(t("new_since"))} <button class="btn white" data-ss="${first.id}">${esc(t("show"))}</button>`, true, true);
+  }
+  function note(html, sticky, raw) {
+    const n = $("#savedNotice"); n.firstElementChild.innerHTML = raw ? html : esc(html); n.hidden = false;
+    clearTimeout(note._t); if (!sticky) note._t = setTimeout(() => (n.hidden = true), 4500);
+  }
+
+  // ---------- URL
+  function writeUrl() {
+    const p = new URLSearchParams();
+    Object.entries(state).forEach(([k, v]) => {
+      const def = DEFAULTS[k];
+      if (Array.isArray(v) ? v.length : v !== "" && v !== def) p.set(k, Array.isArray(v) ? v.join(",") : v);
+    });
+    const qs = p.toString();
+    history.replaceState(null, "", location.pathname + (qs ? "?" + qs : "") + location.hash);
+  }
+  function readUrl() {
+    const p = new URLSearchParams(location.search);
+    Object.keys(state).forEach((k) => { if (p.has(k)) state[k] = k === "origin" ? p.get(k).split(",").filter(Boolean) : p.get(k); });
+    if (p.has("mode") && MODES.includes(p.get("mode"))) mode = p.get("mode");
+  }
+
+  // ---------- i18n применить
+  function applyI18n() {
+    document.documentElement.lang = lang;
+    $$("[data-i]").forEach((el) => (el.textContent = t(el.dataset.i)));
+    $$("[data-i-ph]").forEach((el) => (el.placeholder = t(el.dataset.iPh)));
+    $$("[data-i-aria]").forEach((el) => el.setAttribute("aria-label", t(el.dataset.iAria)));
+    $$(".lang button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.lang === lang));
+    $("#pMin").placeholder = t("f_min"); $("#pMax").placeholder = t("f_max");
+    $("#kbdHelpDummy");
+    renderModes(); buildControls(); render(); renderAccount(); renderSaved();
+  }
+
+  // ---------- события
+  function onType(el) { const tg = el.target || el; return tg && (tg.tagName === "INPUT" || tg.tagName === "SELECT" || tg.tagName === "TEXTAREA" || tg.isContentEditable); }
+  function moveSel(dir) {
+    if (!current.length) return;
+    let i = current.findIndex((s) => s.id === selected);
+    i = Math.max(0, Math.min(current.length - 1, (i < 0 ? -1 : i) + dir));
+    if (i >= shown) { shown = i + 1; render(); }
+    selected = current[i].id;
+    if (mode === "inversor") renderSide();
+    const el = $(`[data-id="${CSS.escape(selected)}"]`) || $(`.p-row[data-open="${CSS.escape(selected)}"]`);
+    $$(".p-row").forEach((b) => b.setAttribute("aria-selected", b.dataset.open === selected));
+    if (el) el.scrollIntoView({ block: "nearest" });
+  }
+  function bind() {
+    let timer;
+    $("#q").addEventListener("input", (e) => { clearTimeout(timer); timer = setTimeout(() => { state.q = e.target.value.trim(); shown = CFG.pageSize; render(); }, 180); });
+    $("#segs").addEventListener("click", (e) => { const b = e.target.closest("[data-cat]"); if (!b) return; state.cat = b.dataset.cat; shown = CFG.pageSize; buildControls(); render(); });
+    $("#fOrigin").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-o]"); if (!b) return;
+      const o = b.dataset.o; state.origin = state.origin.includes(o) ? state.origin.filter((x) => x !== o) : [...state.origin, o];
+      shown = CFG.pageSize; buildControls(); render();
+    });
+    [["#fCat", "cat"], ["#fProv", "prov"], ["#fStatus", "status"], ["#fFresh", "fresh"], ["#sort", "sort"], ["#fPrice", "max"]].forEach(([sel, k]) =>
+      $(sel).addEventListener("change", (e) => { state[k] = e.target.value; shown = CFG.pageSize; buildControls(); render(); }));
+    $("#fRisk").addEventListener("change", (e) => { state.norisk = e.target.checked ? "1" : ""; buildControls(); render(); });
+    const range = () => {
+      const a = $("#pMin").value, b = $("#pMax").value;
+      const bad = a !== "" && b !== "" && +a > +b;
+      $("#rangeErr").hidden = !bad; $("#rangeErr").textContent = bad ? t("range_err") : "";
+      if (bad) return;
+      state.min = a; state.max = b; shown = CFG.pageSize; buildControls(); render();
+    };
+    ["#pMin", "#pMax"].forEach((sel) => $(sel).addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(range, 350); }));
+    $("#moreFilters").onclick = () => { const a = $("#adv"); a.hidden = !a.hidden; $("#moreFilters").setAttribute("aria-expanded", !a.hidden); };
+    $("#saveSearch").onclick = saveSearch;
+    $("#more").onclick = () => { shown += CFG.pageSize || 24; render(); };
+    document.addEventListener("click", (e) => {
+      const rm = e.target.closest("[data-rm]"); if (rm) { removeFilter(rm.dataset.rm); return; }
+      const f = e.target.closest("[data-fav]"); if (f) { e.preventDefault(); e.stopPropagation(); toggleFav(f.dataset.fav); return; }
+      const lk = e.target.closest("[data-locked]"); if (lk) { lockAction(); return; }
+      const ss = e.target.closest("[data-ss]"); if (ss) { applySaved(ss.dataset.ss); return; }
+      const sd = e.target.closest("[data-ssdel]"); if (sd) { store.set("searches", searches().filter((x) => x.id !== sd.dataset.ssdel)); renderSaved(); return; }
+      const so = e.target.closest("[data-sort]"); if (so) { state.sort = so.dataset.sort; buildControls(); render(); return; }
+      const op = e.target.closest("[data-open]"); if (op) { e.preventDefault(); openDetail(op.dataset.open); return; }
+      const tr = e.target.closest(".t tbody tr"); if (tr) { openDetail(tr.dataset.id); return; }
+      const act = e.target.closest("[data-act]");
+      if (act) { const a = act.dataset.act; if (a === "logout") { $("#settingsDlg").close(); AUTH.signOut(); } else openAuth(a); return; }
+    });
+    $("#provList").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-prov]"); if (!b) return;
+      state.prov = state.prov === b.dataset.prov ? "" : b.dataset.prov; shown = CFG.pageSize; buildControls(); render();
+      $("#catalogo").scrollIntoView({ block: "start" });
+    });
+    $("#detail").addEventListener("click", (e) => { if (e.target.id === "detail" || e.target.closest("[data-close]")) closeDetail(); });
+    $("#detail").addEventListener("cancel", (e) => { e.preventDefault(); closeDetail(); });
+    ["#settingsDlg", "#authDlg"].forEach((sel) => $(sel).addEventListener("click", (e) => { if (e.target === $(sel) || e.target.closest("[data-close]")) $(sel).close(); }));
+    $$(".lang button").forEach((b) => (b.onclick = () => { lang = b.dataset.lang; store.set("lang", lang); applyI18n(); }));
+    $("#modeSwitch").addEventListener("click", (e) => { const b = e.target.closest("[data-mode]"); if (b) setMode(b.dataset.mode, true); });
+    $("#modeCards").addEventListener("click", (e) => { const b = e.target.closest("[data-mode]"); if (b) setMode(b.dataset.mode, true); });
+    $("#settingsBtn").onclick = () => $("#settingsDlg").showModal();
+    $$("[data-nav]").forEach((a) => a.addEventListener("click", (e) => {
+      const n = a.dataset.nav;
+      if (n === "list" || n === "saved") { e.preventDefault(); onlyFavs = n === "saved"; shown = CFG.pageSize; render(); $("#catalogo").scrollIntoView({ block: "start" }); }
+      if (n === "map" && mode === "pro") { e.preventDefault(); $("#proMap").scrollIntoView({ block: "start" }); }
+      $$(".nav a").forEach((x) => x.classList.toggle("on", x === a));
+    }));
+    $("#tabbar").addEventListener("click", (e) => {
+      const a = e.target.closest("[data-tab]"); if (!a) return;
+      const k = a.dataset.tab;
+      $$("#tabbar [data-tab]").forEach((x) => x.setAttribute("aria-current", x === a));
+      if (k === "settings") { e.preventDefault(); $("#settingsDlg").showModal(); return; }
+      if (k === "search") { e.preventDefault(); onlyFavs = false; render(); window.scrollTo({ top: 0 }); $("#q").focus(); }
+      if (k === "saved") { e.preventDefault(); onlyFavs = true; render(); $("#catalogo").scrollIntoView({ block: "start" }); }
+      if (k === "map" && mode === "pro") { e.preventDefault(); $("#proMap").scrollIntoView({ block: "start" }); }
+    });
+    // Горячие клавиши (Инвестор / Про)
+    document.addEventListener("keydown", (e) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === "/" && !onType(e)) { e.preventDefault(); $("#q").focus(); return; }
+      if (onType(e) || mode === "novato" || $("dialog[open]")) return;
+      if (e.key === "j" || e.key === "ArrowDown" && e.target === document.body) { e.preventDefault(); moveSel(1); }
+      else if (e.key === "k" || e.key === "ArrowUp" && e.target === document.body) { e.preventDefault(); moveSel(-1); }
+      else if (e.key === "Enter" && selected && e.target === document.body) { e.preventDefault(); openDetail(selected); }
+      else if (e.key === "s" && selected) { e.preventDefault(); toggleFav(selected); }
+    });
+    window.addEventListener("hashchange", () => { const m = location.hash.match(/^#\/s\/(.+)$/); if (m) openDetail(decodeURIComponent(m[1])); });
+    let rz, wasNarrow = narrow(); window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { if (narrow() !== wasNarrow) { wasNarrow = narrow(); render(); } else renderSide(); }, 150); });
+  }
   function bindAuth() {
     if (!AUTH.enabled) return;
     $("#loginBtn").onclick = () => openAuth("login");
@@ -486,154 +813,56 @@
     $("#authTabs").addEventListener("click", (e) => { const b = e.target.closest("[data-mode]"); if (b) openAuth(b.dataset.mode); });
     $("#forgotBtn").onclick = () => openAuth("reset");
     $("#authForm").addEventListener("submit", submitAuth);
-    $$(".oauth-btn").forEach((b) => (b.onclick = async () => {
-      const { error } = await AUTH.oauth(b.dataset.provider);
-      if (error) authMsg(`${t("err_generic")} (${error.message})`);
-    }));
-    $("#authDlg").addEventListener("click", (e) => { if (e.target.id === "authDlg" || e.target.closest("[data-close]")) $("#authDlg").close(); });
-    $("#userBtn").onclick = () => ($("#userMenu").hidden = !$("#userMenu").hidden);
+    $$(".oauth-btn").forEach((b) => (b.onclick = async () => { const { error } = await AUTH.oauth(b.dataset.provider); if (error) authMsg(`${t("err_generic")} (${error.message})`); }));
+    $("#userBtn").onclick = () => { const m = $("#userMenu"); m.hidden = !m.hidden; $("#userBtn").setAttribute("aria-expanded", !m.hidden); };
     $("#logoutBtn").onclick = async () => { $("#userMenu").hidden = true; await AUTH.signOut(); };
-    $("#list").addEventListener("click", (e) => { if (e.target.closest("[data-locked]")) { e.stopPropagation(); lockAction(); } }, true);
     AUTH.on(async (type) => {
       if (type === "recovery") return openAuth("recovery");
-      await loadData(); buildControls(); render(); renderAccount(); renderStats();
+      syncModeFromProfile();
+      await loadData(); applyI18n(); checkSaved();
     });
+  }
+  function syncModeFromProfile() {
+    const st = AUTH.status || {};
+    if (st.view_mode && MODES.includes(st.view_mode) && allowedModes().includes(st.view_mode)) { mode = st.view_mode; store.set("mode", mode); }
+    if (!allowedModes().includes(mode)) mode = allowedModes()[0] || "novato";
   }
 
-  // ---------- favourites & saved search
-  function toggleFav(id) {
-    favs.has(id) ? favs.delete(id) : favs.add(id);
-    store.set("favs", [...favs]);
-    $("#favCount").textContent = favs.size;
-    render();
-    if ($("#detail").open) openDetail(id);
-  }
-  function saveSearch() {
-    store.set("saved", { state: Object.assign({}, state), seen: all.filter((s) => matches(s)).map((s) => s.id) });
-    flash(t("saved_ok"));
-  }
-  function checkSaved() {
-    const saved = store.get("saved", null); if (!saved) return;
-    const seen = new Set(saved.seen || []);
-    const fresh = all.filter((s) => matches(s, Object.assign({}, state, saved.state)) && !seen.has(s.id));
-    if (!fresh.length) return;
-    flash(`<b>${fresh.length}</b> ${t("new_since")} <button class="btn small" id="showSaved">${t("show")}</button>`, true);
-    $("#showSaved").onclick = () => {
-      Object.assign(state, saved.state); state.sort = "new";
-      saved.seen = Array.from(new Set([...seen, ...fresh.map((s) => s.id)])); store.set("saved", saved);
-      $("#savedNotice").hidden = true; buildControls(); render(); $("#filters").scrollIntoView();
-    };
-  }
-  function flash(html, sticky) {
-    const n = $("#savedNotice"); n.firstElementChild.innerHTML = html; n.hidden = false;
-    if (!sticky) setTimeout(() => (n.hidden = true), 5000);
-  }
-
-  // ---------- URL state
-  function writeUrl() {
-    const p = new URLSearchParams();
-    Object.entries(state).forEach(([k, v]) => {
-      if (Array.isArray(v) ? v.length : v !== "" && !(k === "status" && v === "open") && !(k === "sort" && v === "new")) p.set(k, Array.isArray(v) ? v.join(",") : v);
-    });
-    const qs = p.toString();
-    history.replaceState(null, "", location.pathname + (qs ? "?" + qs : "") + location.hash);
-  }
-  function readUrl() {
-    const p = new URLSearchParams(location.search);
-    Object.keys(state).forEach((k) => { if (p.has(k)) state[k] = k === "origin" ? p.get(k).split(",").filter(Boolean) : p.get(k); });
-  }
-
-  // ---------- events
-  function bind() {
-    let timer;
-    $("#q").addEventListener("input", (e) => { clearTimeout(timer); timer = setTimeout(() => { state.q = e.target.value.trim(); shown = CFG.pageSize; render(); }, 180); });
-    $("#fOrigin").addEventListener("click", (e) => {
-      const b = e.target.closest("[data-o]"); if (!b) return;
-      const o = b.dataset.o; state.origin = state.origin.includes(o) ? state.origin.filter((x) => x !== o) : [...state.origin, o];
-      b.classList.toggle("on"); shown = CFG.pageSize; render();
-    });
-    [["#fCat", "cat"], ["#fProv", "prov"], ["#fStatus", "status"], ["#fFresh", "fresh"], ["#sort", "sort"]].forEach(([sel, k]) =>
-      $(sel).addEventListener("change", (e) => { state[k] = e.target.value; shown = CFG.pageSize; render(); }));
-    [["#pMin", "min"], ["#pMax", "max"]].forEach(([sel, k]) =>
-      $(sel).addEventListener("input", (e) => { clearTimeout(timer); timer = setTimeout(() => { state[k] = e.target.value; if (k === "max") buildControls(); render(); }, 300); }));
-    $("#reset").onclick = () => { Object.assign(state, { q: "", origin: [], cat: "", prov: "", status: "open", min: "", max: "", fresh: "", sort: "new" }); onlyFavs = false; shown = CFG.pageSize; buildControls(); render(); };
-    $("#saveSearch").onclick = saveSearch;
-    $$(".pick select").forEach((el) => el.addEventListener("change", fitPicks));
-    window.addEventListener("resize", fitPicks);
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitPicks);
-    $("#fPrice").addEventListener("change", (e) => { state.max = e.target.value; $("#pMax").value = state.max; shown = CFG.pageSize; render(); });
-    $("#tiles").addEventListener("click", (e) => {
-      const b = e.target.closest("[data-cat]"); if (!b) return;
-      state.cat = state.cat === b.dataset.cat ? "" : b.dataset.cat; shown = CFG.pageSize; buildControls(); render();
-      $("#catalogo").scrollIntoView({ behavior: "smooth" });
-    });
-    $("#soon").addEventListener("click", (e) => {
-      const f = e.target.closest("[data-fav]"); if (f) { e.stopPropagation(); return toggleFav(f.dataset.fav); }
-      const c = e.target.closest(".card"); if (c) openDetail(c.dataset.id);
-    });
-    $("#soon").addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.classList.contains("card")) openDetail(e.target.dataset.id); });
-    $("#more").onclick = () => { shown += CFG.pageSize || 24; render(); };
-    $("#list").addEventListener("click", (e) => {
-      const f = e.target.closest("[data-fav]"); if (f) { e.stopPropagation(); return toggleFav(f.dataset.fav); }
-      const c = e.target.closest(".card"); if (c) openDetail(c.dataset.id);
-    });
-    $("#list").addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.classList.contains("card")) openDetail(e.target.dataset.id); });
-    $("#detail").addEventListener("click", (e) => {
-      if (e.target.id === "detail" || e.target.closest(".d-close")) return closeDetail();
-      const f = e.target.closest("[data-fav]"); if (f) toggleFav(f.dataset.fav);
-    });
-    $("#detail").addEventListener("cancel", (e) => { e.preventDefault(); closeDetail(); });
-    $("#provList").addEventListener("click", (e) => {
-      const b = e.target.closest("[data-prov]"); if (!b) return;
-      state.prov = b.dataset.prov; shown = CFG.pageSize; buildControls(); render(); $(".results").scrollIntoView({ behavior: "smooth" });
-    });
-    $$(".lang button").forEach((b) => (b.onclick = () => { lang = b.dataset.lang; store.set("lang", lang); applyI18n(); renderStats(); }));
-    $$("[data-nav]").forEach((a) => a.addEventListener("click", (e) => {
-      const n = a.dataset.nav;
-      if (n === "list" || n === "saved") { e.preventDefault(); onlyFavs = n === "saved"; shown = CFG.pageSize; render(); $("#catalogo").scrollIntoView({ behavior: "smooth" }); }
-      $$(".nav a").forEach((x) => x.classList.toggle("on", x === a));
-    }));
-    window.addEventListener("hashchange", () => { const m = location.hash.match(/^#\/s\/(.+)$/); if (m) openDetail(decodeURIComponent(m[1])); });
-  }
-
-  // ---------- data
+  // ---------- данные
   async function loadData() {
     meta = await fetch("data/meta.json", { cache: "no-cache" }).then((r) => r.json()).catch(() => ({}));
     try {
-      if (AUTH.enabled) {
-        all = await AUTH.loadSubastas();
-        isDemo = false;
-      } else {
+      if (AUTH.enabled) { all = await AUTH.loadSubastas(); isDemo = false; }
+      else {
         const d = await fetch("data/subastas.json", { cache: "no-cache" }).then((r) => r.json());
-        all = d.subastas || d || [];
-        isDemo = !!d.demo;
+        all = d.subastas || d || []; isDemo = !!d.demo;
         if (!meta.actualizado) meta.actualizado = d.generado;
       }
-    } catch (e) {
-      console.error("data", e);
-      all = [];
-    }
+    } catch (e) { console.error("data", e); all = []; }
     all.forEach((s) => {
       s._prov = window.normProvince(s.provincia);
+      s._risk = riskOf(s);
       s._text = [s.id, s.titulo, s.localidad, s.provincia, s.direccion, s.cp, s.autoridad, s.tipo,
         ...(s.bienes || []).map((b) => [b.descripcion, b.ref_catastral, b.matricula].join(" "))]
-        .join(" ").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        .join(" ").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
     });
+    const fresh = all.filter((s) => s.detectada && (Date.now() - new Date(s.detectada).getTime()) < 864e5).length;
+    newShare = all.length ? fresh / all.length : 0;
   }
 
-  // ---------- boot
+  // ---------- старт
   async function boot() {
     $("#brandName").textContent = CFG.name || "SubastaRadar";
     if (CFG.rssUrl) $("#rssLink").href = CFG.rssUrl;
     if (CFG.telegramUrl) { $("#tgLink").href = CFG.telegramUrl; $("#tgLink").hidden = false; }
-    $("#favCount").textContent = favs.size;
-    if (AUTH.enabled) { try { await AUTH.init(); } catch (e) { console.error(e); } }
+    updateFavCount();
+    if (AUTH.enabled) { try { await AUTH.init(); } catch (e) { console.error(e); } syncModeFromProfile(); }
     readUrl(); bind(); bindAuth();
     await loadData();
     $("#demoBanner").hidden = !isDemo;
-    applyI18n(); renderStats(); checkSaved();
+    applyI18n(); checkSaved();
     const m = location.hash.match(/^#\/s\/(.+)$/); if (m) openDetail(decodeURIComponent(m[1]));
-    setInterval(() => { if (!document.hidden) render(); }, 60000); // обновить таймеры
+    setInterval(() => { if (!document.hidden && !$("dialog[open]")) render(); }, 60000);
   }
   boot();
 })();
