@@ -13,14 +13,13 @@ permissions:
   pages: write
   id-token: write
 
-concurrency:
-  group: update-site
-  cancel-in-progress: false
-
 jobs:
   scrape:
     if: github.event_name != 'push'
     runs-on: ubuntu-latest
+    concurrency:            # сборщики идут строго по одному
+      group: scrape
+      cancel-in-progress: false
     timeout-minutes: 50
     steps:
       - uses: actions/checkout@v4
@@ -50,6 +49,10 @@ jobs:
     needs: [scrape]
     if: always() && (needs.scrape.result == 'success' || needs.scrape.result == 'skipped')
     runs-on: ubuntu-latest
+    concurrency:            # новая публикация отменяет старую, ещё не завершённую
+      group: pages-deploy
+      cancel-in-progress: true
+    timeout-minutes: 10
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
