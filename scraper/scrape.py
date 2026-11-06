@@ -164,6 +164,25 @@ def first_search_page(fetcher: Fetcher, state: str) -> tuple[str, str]:
     return fetcher.get(url), url
 
 
+def first_search_page(fetcher: Fetcher, state: str) -> tuple[str, str]:
+    """Открывает форму поиска портала и отправляет её с нужным статусом.
+    Если форму разобрать не удалось — пробует прямой адрес поиска."""
+    form_url = boe.BASE + "subastas_ava.php"
+    form_html = fetcher.get(form_url)
+    form = boe.parse_search_form(form_html, fetcher.last_url or form_url, state)
+    if form:
+        log(f"[{state}] форма поиска: {form['method'].upper()} {form['url']} ({len(form['fields'])} полей)")
+        body = urllib.parse.urlencode(form["fields"])
+        if form["method"] == "post":
+            return fetcher.get(form["url"], data=body.encode()), form["url"]
+        url = form["url"] + ("&" if "?" in form["url"] else "?") + body
+        return fetcher.get(url), url
+    log(f"[{state}] форму поиска разобрать не удалось — прямой запрос")
+    dump_debug("form", form_html, fetcher)
+    url = search_url(state)
+    return fetcher.get(url), url
+
+
 def collect_listing(fetcher: Fetcher, known: set[str], max_pages: int) -> list[dict]:
     """Проходит все страницы поиска по каждому статусу и собирает ID аукционов.
     Список дешёвый (1 запрос на 50 аукционов), карточки качаются только для новых."""
