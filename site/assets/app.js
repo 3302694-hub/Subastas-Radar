@@ -150,6 +150,59 @@
   const disc = (s) => (s.tasacion && s.valor_subasta && s.tasacion > s.valor_subasta) ? (1 - s.valor_subasta / s.tasacion) : -1;
 
   // ---------- render
+  // ---------- вид объекта: фото из BOE → фасад из Кадастра → Google Maps (спутник)
+  const NO_MAP = ["vehiculo", "embarcacion", "maquinaria", "derechos", "joyas_arte"];
+  function cleanAddress(a) {
+    return String(a || "")
+      .replace(/\bn[º°o]\.?\s*/gi, "")
+      .replace(/,?\s*\b(esc(alera)?\.?|planta|pl\.|puerta|pta\.?|piso|bajo|bloque|portal|local|apartamento|plaza\s+\d|letra)\b.*$/i, "")
+      .replace(/\s+/g, " ").trim();
+  }
+  function mapQuery(s) {
+    if (NO_MAP.includes(s.categoria)) return "";
+    const b = (s.bienes || [])[0] || {};
+    const addr = cleanAddress(s.direccion || b.direccion);
+    const parts = [addr, s.cp || b.cp, title(s.localidad || b.localidad), title((s.provincia || b.provincia || "").split("/")[0])].filter(Boolean);
+    return parts.length ? { q: parts.join(", ") + ", España", exact: !!addr } : "";
+  }
+  function gmapEmbed(m) {
+    return `https://maps.google.com/maps?q=${encodeURIComponent(m.q)}&t=k&z=${m.exact ? 18 : 13}&hl=${lang}&output=embed`;
+  }
+  function gmapLink(m) { return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(m.q)}`; }
+  function cadastreRef(s) {
+    for (const b of s.bienes || []) {
+      const rc = String(b.ref_catastral || "").replace(/[^0-9A-Za-z]/g, "").toUpperCase();
+      if (rc.length >= 14) return rc.slice(0, 14);
+    }
+    return "";
+  }
+  const facadeUrl = (rc) => `https://ovc.catastro.meh.es/OVCServWeb/OVCWcfLibres/OVCFotoFachada.svc/RecuperarFotoFachadaGet?ReferenciaCatastral=${rc}`;
+  function media(s, big) {
+    const m = mapQuery(s);
+    const cls = big ? "c-media big" : "c-media";
+    const photo = (s.fotos || [])[0];
+    const rc = cadastreRef(s);
+    const fb = m ? ` data-map="${esc(gmapEmbed(m))}"` : "";
+    if (photo) return `<div class="${cls}"><img src="${esc(photo)}" loading="lazy" alt="${esc(t("photo_boe"))}"${fb}><span class="m-tag">BOE</span></div>`;
+    if (rc && !NO_MAP.includes(s.categoria)) return `<div class="${cls}"><img src="${facadeUrl(rc)}" loading="lazy" alt="${esc(t("photo_cadastre"))}"${fb}><span class="m-tag">${esc(t("src_cadastre"))}</span></div>`;
+    if (m) return `<div class="${cls}"><iframe src="${esc(gmapEmbed(m))}" loading="lazy" tabindex="-1" aria-hidden="true" referrerpolicy="no-referrer-when-downgrade"></iframe><span class="m-tag">Google Maps</span></div>`;
+    return `<div class="${cls} m-empty">${ic(s.categoria)}</div>`;
+  }
+  // Фото не загрузилось (нет фасада в Кадастре и т.п.) → показываем карту, а если адреса нет — значок
+  document.addEventListener("error", (e) => {
+    const img = e.target;
+    if (!img || img.tagName !== "IMG" || !img.closest(".c-media")) return;
+    const box = img.closest(".c-media");
+    if (img.dataset.map) {
+      box.innerHTML = `<iframe src="${img.dataset.map}" loading="lazy" tabindex="-1" aria-hidden="true"></iframe><span class="m-tag">Google Maps</span>`;
+    } else { box.classList.add("m-empty"); img.remove(); const tg = box.querySelector(".m-tag"); if (tg) tg.remove(); }
+  }, true);
+  // Кадастр отдаёт крошечную картинку-заглушку, если фото фасада нет
+  document.addEventListener("load", (e) => {
+    const img = e.target;
+    if (img && img.tagName === "IMG" && img.closest(".c-media") && img.naturalWidth > 0 && img.naturalWidth < 60) img.dispatchEvent(new Event("error"));
+  }, true);
+
   function daysLeft(s) {
     const now = Date.now();
     const start = s.fecha_inicio ? new Date(s.fecha_inicio).getTime() : null;
@@ -170,6 +223,7 @@
     const sub = [s.tasacion ? `${t("appraisal")} ${eur(s.tasacion)}` : "", s.deposito ? `${t("deposit")} ${eur(s.deposito)}` : ""].filter(Boolean).join(" · ");
     const fav = favs.has(s.id);
     return `<article class="card" data-id="${esc(s.id)}" tabindex="0" aria-label="${esc(t("c_" + s.categoria) + " · " + city)}">
+      ${media(s)}
       <div class="c-top">
         <span class="c-tags">${isNew(s) ? `<span class="tag new">${t("new_badge")}</span>` : ""}<span class="tag">${esc(t("o_" + s.origen))}</span>${s.estado !== "activa" ? `<span class="st ${s.estado}">${esc(t("s_" + s.estado))}</span>` : ""}</span>
         <button class="fav${fav ? " on" : ""}" data-fav="${esc(s.id)}" aria-pressed="${fav}" aria-label="${esc(fav ? t("fav_del") : t("fav_add"))}">${ic("star", fav)}</button>
@@ -191,7 +245,7 @@
     const c = count((s) => (["activa", "proxima"].includes(s.estado) ? s.categoria : null));
     const base = locked() && meta.por_categoria ? meta.por_categoria : c;
     $("#tiles").innerHTML = CATS.filter((k) => base[k]).map((k) => `<button class="tile${state.cat === k ? " on" : ""}" data-cat="${k}">
-      <span class="ic">${ic(k)}</span><b>${(base[k] || 0).toLocaleString(locale())}</b><span>${esc(t("c_" + k))}</span></button>`).join("");
+      <span class="ic">${ic(k)}</span><span class="tile-t"><b>${(base[k] || 0).toLocaleString(locale())}</b><span class="l">${esc(t("c_" + k))}</span></span></button>`).join("");
   }
 
   function renderSoon() {
@@ -248,9 +302,10 @@
     if (!window.L) return;
     if (!map) {
       map = L.map("map", { scrollWheelZoom: false }).setView([39.6, -4.2], 5.4);
-      L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
-        attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 18
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>', maxZoom: 18
       }).addTo(map);
+      map.fitBounds([[35.6, -9.6], [43.9, 4.5]]);
       mapLayer = L.layerGroup().addTo(map);
     }
     mapLayer.clearLayers();
@@ -283,7 +338,7 @@
         ${row("d_possession", b.situacion_posesoria)}${row("d_visitable", b.visitable)}${row("d_charges", b.cargas)}
       </dl></div>`;
     }).join("");
-    const q = encodeURIComponent([s.direccion, s.cp, s.localidad, s._prov, "España"].filter(Boolean).join(", "));
+    const mq = mapQuery(s) || { q: [s.localidad, s._prov, "España"].filter(Boolean).join(", ") };
     $("#detailBody").innerHTML = `
       <div class="d-head">
         <button class="d-close" aria-label="${t("close")}">×</button>
@@ -292,6 +347,7 @@
         <div class="muted">${esc([title(s.localidad), title(s._prov)].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(", "))} · ${esc(s.id)}</div>
       </div>
       <div class="d-body">
+        ${media(s, true)}
         <div class="kv">
           ${kv("value", s.valor_subasta)}${kv("appraisal", s.tasacion)}${kv("deposit", s.deposito)}
           ${s.puja_minima != null ? kv("min_bid", s.puja_minima) : `<div><small>${t("min_bid")}</small><b>${t("no_min")}</b></div>`}
@@ -307,8 +363,9 @@
         ${assets ? `<h4>${t("d_assets")}</h4>${assets}` : ""}
         <div class="d-links">
           <a class="btn" href="${esc(s.url)}" target="_blank" rel="noopener">${t("open_boe")} ↗</a>
-          <a class="btn ghost" href="https://www.google.com/maps/search/?api=1&query=${q}" target="_blank" rel="noopener">${t("open_map")} ↗</a>
-          <button class="btn ghost" data-fav="${esc(s.id)}">${favs.has(s.id) ? t("fav_del") : t("fav_add")}</button>
+          <a class="btn soft" href="${esc(gmapLink(mq))}" target="_blank" rel="noopener">${t("open_map")} ↗</a>
+          ${(s.documentos || []).slice(0, 3).map((d, i) => `<a class="btn soft" href="${esc(d)}" target="_blank" rel="noopener">${t("doc")} ${i + 1} ↗</a>`).join("")}
+          <button class="btn soft" data-fav="${esc(s.id)}">${favs.has(s.id) ? t("fav_del") : t("fav_add")}</button>
         </div>
       </div>`;
     const dlg = $("#detail");

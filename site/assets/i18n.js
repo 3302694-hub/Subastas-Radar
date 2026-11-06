@@ -57,6 +57,7 @@ window.I18N = {
     lock_denied: "Esta cuenta no tiene periodo gratuito: ya se concedió a otra cuenta de la misma persona o el correo es temporal.",
     lock_contact: "Escríbenos: {email}", lock_cta_guest: "Registrarse gratis", lock_cta_user: "Más información",
     locked_card: "{n} subastas más disponibles tras registrarte", locked_detail: "Esta subasta está disponible para usuarios registrados.",
+    photo_boe: "Foto del bien (BOE)", photo_cadastre: "Fachada según el Catastro", src_cadastre: "Catastro", doc: "Documento",
     close: "Cerrar", subscribe: "Suscribirse", open: "Abrir"
   },
 
@@ -117,6 +118,7 @@ window.I18N = {
     lock_denied: "This account has no free period: it was already given to another account of the same person, or the email is disposable.",
     lock_contact: "Contact us: {email}", lock_cta_guest: "Sign up free", lock_cta_user: "More info",
     locked_card: "{n} more auctions available after signing up", locked_detail: "This auction is available to registered users.",
+    photo_boe: "Property photo (BOE)", photo_cadastre: "Facade from the Cadastre", src_cadastre: "Cadastre", doc: "Document",
     close: "Close", subscribe: "Subscribe", open: "Open"
   },
 
@@ -177,6 +179,7 @@ window.I18N = {
     lock_denied: "Для этого аккаунта бесплатный период недоступен: он уже предоставлялся другому аккаунту того же человека или почта одноразовая.",
     lock_contact: "Напишите нам: {email}", lock_cta_guest: "Зарегистрироваться бесплатно", lock_cta_user: "Подробнее",
     locked_card: "Ещё {n} аукционов — после регистрации", locked_detail: "Этот аукцион доступен зарегистрированным пользователям.",
+    photo_boe: "Фото объекта (BOE)", photo_cadastre: "Фасад по данным Кадастра", src_cadastre: "Кадастр", doc: "Документ",
     close: "Закрыть", subscribe: "Подписаться", open: "Открыть"
   }
 };
