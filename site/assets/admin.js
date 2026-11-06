@@ -35,6 +35,7 @@
       `<span><b>${s.with_access}</b>с доступом</span>`,
       `<span><b>${s.expired}</b>доступ истёк</span>`,
       `<span><b>${s.denied}</b>без бесплатного периода${denied ? ` <span class="muted">(${esc(denied)})</span>` : ""}</span>`,
+      `<span><b>${s.same_ip || 0}</b>с совпадающим IP</span>`,
       `<span><b>${s.new_7d}</b>новых за 7 дней</span>`,
       `<span><b>${s.active_7d}</b>заходили за 7 дней</span>`,
       `<span><b>${s.subastas_actuales}</b>текущих аукционов в базе</span>`,
@@ -45,6 +46,10 @@
   }
 
   // ---------- пользователи
+  function sameIp(u) {
+    const list = (u.same_ip || []).filter(Boolean);
+    return list.length ? `<span class="rp warn" style="margin-top:6px" title="${esc(list.join(", "))}">тот же IP</span><span class="u-sub">${esc(list.slice(0, 3).join(", "))}${list.length > 3 ? ` и ещё ${list.length - 3}` : ""}</span>` : "";
+  }
   function status(u) {
     if (u.trusted) return `<span class="rp ok">доверенный</span>`;
     if (!u.access_until) return `<span class="rp bad">без доступа</span>${u.reason ? `<span class="u-sub">${esc(REASONS[u.reason] || u.reason)}${u.duplicate_of_email ? ": " + esc(u.duplicate_of_email) : ""}</span>` : ""}`;
@@ -55,7 +60,7 @@
     const modes = MODES.map(([m, l]) => `<label><input type="checkbox" data-mode="${m}"${(u.allowed_modes || []).includes(m) ? " checked" : ""}> ${l}</label>`).join("");
     return `<tr data-i="${i}">
       <td><span class="u-mail">${esc(u.email)}</span><span class="u-sub">${esc(u.provider || "email")} · с ${day(u.created_at)}</span></td>
-      <td>${status(u)}</td>
+      <td>${status(u)}${sameIp(u)}</td>
       <td><input type="date" data-f="until" value="${esc(u.access_until || "")}" aria-label="Доступ до для ${esc(u.email)}">
         <div class="quick"><button type="button" data-add="1">+1 мес</button><button type="button" data-add="12">+1 год</button>${defTrial ? `<button type="button" data-set="${esc(defTrial)}">до ${day(defTrial)}</button>` : ""}</div></td>
       <td><div class="modes-chk">${modes}</div></td>
