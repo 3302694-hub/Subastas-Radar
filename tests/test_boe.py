@@ -90,6 +90,39 @@ def test_general_and_record():
     assert rec["provincia"] == "MÁLAGA"
 
 
+FORM = """
+<form action="subastas_ava.php" method="get" id="formBuscar">
+ <input type="hidden" name="campo[0]" value="SUBASTA.ORIGEN">
+ <select name="dato[0]"><option value="">Cualquiera</option><option value="J">Judicial</option></select>
+ <input type="hidden" name="campo[2]" value="SUBASTA.ESTADO">
+ <select name="dato[2]"><option value="" selected>Cualquiera</option><option value="PU">Próxima apertura</option><option value="EJ">Celebrándose</option></select>
+ <input type="text" name="dato[5]" value="">
+ <input type="checkbox" name="foo" value="1">
+ <select name="page_hits"><option value="25">25</option><option value="50" selected>50</option><option value="500">500</option></select>
+ <select name="sort_field[0]"><option value="SUBASTA.FECHA_FIN">Fin</option></select>
+ <input type="hidden" name="accion" value="Buscar">
+ <input type="submit" value="Buscar">
+</form>
+"""
+
+
+def test_form():
+    f = boe.parse_search_form(FORM, "https://subastas.boe.es/subastas_ava.php", "EJ")
+    d = dict(f["fields"])
+    assert f["method"] == "get" and f["url"] == "https://subastas.boe.es/subastas_ava.php"
+    assert d["dato[2]"] == "EJ" and d["campo[2]"] == "SUBASTA.ESTADO"
+    assert d["page_hits"] == "500" and d["accion"] == "Buscar" and "foo" not in d
+    assert boe.parse_search_form("<form></form>", "x", "EJ") is None
+    assert boe.page_error("<p>ERROR: Se ha producido un error en la b&uacute;squeda</p>").startswith("ERROR: Se ha")
+
+
+def test_category_from_boe_type():
+    a = [{"tipo_bien": "Vivienda", "titulo": "Bien 1 - Inmueble (Vivienda)", "descripcion": "FINCA ... SAN PEDRO DE NAVES"}]
+    assert boe.category_of(a) == "vivienda"
+    assert boe.category_of([{"tipo_bien": "Turismos", "titulo": "Bien 1 - Vehículo (Turismos)", "descripcion": ""}]) == "vehiculo"
+    assert boe.category_of([{"tipo_bien": "Otros", "titulo": "Bien 1 - Inmueble (Otros)", "descripcion": "PLAZA DE GARAJE"}]) == "garaje"
+
+
 def test_helpers():
     assert boe.parse_money("1.234.567,89 €") == 1234567.89
     assert boe.parse_date("01/12/2026 a las 18:00:00").startswith("2026-12-01T18:00")

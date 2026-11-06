@@ -6,12 +6,14 @@
   1. Ищет аукционы в статусах «Celebrándose» и «Próxima apertura»,
      отсортированные по дате начала (сначала новые).
   2. Для каждого незнакомого ID скачивает карточку (общие данные,
-     орган, имущество) и добавляет в базу site/data/subastas.json.
+     орган, имущество) и добавляет в базу: Supabase (если заданы
+     SUPABASE_URL и SUPABASE_SERVICE_KEY) или файл site/data/subastas.json.
   3. Обновляет статусы ранее найденных аукционов (по дате окончания),
      удаляет завершённые старше KEEP_FINISHED_DAYS дней.
-  4. Пишет RSS-ленту site/feed.xml и site/data/meta.json.
-  5. Если заданы TELEGRAM_BOT_TOKEN и TELEGRAM_CHAT_ID — публикует новые
-     аукционы в Telegram-канал.
+  4. Помечает 10 самых свежих текущих аукционов как бесплатные (teaser).
+  5. Пишет публичные анонсы: RSS site/feed.xml, site/data/meta.json и,
+     если заданы TELEGRAM_BOT_TOKEN и TELEGRAM_CHAT_ID, посты в Telegram.
+     В анонсах нет адреса и ссылки на BOE — подробности на сайте после входа.
 
 Запуск:  python scraper/scrape.py [--max-pages 10] [--max-new 300]
 """
@@ -31,6 +33,7 @@ from xml.sax.saxutils import escape
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import boe  # noqa: E402
+from store import SupabaseStore  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 SITE = ROOT / "site"
@@ -47,6 +50,16 @@ USER_AGENT = os.environ.get(
 DELAY = float(os.environ.get("SCRAPER_DELAY", "1.2"))  # пауза между запросами, сек
 KEEP_FINISHED_DAYS = int(os.environ.get("KEEP_FINISHED_DAYS", "30"))
 STATES = os.environ.get("SCRAPER_STATES", "EJ,PU").split(",")  # EJ=celebrándose, PU=próxima apertura
+TEASER_COUNT = int(os.environ.get("TEASER_COUNT", "10"))
+STORE = (SupabaseStore(os.environ["SUPABASE_URL"], os.environ["SUPABASE_SERVICE_KEY"])
+         if os.environ.get("SUPABASE_URL") and os.environ.get("SUPABASE_SERVICE_KEY") else None)
+
+CAT_ES = {
+    "vivienda": "Vivienda", "garaje": "Garaje", "trastero": "Trastero", "local": "Local",
+    "nave": "Nave industrial", "solar": "Solar", "rustica": "Finca rústica", "vehiculo": "Vehículo",
+    "embarcacion": "Embarcación", "joyas_arte": "Joyas y arte", "maquinaria": "Maquinaria",
+    "derechos": "Derechos", "otros": "Otros",
+}
 
 
 def log(*a):
@@ -59,21 +72,26 @@ class Fetcher:
         self.last = 0.0
         self.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor())
         self.count = 0
+        self.last_url = ""
+        self.last_status = 0
 
-    def get(self, url: str, retries: int = 3) -> str:
+    def get(self, url: str, retries: int = 3, data: bytes | None = None) -> str:
         for attempt in range(retries):
             wait = self.delay - (time.time() - self.last)
             if wait > 0:
                 time.sleep(wait)
             self.last = time.time()
-            req = urllib.request.Request(url, headers={
-                "User-Agent": USER_AGENT,
-                "Accept-Language": "es-ES,es;q=0.9",
-            })
+            headers = {"User-Agent": USER_AGENT, "Accept-Language": "es-ES,es;q=0.9"}
+            if data is not None:
+                headers["Content-Type"] = "application/x-www-form-urlencoded"
+                headers["Referer"] = boe.BASE + "subastas_ava.php"
+            req = urllib.request.Request(url, data=data, headers=headers)
             try:
                 with self.opener.open(req, timeout=30) as r:
                     raw = r.read()
                     self.count += 1
+                    self.last_url = r.geturl()
+                    self.last_status = r.status
                     charset = r.headers.get_content_charset() or "utf-8"
                     return raw.decode(charset, errors="replace")
             except Exception as e:  # noqa: BLE001
@@ -84,9 +102,9 @@ class Fetcher:
 
 def search_url(state: str) -> str:
     params = {
-        "campo[2]": "SUBASTA.ESTADO",
+        "campo[2]": "SUBASTA.ESTADO.CODIGO",
         "dato[2]": state,
-        "sort_field[0]": "SUBASTA.FECHA_INICIO",
+        "sort_field[0]": "SUBASTA.FECHA_FIN",
         "sort_order[0]": "desc",
         "page_hits": "50",
         "accion": "Buscar",
@@ -94,40 +112,103 @@ def search_url(state: str) -> str:
     return boe.BASE + "subastas_ava.php?" + urllib.parse.urlencode(params)
 
 
+def _load_local() -> dict[str, dict]:
+    if not DATA_FILE.exists():
+        return {}
+    payload = json.loads(DATA_FILE.read_text("utf-8"))
+    if isinstance(payload, dict) and payload.get("demo"):
+        log("в локальном файле демо-данные — пропускаем")
+        return {}
+    items = payload.get("subastas", payload) if isinstance(payload, dict) else payload
+    return {s["id"]: s for s in items}
+
+
+def _migrate(db: dict[str, dict]) -> None:
+    """Пересчитывает поля, логика которых менялась (категория, нулевая оценка)."""
+    for s in db.values():
+        s["categoria"] = boe.category_of(s.get("bienes") or [], s.get("titulo", ""))
+        if not s.get("tasacion"):
+            s["tasacion"] = None
+
+
 def load_db() -> dict[str, dict]:
-    if DATA_FILE.exists():
-        payload = json.loads(DATA_FILE.read_text("utf-8"))
-        items = payload.get("subastas", payload) if isinstance(payload, dict) else payload
-        if isinstance(payload, dict) and payload.get("demo"):
-            log("в базе демо-данные — начинаем с чистой базы")
-            return {}
-        return {s["id"]: s for s in items}
-    return {}
+    if STORE:
+        db = STORE.load_all()
+        log(f"Supabase: в базе {len(db)}")
+        if not db:
+            db = _load_local()
+            if db:
+                log(f"Supabase пуст — переносим {len(db)} аукционов из site/data/subastas.json")
+    else:
+        db = _load_local()
+    _migrate(db)
+    return db
+
+
+def first_search_page(fetcher: Fetcher, state: str) -> tuple[str, str]:
+    """Открывает форму поиска портала и отправляет её с нужным статусом.
+    Если форму разобрать не удалось — пробует прямой адрес поиска."""
+    form_url = boe.BASE + "subastas_ava.php"
+    form_html = fetcher.get(form_url)
+    form = boe.parse_search_form(form_html, fetcher.last_url or form_url, state)
+    if form:
+        log(f"[{state}] форма поиска: {form['method'].upper()} {form['url']} ({len(form['fields'])} полей)")
+        body = urllib.parse.urlencode(form["fields"])
+        if form["method"] == "post":
+            return fetcher.get(form["url"], data=body.encode()), form["url"]
+        url = form["url"] + ("&" if "?" in form["url"] else "?") + body
+        return fetcher.get(url), url
+    log(f"[{state}] форму поиска разобрать не удалось — прямой запрос")
+    dump_debug("form", form_html, fetcher)
+    url = search_url(state)
+    return fetcher.get(url), url
 
 
 def collect_listing(fetcher: Fetcher, known: set[str], max_pages: int) -> list[dict]:
-    """Проходит страницы поиска. Останавливается, когда страница целиком из известных ID."""
+    """Проходит все страницы поиска по каждому статусу и собирает ID аукционов.
+    Список дешёвый (1 запрос на 50 аукционов), карточки качаются только для новых."""
     found: dict[str, dict] = {}
-    for state in STATES:
-        url = search_url(state.strip())
-        seen_pages = set()
+    for state in (s.strip() for s in STATES if s.strip()):
+        try:
+            html, url = first_search_page(fetcher, state)
+        except RuntimeError as e:
+            log(f"[{state}] {e}")
+            continue
+        seen_pages = {url}
         for page in range(max_pages):
-            if url in seen_pages:
-                break
-            seen_pages.add(url)
-            html = fetcher.get(url)
             items, nexts = boe.parse_search_page(html, url)
-            fresh = [i for i in items if i["id"] not in known and i["id"] not in found]
+            fresh = [i for i in items if i["id"] not in found]
             for i in items:
                 found.setdefault(i["id"], i)
-            log(f"[{state}] стр.{page + 1}: {len(items)} шт., новых {len(fresh)}")
-            if not items or (not fresh and page > 0):
+            new_for_db = sum(1 for i in fresh if i["id"] not in known)
+            log(f"[{state}] стр.{page + 1}: {len(items)} шт., новых {new_for_db}")
+            if not items:
+                if page == 0:
+                    err = boe.page_error(html)
+                    if err:
+                        log(f"[{state}] портал ответил: {err}")
+                    dump_debug(f"search_{state}", html, fetcher)
+                break
+            if not fresh:  # страница повторилась — дальше листать нечего
                 break
             nexts = [n for n in nexts if n not in seen_pages]
             if not nexts:
                 break
             url = nexts[0] if len(nexts) == 1 else _pick_next(nexts, page)
+            seen_pages.add(url)
+            html = fetcher.get(url)
     return list(found.values())
+
+
+def dump_debug(name: str, html: str, fetcher: "Fetcher") -> None:
+    """Сохраняет полученную страницу, чтобы разобраться, почему парсер ничего не нашёл."""
+    import re as _re
+    path = DATA_FILE.parent / f"debug_{name}.html"
+    path.write_text(html, "utf-8")
+    text = _re.sub(r"\s+", " ", _re.sub(r"<[^>]+>", " ", _re.sub(r"(?is)<(script|style).*?</\1>", " ", html)))
+    log(f"  ОТЛАДКА: HTTP {fetcher.last_status}, {len(html)} байт, итоговый URL: {fetcher.last_url}")
+    log(f"  ОТЛАДКА: страница сохранена в {path.relative_to(ROOT)}")
+    log(f"  ОТЛАДКА: начало текста: {text.strip()[:600]}")
 
 
 def _pick_next(links: list[str], page: int) -> str:
@@ -190,23 +271,60 @@ def prune(db: dict[str, dict], now: datetime) -> None:
                 pass
 
 
-def write_outputs(db: dict[str, dict], new_ids: list[str], now: datetime) -> None:
+def teaser_ids(items: list[dict]) -> set[str]:
+    current = [s for s in items if s.get("estado") in ("activa", "proxima")]
+    current.sort(key=lambda s: (s.get("detectada") or "", s.get("fecha_inicio") or ""), reverse=True)
+    return {s["id"] for s in current[:TEASER_COUNT]}
+
+
+def write_outputs(db: dict[str, dict], new_ids: list[str], now: datetime,
+                  removed: set[str] | None = None) -> None:
     items = sorted(db.values(), key=lambda s: s.get("detectada", ""), reverse=True)
-    DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
-    DATA_FILE.write_text(json.dumps({"generado": now.isoformat(), "subastas": items},
-                                    ensure_ascii=False, separators=(",", ":")), "utf-8")
+    teasers = teaser_ids(items)
     counts: dict[str, int] = {}
+    cat_counts: dict[str, int] = {}
     for s in items:
         counts[s["estado"]] = counts.get(s["estado"], 0) + 1
+        if s["estado"] in ("activa", "proxima"):
+            cat_counts[s["categoria"]] = cat_counts.get(s["categoria"], 0) + 1
+    DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
+
+    if STORE:
+        STORE.upsert(items, teasers)
+        if removed:
+            STORE.delete(sorted(removed))
+        log(f"Supabase: записано {len(items)}, удалено {len(removed or [])}")
+        # полный список больше не лежит в открытом доступе
+        if DATA_FILE.exists():
+            DATA_FILE.unlink()
+    else:
+        for s in items:
+            s["teaser"] = s["id"] in teasers
+        DATA_FILE.write_text(json.dumps({"generado": now.isoformat(), "subastas": items},
+                                        ensure_ascii=False, separators=(",", ":")), "utf-8")
+
     meta = {
         "actualizado": now.isoformat(),
         "total": len(items),
+        "actuales": counts.get("activa", 0) + counts.get("proxima", 0),
         "nuevas_ultima_ejecucion": len(new_ids),
         "por_estado": counts,
+        "por_categoria": cat_counts,
         "fuente": "Agencia Estatal Boletín Oficial del Estado — https://subastas.boe.es",
     }
     META_FILE.write_text(json.dumps(meta, ensure_ascii=False, indent=2), "utf-8")
     write_feed(items[:100], now)
+
+
+def site_link(s: dict) -> str:
+    return f"{SITE_URL}/#/s/{s['id']}" if SITE_URL else ""
+
+
+def place(s: dict) -> str:
+    def t(x):
+        return (x or "").strip().title()
+    loc, prov = t(s.get("localidad")), t((s.get("provincia") or "").split("/")[0])
+    return ", ".join(v for i, v in enumerate([loc, prov]) if v and (i == 0 or v != loc)) or "España"
 
 
 def fmt_eur(v):
@@ -216,29 +334,32 @@ def fmt_eur(v):
 
 
 def write_feed(items: list[dict], now: datetime) -> None:
+    """RSS-анонсы: тип, место, цена, срок. Без адреса, описания и ссылки на BOE."""
     link = SITE_URL or "https://subastas.boe.es"
     out = [
         '<?xml version="1.0" encoding="UTF-8"?>',
         '<rss version="2.0"><channel>',
         f"<title>{escape(SITE_NAME)} — nuevas subastas en España</title>",
         f"<link>{escape(link)}</link>",
-        "<description>Nuevas subastas públicas publicadas en el Portal de Subastas del BOE</description>",
+        "<description>Avisos de nuevas subastas públicas. Detalles completos en la web tras iniciar sesión.</description>",
         "<language>es</language>",
         f"<lastBuildDate>{format_datetime(now)}</lastBuildDate>",
     ]
     for s in items:
-        title = f"{s.get('localidad') or s.get('provincia') or ''} · {s['titulo'][:90]} · {fmt_eur(s.get('valor_subasta'))}"
-        desc = (f"{s.get('tipo','')} | Valor: {fmt_eur(s.get('valor_subasta'))} | "
-                f"Depósito: {fmt_eur(s.get('deposito'))} | Fin: {s.get('fecha_fin') or '—'} | {s['titulo']}")
+        cat = CAT_ES.get(s.get("categoria"), "Subasta")
+        title = f"{cat} · {place(s)} · {fmt_eur(s.get('valor_subasta'))}"
+        end = (s.get("fecha_fin") or "")[:10]
+        desc = (f"{cat} en {place(s)}. Valor de subasta: {fmt_eur(s.get('valor_subasta'))}. "
+                f"Depósito: {fmt_eur(s.get('deposito'))}. Fin: {end or '—'}. "
+                f"Detalles completos en {SITE_NAME}.")
         try:
             pub = format_datetime(datetime.fromisoformat(s["detectada"]))
         except (KeyError, ValueError):
             pub = format_datetime(now)
-        page = f"{SITE_URL}/#/s/{s['id']}" if SITE_URL else s["url"]
         out.append(
-            f"<item><title>{escape(title)}</title><link>{escape(page)}</link>"
+            f"<item><title>{escape(title)}</title><link>{escape(site_link(s) or link)}</link>"
             f"<guid isPermaLink=\"false\">{s['id']}</guid><pubDate>{pub}</pubDate>"
-            f"<category>{escape(s.get('categoria',''))}</category>"
+            f"<category>{escape(cat)}</category>"
             f"<description>{escape(desc)}</description></item>"
         )
     out.append("</channel></rss>")
@@ -252,14 +373,14 @@ def post_telegram(items: list[dict]) -> None:
         return
     limit = int(os.environ.get("TELEGRAM_MAX_POSTS", "20"))
     for s in items[:limit]:
-        page = f"{SITE_URL}/#/s/{s['id']}" if SITE_URL else s["url"]
+        cat = CAT_ES.get(s.get("categoria"), "Subasta")
+        page = site_link(s)
         text = (
-            f"🔨 <b>{escape(s.get('localidad') or s.get('provincia') or 'España')}</b> · {escape(s.get('categoria',''))}\n"
-            f"{escape(s['titulo'][:300])}\n\n"
+            f"🔨 <b>{escape(cat)}</b> · {escape(place(s))}\n\n"
             f"💶 Valor subasta: <b>{fmt_eur(s.get('valor_subasta'))}</b>\n"
-            f"🏷 Tasación: {fmt_eur(s.get('tasacion'))} · Depósito: {fmt_eur(s.get('deposito'))}\n"
-            f"⏳ Fin: {(s.get('fecha_fin') or '—')[:16].replace('T', ' ')}\n"
-            f"🆔 {s['id']}\n<a href=\"{escape(page)}\">Ver subasta</a>"
+            f"🔐 Depósito: {fmt_eur(s.get('deposito'))}\n"
+            f"⏳ Fin: {(s.get('fecha_fin') or '—')[:10]}\n"
+            + (f"\n<a href=\"{escape(page)}\">Ver detalles en {escape(SITE_NAME)}</a>" if page else "")
         )
         data = urllib.parse.urlencode({
             "chat_id": chat, "text": text, "parse_mode": "HTML",
@@ -275,7 +396,7 @@ def post_telegram(items: list[dict]) -> None:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--max-pages", type=int, default=int(os.environ.get("MAX_PAGES", "10")))
+    ap.add_argument("--max-pages", type=int, default=int(os.environ.get("MAX_PAGES", "80")))
     ap.add_argument("--max-new", type=int, default=int(os.environ.get("MAX_NEW", "300")))
     args = ap.parse_args()
 
@@ -284,6 +405,8 @@ def main() -> int:
     first_run = not db
     log(f"в базе {len(db)} аукционов")
 
+    for f in DATA_FILE.parent.glob("debug_*.html"):  # отладка прошлого запуска
+        f.unlink()
     fetcher = Fetcher()
     listing = collect_listing(fetcher, set(db), args.max_pages)
     new = [l for l in listing if l["id"] not in db][: args.max_new]
@@ -302,9 +425,10 @@ def main() -> int:
         if n % 20 == 0:
             log(f"  загружено {n}/{len(new)}")
 
+    before = set(db)
     refresh_states(db, now)
     prune(db, now)
-    write_outputs(db, new_ids, now)
+    write_outputs(db, new_ids, now, removed=before - set(db))
     log(f"готово: всего {len(db)}, новых {len(new_ids)}, запросов {fetcher.count}")
 
     # При первом запуске не засыпаем канал сотнями сообщений

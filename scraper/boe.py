@@ -49,6 +49,35 @@ CATEGORY_RULES = [
     ("derechos", r"derecho|participaci[oó]n|acciones|marca|patente|cr[eé]dito"),
 ]
 
+# Тип имущества, который BOE указывает в заголовке «Bien 1 - Inmueble (Vivienda)»
+TYPE_MAP = {
+    "vivienda": "vivienda", "garaje": "garaje", "trastero": "trastero",
+    "local comercial": "local", "local": "local", "oficina": "local",
+    "nave industrial": "nave", "solar": "solar", "finca rústica": "rustica", "finca rustica": "rustica",
+    "turismos": "vehiculo", "industriales": "vehiculo", "motocicletas": "vehiculo",
+    "ciclomotores": "vehiculo", "vehículos": "vehiculo", "vehiculos": "vehiculo",
+    "buques": "embarcacion", "embarcaciones": "embarcacion",
+    "joyas": "joyas_arte", "obras de arte": "joyas_arte", "joyas y obras de arte": "joyas_arte",
+    "maquinaria": "maquinaria", "mobiliario": "maquinaria", "equipos": "maquinaria",
+    "herramientas": "maquinaria", "otros bienes y derechos": "derechos", "derechos": "derechos",
+    "propiedad intelectual": "derechos", "propiedad industrial": "derechos",
+}
+
+
+def category_of(assets: list[dict], fallback_text: str = "") -> str:
+    """Категория по типу, указанному BOE; если тип «Otros» или неизвестен — по ключевым словам."""
+    for a in assets:
+        t = (a.get("tipo_bien") or "").strip().lower()
+        if t in TYPE_MAP:
+            return TYPE_MAP[t]
+    for a in assets:
+        head = (a.get("titulo") or "").lower()
+        if "vehículo" in head or "vehiculo" in head:
+            return "vehiculo"
+    texts = [a.get("tipo_bien", "") + " " + a.get("descripcion", "") for a in assets] or [fallback_text]
+    return categorize(*texts)
+
+
 MONEY_RE = re.compile(r"(-?\d{1,3}(?:\.\d{3})*(?:,\d+)?|-?\d+(?:,\d+)?)\s*€")
 ISO_RE = re.compile(r"ISO:\s*([0-9T:\-+]+)")
 DMY_RE = re.compile(r"(\d{2})[-/](\d{2})[-/](\d{4})(?:\s+(?:a las\s+)?(\d{2}):(\d{2})(?::(\d{2}))?)?")
@@ -169,10 +198,17 @@ def parse_search_page(html: str, page_url: str = BASE) -> tuple[list[dict], list
                 results[sid] = {"id": sid, "authority": "", "status_text": "", "summary": ""}
 
     next_links = []
-    for a in soup.find_all("a", href=re.compile(r"accion=Mas")):
-        href = urljoin(page_url, unescape(a["href"]))
-        if href not in next_links:
-            next_links.append(href)
+    for a in soup.find_all("a", href=True):
+        href_raw = unescape(a["href"])
+        label = clean(a.get_text(" ")).lower()
+        cls = " ".join(a.get("class", []) + sum((c.get("class", []) for c in a.find_all(True)), []))
+        if ("accion=Mas" in href_raw or "id_busqueda" in href_raw
+                or "siguiente" in label or "pagSig" in cls):
+            if "detalleSubasta" in href_raw:
+                continue
+            href = urljoin(page_url, href_raw)
+            if href not in next_links:
+                next_links.append(href)
 
     return list(results.values()), next_links
 
@@ -310,8 +346,7 @@ def status_code(text: str, fecha_fin: str | None, now: datetime | None = None) -
 def build_record(listing: dict, general: dict, authority: dict, assets: list[dict]) -> dict:
     sub_id = general.get("id") or listing["id"]
     first = assets[0] if assets else {}
-    texts = [a.get("tipo_bien", "") + " " + a.get("titulo", "") + " " + a.get("descripcion", "") for a in assets]
-    category = categorize(*(texts or [listing.get("summary", "")]))
+    category = category_of(assets, listing.get("summary", ""))
     title = first.get("descripcion") or listing.get("summary") or sub_id
     status_src = general.get("status_text") or listing.get("status_text", "")
     return {
@@ -326,7 +361,7 @@ def build_record(listing: dict, general: dict, authority: dict, assets: list[dic
         "cp": first.get("cp", ""),
         "direccion": first.get("direccion", ""),
         "valor_subasta": general.get("valor_subasta"),
-        "tasacion": general.get("tasacion"),
+        "tasacion": general.get("tasacion") or None,
         "puja_minima": general.get("puja_minima"),
         "deposito": general.get("deposito"),
         "cantidad_reclamada": general.get("cantidad_reclamada"),
@@ -338,3 +373,108 @@ def build_record(listing: dict, general: dict, authority: dict, assets: list[dic
         "lotes": general.get("lotes", ""),
         "bienes": assets,
     }
+
+
+# ------------------------------------------------------- форма поиска
+
+def page_error(html: str) -> str:
+    """Возвращает текст ошибки портала, если он есть на странице."""
+    m = re.search(r"ERROR:[^<]{0,200}", unescape(html))
+    return clean(m.group(0)) if m else ""
+
+
+def parse_search_form(html: str, page_url: str, state: str) -> dict | None:
+    """Находит форму поиска и заполняет её как браузер: все поля со значениями
+    по умолчанию, статус = state, максимум результатов на странице.
+
+    Возвращает {"method", "url", "fields": [(name, value), ...]} или None.
+    """
+    soup = BeautifulSoup(html, "html.parser")
+    best = None
+    for form in soup.find_all("form"):
+        opts = [o.get("value") for o in form.find_all("option")]
+        if state in opts:
+            best = form
+            break
+        if best is None and "subastas_ava" in (form.get("action") or ""):
+            best = form
+    if best is None:
+        return None
+
+    fields: list[tuple[str, str]] = []
+    state_set = False
+    submit = None
+    radio_groups: dict[str, list] = {}   # name -> [элементы] (порядок важен)
+    order: list[tuple[str, object]] = []  # чтобы сохранить порядок полей формы
+    for el in best.find_all(["input", "select", "textarea"]):
+        name = el.get("name")
+        if not name:
+            continue
+        if el.name == "input":
+            typ = (el.get("type") or "text").lower()
+            if typ in ("submit", "button", "image"):
+                if submit is None and (el.get("value") or "").lower().startswith("buscar"):
+                    submit = (name, el.get("value"))
+                continue
+            if typ == "radio":
+                if name not in radio_groups:
+                    radio_groups[name] = []
+                    order.append(("radio", name))
+                radio_groups[name].append(el)
+                continue
+            if typ == "checkbox":
+                if el.has_attr("checked"):
+                    order.append(("pair", (name, el.get("value", "on"))))
+                continue
+            order.append(("pair", (name, el.get("value", ""))))
+        elif el.name == "textarea":
+            order.append(("pair", (name, el.get_text())))
+        else:  # select
+            options = el.find_all("option")
+            values = [o.get("value", clean(o.get_text())) for o in options]
+            if state in values:
+                order.append(("pair", (name, state)))
+                state_set = True
+                continue
+            if "page_hits" in name and values:
+                nums = [v for v in values if v.isdigit()]
+                order.append(("pair", (name, max(nums, key=int) if nums else values[0])))
+                continue
+            sel = [o for o in options if o.has_attr("selected")]
+            if el.has_attr("multiple"):
+                for o in sel:
+                    order.append(("pair", (name, o.get("value", ""))))
+            elif options:
+                o = sel[0] if sel else options[0]
+                order.append(("pair", (name, o.get("value", clean(o.get_text())))))
+
+    for kind, item in order:
+        if kind == "pair":
+            fields.append(item)
+            continue
+        name, group = item, radio_groups[item]
+        values = [r.get("value", "") for r in group]
+        if state in values:
+            fields.append((name, state))
+            state_set = True
+            continue
+        checked = [r for r in group if r.has_attr("checked")]
+        # как браузер: отмеченный вариант; если не отмечен ни один — поле не отправляется,
+        # но для BOE безопаснее отправить «Todos» (пустое значение), если он есть
+        if checked:
+            fields.append((name, checked[0].get("value", "")))
+        elif "" in values:
+            fields.append((name, ""))
+    # кнопка «Buscar» тоже может быть <button name=accion>
+    if submit is None:
+        for b in best.find_all("button"):
+            if b.get("name") and "buscar" in clean(b.get_text()).lower() + (b.get("value") or "").lower():
+                submit = (b["name"], b.get("value") or clean(b.get_text()))
+                break
+    if submit:
+        fields.append(submit)
+    if not state_set:
+        return None
+    method = (best.get("method") or "get").lower()
+    action = urljoin(page_url, best.get("action") or page_url)
+    return {"method": method, "url": action, "fields": fields}

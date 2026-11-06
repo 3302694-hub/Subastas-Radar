@@ -4,99 +4,179 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SubastaRadar — subastas públicas en España</title>
-<meta name="description" content="Nuevas subastas judiciales, notariales y de Hacienda del Portal de Subastas del BOE, actualizadas automáticamente.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%2214%22 fill=%22none%22 stroke=%22%23c4512b%22 stroke-width=%222%22/%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%225%22 fill=%22%23c4512b%22/%3E%3C/svg%3E">
-<link rel="alternate" type="application/rss+xml" title="Nuevas subastas" href="feed.xml">
+<meta name="description" content="Subastas judiciales, notariales y de Hacienda del Portal de Subastas del BOE, actualizadas automáticamente varias veces al día.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%229%22 fill=%22%232546F0%22/%3E%3Cpath d=%22M8 22a8 8 0 0116 0M12 22a4 4 0 018 0M16 22l5-7%22 stroke=%22white%22 stroke-width=%222.4%22 fill=%22none%22 stroke-linecap=%22round%22/%3E%3C/svg%3E">
+<link rel="alternate" type="application/rss+xml" title="SubastaRadar" href="feed.xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
+<a class="skip" href="#catalogo" data-i="skip"></a>
+
 <header class="top">
   <div class="wrap top-in">
     <a class="brand" href="#" data-nav="list">
-      <span class="brand-mark" aria-hidden="true"></span>
-      <span><b id="brandName">SubastaRadar</b><small id="brandTag"></small></span>
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 18a8 8 0 0116 0"/><path d="M8 18a4 4 0 018 0"/><path d="M12 18l5-7"/></svg>
+      </span>
+      <span id="brandName">SubastaRadar</span>
     </a>
-    <nav class="nav">
-      <a href="#" data-nav="list" data-i="nav_list"></a>
+    <nav class="nav" aria-label="menu">
+      <a href="#catalogo" data-nav="list" data-i="nav_list"></a>
       <a href="#mapa" data-nav="map" data-i="nav_map"></a>
       <a href="#alertas" data-nav="alerts" data-i="nav_alerts"></a>
-      <a href="#" data-nav="saved"><span data-i="nav_saved"></span> <span class="pill" id="favCount">0</span></a>
+      <a href="#catalogo" data-nav="saved"><span data-i="nav_saved"></span> <span class="pill" id="favCount">0</span></a>
     </nav>
-    <div class="lang" role="group" aria-label="Idioma">
-      <button data-lang="es">ES</button><button data-lang="ru">RU</button>
+    <div class="lang" role="group" aria-label="Language">
+      <button data-lang="es" lang="es">ES</button><button data-lang="en" lang="en">EN</button><button data-lang="ru" lang="ru">RU</button>
+    </div>
+    <div class="account" id="account">
+      <button class="link-btn" id="loginBtn" data-i="login" hidden></button>
+      <button class="btn" id="signupTop" data-i="cta_start" hidden></button>
+      <div class="user-chip" id="userChip" hidden>
+        <button class="user-btn" id="userBtn" aria-haspopup="true"><span id="userEmail"></span><small id="userAccess"></small></button>
+        <div class="user-menu" id="userMenu" hidden><button id="logoutBtn" data-i="logout"></button></div>
+      </div>
     </div>
   </div>
 </header>
 
-<div id="demoBanner" class="demo" hidden><div class="wrap" data-i="demo"></div></div>
+<div id="demoBanner" class="banner warn" hidden><div class="wrap" data-i="demo"></div></div>
+<div id="savedNotice" class="banner dark" hidden><div class="wrap"></div></div>
+<div id="lockBanner" class="banner accent" hidden><div class="wrap banner-in"><span id="lockText"></span><button class="btn white" id="lockBtn"></button></div></div>
 
-<section class="hero">
-  <div class="wrap">
-    <h1 data-i="hero_title"></h1>
-    <p data-i="hero_sub"></p>
-    <div class="stats">
-      <div><b id="stActive">—</b><span data-i="stat_active"></span></div>
-      <div><b id="stNew">—</b><span data-i="stat_new24"></span></div>
-      <div><b id="stUpdated">—</b><span data-i="stat_updated"></span></div>
-    </div>
-  </div>
-</section>
-
-<div id="savedNotice" class="notice" hidden><div class="wrap"></div></div>
-
-<main class="wrap layout">
-  <aside class="filters" id="filters">
-    <input id="q" type="search" class="search" data-i-ph="search_ph" autocomplete="off">
-    <fieldset><legend data-i="f_origin"></legend><div class="chips" id="fOrigin"></div></fieldset>
-    <label><span data-i="f_category"></span><select id="fCat"></select></label>
-    <label><span data-i="f_province"></span><select id="fProv"></select></label>
-    <label><span data-i="f_status"></span><select id="fStatus"></select></label>
-    <fieldset><legend data-i="f_price"></legend>
-      <div class="range"><input id="pMin" type="number" min="0" step="1000" inputmode="numeric"><span>—</span><input id="pMax" type="number" min="0" step="1000" inputmode="numeric"></div>
-    </fieldset>
-    <label><span data-i="f_fresh"></span><select id="fFresh"></select></label>
-    <div class="f-actions">
-      <button id="saveSearch" class="btn" data-i="save_search"></button>
-      <button id="reset" class="btn ghost" data-i="reset"></button>
-    </div>
-  </aside>
-
-  <section class="results">
-    <div class="res-head">
-      <p><b id="resCount">0</b> <span data-i="results"></span></p>
-      <label class="sort"><span data-i="f_sort"></span><select id="sort"></select></label>
-    </div>
-    <div id="list" class="grid"></div>
-    <div class="more-row"><button id="more" class="btn ghost" data-i="more" hidden></button></div>
-
-    <section id="mapa" class="block">
-      <h2 data-i="map_title"></h2>
-      <p class="muted" data-i="map_hint"></p>
-      <div id="map"></div>
-      <h3 data-i="prov_title"></h3>
-      <div id="provList" class="prov-list"></div>
-    </section>
-
-    <section id="alertas" class="block">
-      <h2 data-i="alerts_title"></h2>
-      <div class="alert-cards">
-        <a class="acard" id="rssLink" href="feed.xml"><b data-i="alerts_rss"></b><span data-i="alerts_rss_d"></span><em data-i="subscribe"></em></a>
-        <a class="acard" id="tgLink" href="#" target="_blank" rel="noopener" hidden><b data-i="alerts_tg"></b><span data-i="alerts_tg_d"></span><em data-i="subscribe"></em></a>
-        <div class="acard"><b data-i="alerts_saved"></b><span data-i="alerts_saved_d"></span></div>
+<main>
+  <!-- Поиск-фраза -->
+  <section class="wrap hero-wrap">
+    <div class="hero">
+      <p class="hero-kicker" id="heroKicker"></p>
+      <h1 class="sentence">
+        <span data-i="s_busco"></span>
+        <label class="pick"><span class="sr" data-i="f_category"></span><select id="fCat"></select></label>
+        <span data-i="s_en"></span>
+        <label class="pick"><span class="sr" data-i="f_province"></span><select id="fProv"></select></label>
+        <span data-i="s_hasta"></span>
+        <label class="pick"><span class="sr" data-i="f_price"></span><select id="fPrice"></select></label>
+      </h1>
+      <div class="hero-actions">
+        <a class="btn big" href="#catalogo" id="heroGo"></a>
+        <span class="muted" id="heroUpdated"></span>
       </div>
-    </section>
+      <dl class="hero-stats">
+        <div><dt data-i="stat_active"></dt><dd id="stActive">—</dd></div>
+        <div><dt data-i="stat_new24"></dt><dd id="stNew">—</dd></div>
+        <div><dt data-i="stat_updated"></dt><dd id="stUpdated">—</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <!-- По типу -->
+  <section class="wrap block">
+    <h2 data-i="by_type"></h2>
+    <div class="tiles" id="tiles"></div>
+  </section>
+
+  <!-- Скоро закрываются -->
+  <section class="wrap block" id="soonBlock">
+    <div class="block-head"><h2 data-i="closing_soon"></h2><a href="#catalogo" class="more-link" id="soonAll"></a></div>
+    <div class="cards cards-4" id="soon"></div>
+  </section>
+
+  <!-- Каталог -->
+  <section class="wrap block results" id="catalogo">
+    <div class="block-head"><h2 data-i="all_auctions"></h2><p class="muted"><b id="resCount">0</b> <span data-i="results"></span></p></div>
+    <div class="filters" id="filters">
+      <label class="f-search"><span class="sr" data-i="search_ph"></span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+        <input id="q" type="search" data-i-ph="search_ph" autocomplete="off">
+      </label>
+      <div class="chips" id="fOrigin" role="group"></div>
+      <div class="f-row">
+        <label><span data-i="f_status"></span><select id="fStatus"></select></label>
+        <label><span data-i="f_fresh"></span><select id="fFresh"></select></label>
+        <label class="f-range"><span data-i="f_price"></span>
+          <span class="range"><input id="pMin" type="number" min="0" step="1000" inputmode="numeric"><i>—</i><input id="pMax" type="number" min="0" step="1000" inputmode="numeric"></span>
+        </label>
+        <label><span data-i="f_sort"></span><select id="sort"></select></label>
+        <div class="f-actions">
+          <button id="saveSearch" class="btn soft" data-i="save_search"></button>
+          <button id="reset" class="link-btn" data-i="reset"></button>
+        </div>
+      </div>
+    </div>
+    <div id="list" class="cards"></div>
+    <div class="more-row"><button id="more" class="btn soft" data-i="more" hidden></button></div>
+  </section>
+
+  <!-- Карта -->
+  <section class="wrap block" id="mapa">
+    <div class="block-head"><h2 data-i="map_title"></h2><p class="muted" data-i="map_hint"></p></div>
+    <div class="map-wrap">
+      <div id="map"></div>
+      <div class="prov-list" id="provList"></div>
+    </div>
+  </section>
+
+  <!-- Как это работает -->
+  <section class="wrap block">
+    <h2 data-i="how_title"></h2>
+    <div class="steps">
+      <div class="step"><b>01</b><h3 data-i="how1_t"></h3><p id="how1d"></p></div>
+      <div class="step"><b>02</b><h3 data-i="how2_t"></h3><p data-i="how2_d"></p></div>
+      <div class="step"><b>03</b><h3 data-i="how3_t"></h3><p data-i="how3_d"></p></div>
+    </div>
+  </section>
+
+  <!-- Уведомления -->
+  <section class="wrap block" id="alertas">
+    <h2 data-i="alerts_title"></h2>
+    <div class="alert-cards">
+      <a class="acard" id="rssLink" href="feed.xml"><b data-i="alerts_rss"></b><span data-i="alerts_rss_d"></span><em data-i="subscribe"></em></a>
+      <a class="acard" id="tgLink" href="#" target="_blank" rel="noopener" hidden><b data-i="alerts_tg"></b><span data-i="alerts_tg_d"></span><em data-i="subscribe"></em></a>
+      <div class="acard"><b data-i="alerts_saved"></b><span data-i="alerts_saved_d"></span></div>
+    </div>
   </section>
 </main>
 
-<footer class="foot"><div class="wrap"><p data-i="footer_src"></p></div></footer>
+<footer class="foot"><div class="wrap foot-in"><p data-i="footer_src"></p><p data-i="footer_ind"></p></div></footer>
 
-<dialog id="detail" class="detail"><div id="detailBody"></div></dialog>
+<dialog id="detail" class="dlg"><div id="detailBody"></div></dialog>
+
+<dialog id="authDlg" class="dlg auth">
+  <div class="d-head">
+    <button class="d-close" data-close aria-label="×">×</button>
+    <div class="tabs" id="authTabs">
+      <button data-mode="signup" data-i="signup"></button>
+      <button data-mode="login" data-i="login"></button>
+    </div>
+    <p class="muted" id="authLead"></p>
+  </div>
+  <div class="d-body">
+    <div class="oauth" id="oauthBox">
+      <button class="btn oauth-btn" data-provider="google"><span class="o-ic">G</span><span data-i="with_google"></span></button>
+      <button class="btn oauth-btn" data-provider="apple"><span data-i="with_apple"></span></button>
+      <div class="or"><span data-i="or"></span></div>
+    </div>
+    <form id="authForm" autocomplete="on">
+      <label><span data-i="email"></span><input type="email" id="authEmail" required autocomplete="email"></label>
+      <label id="pwRow"><span data-i="password"></span><input type="password" id="authPw" minlength="8" required autocomplete="current-password"></label>
+      <button class="btn big" type="submit" id="authSubmit"></button>
+      <button class="link-btn" type="button" id="forgotBtn" data-i="forgot"></button>
+    </form>
+    <p class="auth-msg" id="authMsg" hidden></p>
+    <p class="fine" data-i="device_note"></p>
+  </div>
+</dialog>
 
 <script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/i18n.js"></script>
 <script src="assets/provinces.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="assets/auth.js"></script>
 <script src="assets/app.js"></script>
 </body>
 </html>
