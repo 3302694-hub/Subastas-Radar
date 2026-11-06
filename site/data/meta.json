@@ -1,16 +1,17 @@
 {
-  "actualizado": "2026-11-06T18:24:02.060459+00:00",
+  "actualizado": "2026-11-06T20:59:35.736210+00:00",
   "total": 980,
-  "actuales": 980,
+  "actuales": 979,
   "nuevas_ultima_ejecucion": 0,
   "por_estado": {
     "proxima": 62,
-    "activa": 918
+    "activa": 917,
+    "finalizada": 1
   },
   "por_categoria": {
     "trastero": 18,
     "vivienda": 575,
-    "rustica": 79,
+    "rustica": 78,
     "garaje": 117,
     "local": 58,
     "nave": 28,
