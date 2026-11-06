@@ -169,10 +169,17 @@ def parse_search_page(html: str, page_url: str = BASE) -> tuple[list[dict], list
                 results[sid] = {"id": sid, "authority": "", "status_text": "", "summary": ""}
 
     next_links = []
-    for a in soup.find_all("a", href=re.compile(r"accion=Mas")):
-        href = urljoin(page_url, unescape(a["href"]))
-        if href not in next_links:
-            next_links.append(href)
+    for a in soup.find_all("a", href=True):
+        href_raw = unescape(a["href"])
+        label = clean(a.get_text(" ")).lower()
+        cls = " ".join(a.get("class", []) + sum((c.get("class", []) for c in a.find_all(True)), []))
+        if ("accion=Mas" in href_raw or "id_busqueda" in href_raw
+                or "siguiente" in label or "pagSig" in cls):
+            if "detalleSubasta" in href_raw:
+                continue
+            href = urljoin(page_url, href_raw)
+            if href not in next_links:
+                next_links.append(href)
 
     return list(results.values()), next_links
 
@@ -338,3 +345,80 @@ def build_record(listing: dict, general: dict, authority: dict, assets: list[dic
         "lotes": general.get("lotes", ""),
         "bienes": assets,
     }
+
+
+# ------------------------------------------------------- форма поиска
+
+def page_error(html: str) -> str:
+    """Возвращает текст ошибки портала, если он есть на странице."""
+    m = re.search(r"ERROR:[^<]{0,200}", unescape(html))
+    return clean(m.group(0)) if m else ""
+
+
+def parse_search_form(html: str, page_url: str, state: str) -> dict | None:
+    """Находит форму поиска и заполняет её как браузер: все поля со значениями
+    по умолчанию, статус = state, максимум результатов на странице.
+
+    Возвращает {"method", "url", "fields": [(name, value), ...]} или None.
+    """
+    soup = BeautifulSoup(html, "html.parser")
+    best = None
+    for form in soup.find_all("form"):
+        opts = [o.get("value") for o in form.find_all("option")]
+        if state in opts:
+            best = form
+            break
+        if best is None and "subastas_ava" in (form.get("action") or ""):
+            best = form
+    if best is None:
+        return None
+
+    fields: list[tuple[str, str]] = []
+    state_set = False
+    submit = None
+    for el in best.find_all(["input", "select", "textarea"]):
+        name = el.get("name")
+        if not name:
+            continue
+        if el.name == "input":
+            typ = (el.get("type") or "text").lower()
+            if typ in ("submit", "button", "image"):
+                if submit is None and (el.get("value") or "").lower().startswith("buscar"):
+                    submit = (name, el.get("value"))
+                continue
+            if typ in ("checkbox", "radio") and not el.has_attr("checked"):
+                continue
+            fields.append((name, el.get("value", "")))
+        elif el.name == "textarea":
+            fields.append((name, el.get_text()))
+        else:  # select
+            options = el.find_all("option")
+            values = [o.get("value", clean(o.get_text())) for o in options]
+            if state in values:
+                fields.append((name, state))
+                state_set = True
+                continue
+            if "page_hits" in name and values:
+                nums = [v for v in values if v.isdigit()]
+                fields.append((name, max(nums, key=int) if nums else values[0]))
+                continue
+            sel = [o for o in options if o.has_attr("selected")]
+            if el.has_attr("multiple"):
+                for o in sel:
+                    fields.append((name, o.get("value", "")))
+            elif options:
+                o = sel[0] if sel else options[0]
+                fields.append((name, o.get("value", clean(o.get_text()))))
+    # кнопка «Buscar» тоже может быть <button name=accion>
+    if submit is None:
+        for b in best.find_all("button"):
+            if b.get("name") and "buscar" in clean(b.get_text()).lower() + (b.get("value") or "").lower():
+                submit = (b["name"], b.get("value") or clean(b.get_text()))
+                break
+    if submit:
+        fields.append(submit)
+    if not state_set:
+        return None
+    method = (best.get("method") or "get").lower()
+    action = urljoin(page_url, best.get("action") or page_url)
+    return {"method": method, "url": action, "fields": fields}
