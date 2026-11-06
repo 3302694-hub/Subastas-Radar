@@ -52,24 +52,26 @@
   <!-- Поиск-фраза -->
   <section class="wrap hero-wrap">
     <div class="hero">
-      <p class="hero-kicker" id="heroKicker"></p>
-      <h1 class="sentence">
-        <span data-i="s_busco"></span>
-        <label class="pick"><span class="sr" data-i="f_category"></span><select id="fCat"></select></label>
-        <span data-i="s_en"></span>
-        <label class="pick"><span class="sr" data-i="f_province"></span><select id="fProv"></select></label>
-        <span data-i="s_hasta"></span>
-        <label class="pick"><span class="sr" data-i="f_price"></span><select id="fPrice"></select></label>
-      </h1>
-      <div class="hero-actions">
-        <a class="btn big" href="#catalogo" id="heroGo"></a>
-        <span class="muted" id="heroUpdated"></span>
+      <div class="hero-meta">
+        <p class="hero-kicker" id="heroKicker"></p>
+        <dl class="hero-stats">
+          <div><dd id="stActive">—</dd><dt data-i="stat_active"></dt></div>
+          <div><dd id="stNew">—</dd><dt data-i="stat_new24"></dt></div>
+          <div><dt data-i="stat_updated"></dt><dd id="stUpdated">—</dd></div>
+        </dl>
       </div>
-      <dl class="hero-stats">
-        <div><dt data-i="stat_active"></dt><dd id="stActive">—</dd></div>
-        <div><dt data-i="stat_new24"></dt><dd id="stNew">—</dd></div>
-        <div><dt data-i="stat_updated"></dt><dd id="stUpdated">—</dd></div>
-      </dl>
+      <div class="hero-row">
+        <h1 class="sentence">
+          <span data-i="s_busco"></span>
+          <label class="pick"><span class="sr" data-i="f_category"></span><select id="fCat"></select></label>
+          <span data-i="s_en"></span>
+          <label class="pick"><span class="sr" data-i="f_province"></span><select id="fProv"></select></label>
+          <span data-i="s_hasta"></span>
+          <label class="pick"><span class="sr" data-i="f_price"></span><select id="fPrice"></select></label>
+        </h1>
+        <a class="btn" href="#catalogo" id="heroGo"></a>
+      </div>
+      <span id="heroUpdated" hidden></span>
     </div>
   </section>
 
