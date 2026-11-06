@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Панель управления — SubastaRadar</title>
+<meta name="theme-color" content="#0B6B66">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%230B6B66%22/%3E%3Cpath d=%22M8 22a8 8 0 0116 0M12 22a4 4 0 018 0M16 22l5-7%22 stroke=%22white%22 stroke-width=%222.4%22 fill=%22none%22 stroke-linecap=%22round%22/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css?v=20261106d">
+<link rel="stylesheet" href="assets/admin.css?v=20261106d">
+</head>
+<body class="adm">
+<header class="top">
+  <div class="wrap top-in">
+    <a class="brand" href="./"><span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M5 17a7 7 0 0114 0M8.5 17a3.5 3.5 0 017 0M12 17l4-6"/></svg></span>SubastaRadar</a>
+    <span class="adm-tag">Панель управления</span>
+    <span class="adm-who" id="who"></span>
+    <a class="btn ghost" href="./">На сайт</a>
+    <button class="btn ghost" id="logout" hidden>Выйти</button>
+  </div>
+</header>
+
+<main class="wrap adm-main" id="main">
+  <p class="adm-msg" id="msg" role="status" hidden></p>
+
+  <!-- вход -->
+  <section id="loginBox" class="adm-card adm-login" hidden>
+    <h1>Вход для администратора</h1>
+    <form id="loginForm">
+      <label class="fld"><span>Почта</span><input type="email" id="lEmail" autocomplete="email" required></label>
+      <label class="fld"><span>Пароль</span><input type="password" id="lPw" autocomplete="current-password" required></label>
+      <button class="btn" id="lBtn">Войти</button>
+      <p class="adm-err" id="lErr" hidden></p>
+    </form>
+  </section>
+
+  <section id="denied" class="adm-card" hidden>
+    <h1>Нет доступа</h1>
+    <p class="muted">Этот аккаунт не входит в список администраторов.</p>
+  </section>
+
+  <div id="app" hidden>
+    <section class="adm-stats" id="stats" aria-label="Сводка"></section>
+
+    <nav class="adm-tabs" role="tablist">
+      <button role="tab" data-tab="users" aria-selected="true">Пользователи</button>
+      <button role="tab" data-tab="trusted" aria-selected="false">Доверенные адреса</button>
+      <button role="tab" data-tab="settings" aria-selected="false">Сроки доступа</button>
+    </nav>
+
+    <!-- пользователи -->
+    <section id="tab-users" class="adm-tab">
+      <div class="adm-bar">
+        <label class="fld grow"><span class="sr">Поиск</span><input type="search" id="q" placeholder="Поиск по почте или заметке"></label>
+        <label class="fld"><span class="sr">Показать</span>
+          <select id="filter">
+            <option value="all">Все</option>
+            <option value="access">С доступом</option>
+            <option value="expired">Доступ истёк</option>
+            <option value="denied">Без бесплатного периода</option>
+            <option value="trusted">Доверенные</option>
+          </select></label>
+        <span class="muted" id="count"></span>
+      </div>
+      <div class="adm-table-box">
+        <table class="adm-t">
+          <thead><tr>
+            <th scope="col">Пользователь</th>
+            <th scope="col">Статус</th>
+            <th scope="col">Доступ до</th>
+            <th scope="col">Режимы</th>
+            <th scope="col">Заметка</th>
+            <th scope="col">Активность</th>
+            <th scope="col"><span class="sr">Действия</span></th>
+          </tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <div class="adm-pager"><button class="btn ghost" id="prev">← Назад</button><span id="page" class="muted"></span><button class="btn ghost" id="next">Дальше →</button></div>
+    </section>
+
+    <!-- доверенные -->
+    <section id="tab-trusted" class="adm-tab" hidden>
+      <p class="muted adm-lead">У доверенных адресов полный доступ без срока и все режимы. Проверка устройств на них не действует.</p>
+      <form class="adm-bar" id="trustForm">
+        <label class="fld grow"><span>Почта</span><input type="email" id="tEmail" required></label>
+        <label class="fld grow"><span>Заметка</span><input type="text" id="tNote" maxlength="120"></label>
+        <button class="btn">Добавить</button>
+      </form>
+      <ul class="adm-list" id="trusted"></ul>
+    </section>
+
+    <!-- сроки -->
+    <section id="tab-settings" class="adm-tab" hidden>
+      <div class="adm-card">
+        <h2>Бесплатный период для новых пользователей</h2>
+        <p class="muted">Каждый, кто регистрируется, получает доступ до этой даты. Уже зарегистрированных это не меняет.</p>
+        <form class="adm-bar" id="defForm">
+          <label class="fld"><span>Доступ до</span><input type="date" id="defDate" required></label>
+          <button class="btn">Сохранить</button>
+        </form>
+      </div>
+      <div class="adm-card">
+        <h2>Продлить доступ сразу многим</h2>
+        <p class="muted">Например, всем, у кого доступ заканчивается 31.12.2026, продлить до 30.06.2027.</p>
+        <form class="adm-bar" id="bulkForm">
+          <label class="fld"><span>У кого доступ до</span><input type="date" id="bFrom" required></label>
+          <label class="fld"><span>Продлить до</span><input type="date" id="bTo" required></label>
+          <label class="chk-inline"><input type="checkbox" id="bExp"> и у кого уже истёк раньше</label>
+          <button class="btn">Продлить</button>
+        </form>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script src="config.js?v=20261106d"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/auth.js?v=20261106d"></script>
+<script src="assets/admin.js?v=20261106d"></script>
+</body>
+</html>

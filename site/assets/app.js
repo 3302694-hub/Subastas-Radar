@@ -615,9 +615,10 @@
       $("#userEmail").textContent = u.email || "";
       $("#userAccess").textContent = access;
       $("#userChip").classList.toggle("no-access", !st.has_access);
+      $("#adminLink").hidden = !st.is_admin;
     }
     $("#setAccount").innerHTML = u
-      ? `<p class="fine" style="width:100%;margin:0">${esc(u.email || "")} · ${esc(access)}</p><button class="btn ghost" data-act="logout">${esc(t("logout"))}</button>`
+      ? `<p class="fine" style="width:100%;margin:0">${esc(u.email || "")} · ${esc(access)}</p>${st.is_admin ? `<a class="btn soft" href="admin.html">Панель управления</a>` : ""}<button class="btn ghost" data-act="logout">${esc(t("logout"))}</button>`
       : `<button class="btn" data-act="signup">${esc(t("cta_start"))}</button><button class="btn ghost" data-act="login">${esc(t("login"))}</button>`;
   }
   function renderLock() {

@@ -1,0 +1,5 @@
+-- Панель управления (site/admin.html). Уже применено к проекту Supabase.
+-- Добавить администратора:  insert into public.admins (email) values ('nuevo@correo.es');
+-- Полный текст функций: admins, is_admin(), admin_stats(), admin_list_users(), admin_update_user(),
+-- admin_bulk_extend(), admin_set_default_trial(), admin_trusted_list/add/remove(),
+-- а также register_device() с полем is_admin — см. миграцию «admin_panel» в Supabase → Database → Migrations.
