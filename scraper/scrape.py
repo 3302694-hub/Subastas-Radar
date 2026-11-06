@@ -59,6 +59,8 @@ class Fetcher:
         self.last = 0.0
         self.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor())
         self.count = 0
+        self.last_url = ""
+        self.last_status = 0
 
     def get(self, url: str, retries: int = 3) -> str:
         for attempt in range(retries):
@@ -74,6 +76,8 @@ class Fetcher:
                 with self.opener.open(req, timeout=30) as r:
                     raw = r.read()
                     self.count += 1
+                    self.last_url = r.geturl()
+                    self.last_status = r.status
                     charset = r.headers.get_content_charset() or "utf-8"
                     return raw.decode(charset, errors="replace")
             except Exception as e:  # noqa: BLE001
@@ -121,6 +125,8 @@ def collect_listing(fetcher: Fetcher, known: set[str], max_pages: int) -> list[d
             for i in items:
                 found.setdefault(i["id"], i)
             log(f"[{state}] стр.{page + 1}: {len(items)} шт., новых {len(fresh)}")
+            if not items and page == 0:
+                dump_debug(f"search_{state.strip()}", html, fetcher)
             if not items or (not fresh and page > 0):
                 break
             nexts = [n for n in nexts if n not in seen_pages]
@@ -128,6 +134,17 @@ def collect_listing(fetcher: Fetcher, known: set[str], max_pages: int) -> list[d
                 break
             url = nexts[0] if len(nexts) == 1 else _pick_next(nexts, page)
     return list(found.values())
+
+
+def dump_debug(name: str, html: str, fetcher: "Fetcher") -> None:
+    """Сохраняет полученную страницу, чтобы разобраться, почему парсер ничего не нашёл."""
+    import re as _re
+    path = DATA_FILE.parent / f"debug_{name}.html"
+    path.write_text(html, "utf-8")
+    text = _re.sub(r"\s+", " ", _re.sub(r"<[^>]+>", " ", _re.sub(r"(?is)<(script|style).*?</\1>", " ", html)))
+    log(f"  ОТЛАДКА: HTTP {fetcher.last_status}, {len(html)} байт, итоговый URL: {fetcher.last_url}")
+    log(f"  ОТЛАДКА: страница сохранена в {path.relative_to(ROOT)}")
+    log(f"  ОТЛАДКА: начало текста: {text.strip()[:600]}")
 
 
 def _pick_next(links: list[str], page: int) -> str:
