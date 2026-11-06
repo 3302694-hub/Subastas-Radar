@@ -376,6 +376,8 @@ def parse_search_form(html: str, page_url: str, state: str) -> dict | None:
     fields: list[tuple[str, str]] = []
     state_set = False
     submit = None
+    radio_groups: dict[str, list] = {}   # name -> [элементы] (порядок важен)
+    order: list[tuple[str, object]] = []  # чтобы сохранить порядок полей формы
     for el in best.find_all(["input", "select", "textarea"]):
         name = el.get("name")
         if not name:
@@ -386,29 +388,55 @@ def parse_search_form(html: str, page_url: str, state: str) -> dict | None:
                 if submit is None and (el.get("value") or "").lower().startswith("buscar"):
                     submit = (name, el.get("value"))
                 continue
-            if typ in ("checkbox", "radio") and not el.has_attr("checked"):
+            if typ == "radio":
+                if name not in radio_groups:
+                    radio_groups[name] = []
+                    order.append(("radio", name))
+                radio_groups[name].append(el)
                 continue
-            fields.append((name, el.get("value", "")))
+            if typ == "checkbox":
+                if el.has_attr("checked"):
+                    order.append(("pair", (name, el.get("value", "on"))))
+                continue
+            order.append(("pair", (name, el.get("value", ""))))
         elif el.name == "textarea":
-            fields.append((name, el.get_text()))
+            order.append(("pair", (name, el.get_text())))
         else:  # select
             options = el.find_all("option")
             values = [o.get("value", clean(o.get_text())) for o in options]
             if state in values:
-                fields.append((name, state))
+                order.append(("pair", (name, state)))
                 state_set = True
                 continue
             if "page_hits" in name and values:
                 nums = [v for v in values if v.isdigit()]
-                fields.append((name, max(nums, key=int) if nums else values[0]))
+                order.append(("pair", (name, max(nums, key=int) if nums else values[0])))
                 continue
             sel = [o for o in options if o.has_attr("selected")]
             if el.has_attr("multiple"):
                 for o in sel:
-                    fields.append((name, o.get("value", "")))
+                    order.append(("pair", (name, o.get("value", ""))))
             elif options:
                 o = sel[0] if sel else options[0]
-                fields.append((name, o.get("value", clean(o.get_text()))))
+                order.append(("pair", (name, o.get("value", clean(o.get_text())))))
+
+    for kind, item in order:
+        if kind == "pair":
+            fields.append(item)
+            continue
+        name, group = item, radio_groups[item]
+        values = [r.get("value", "") for r in group]
+        if state in values:
+            fields.append((name, state))
+            state_set = True
+            continue
+        checked = [r for r in group if r.has_attr("checked")]
+        # как браузер: отмеченный вариант; если не отмечен ни один — поле не отправляется,
+        # но для BOE безопаснее отправить «Todos» (пустое значение), если он есть
+        if checked:
+            fields.append((name, checked[0].get("value", "")))
+        elif "" in values:
+            fields.append((name, ""))
     # кнопка «Buscar» тоже может быть <button name=accion>
     if submit is None:
         for b in best.find_all("button"):

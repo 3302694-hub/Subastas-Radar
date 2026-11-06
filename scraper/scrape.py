@@ -89,9 +89,9 @@ class Fetcher:
 
 def search_url(state: str) -> str:
     params = {
-        "campo[2]": "SUBASTA.ESTADO",
+        "campo[2]": "SUBASTA.ESTADO.CODIGO",
         "dato[2]": state,
-        "sort_field[0]": "SUBASTA.FECHA_INICIO",
+        "sort_field[0]": "SUBASTA.FECHA_FIN",
         "sort_order[0]": "desc",
         "page_hits": "50",
         "accion": "Buscar",
