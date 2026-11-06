@@ -57,6 +57,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: main
+      - name: Номер версии файлов (чтобы браузеры сразу брали новые)
+        run: sed -i -E "s/\?v=[0-9A-Za-z]+/?v=${GITHUB_SHA::8}/g" site/index.html
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
