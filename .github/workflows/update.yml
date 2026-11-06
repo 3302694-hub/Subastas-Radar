@@ -49,9 +49,9 @@ jobs:
     needs: [scrape]
     if: always() && (needs.scrape.result == 'success' || needs.scrape.result == 'skipped')
     runs-on: ubuntu-latest
-    concurrency:            # новая публикация отменяет старую, ещё не завершённую
+    concurrency:            # публикации идут по очереди и не прерывают друг друга
       group: pages-deploy
-      cancel-in-progress: true
+      cancel-in-progress: false
     timeout-minutes: 10
     environment:
       name: github-pages

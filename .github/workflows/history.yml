@@ -55,7 +55,7 @@ jobs:
     runs-on: ubuntu-latest
     concurrency:
       group: pages-deploy
-      cancel-in-progress: true
+      cancel-in-progress: false
     timeout-minutes: 10
     environment:
       name: github-pages
