@@ -62,16 +62,17 @@ class Fetcher:
         self.last_url = ""
         self.last_status = 0
 
-    def get(self, url: str, retries: int = 3) -> str:
+    def get(self, url: str, retries: int = 3, data: bytes | None = None) -> str:
         for attempt in range(retries):
             wait = self.delay - (time.time() - self.last)
             if wait > 0:
                 time.sleep(wait)
             self.last = time.time()
-            req = urllib.request.Request(url, headers={
-                "User-Agent": USER_AGENT,
-                "Accept-Language": "es-ES,es;q=0.9",
-            })
+            headers = {"User-Agent": USER_AGENT, "Accept-Language": "es-ES,es;q=0.9"}
+            if data is not None:
+                headers["Content-Type"] = "application/x-www-form-urlencoded"
+                headers["Referer"] = boe.BASE + "subastas_ava.php"
+            req = urllib.request.Request(url, data=data, headers=headers)
             try:
                 with self.opener.open(req, timeout=30) as r:
                     raw = r.read()
@@ -109,30 +110,58 @@ def load_db() -> dict[str, dict]:
     return {}
 
 
+def first_search_page(fetcher: Fetcher, state: str) -> tuple[str, str]:
+    """Открывает форму поиска портала и отправляет её с нужным статусом.
+    Если форму разобрать не удалось — пробует прямой адрес поиска."""
+    form_url = boe.BASE + "subastas_ava.php"
+    form_html = fetcher.get(form_url)
+    form = boe.parse_search_form(form_html, fetcher.last_url or form_url, state)
+    if form:
+        log(f"[{state}] форма поиска: {form['method'].upper()} {form['url']} ({len(form['fields'])} полей)")
+        body = urllib.parse.urlencode(form["fields"])
+        if form["method"] == "post":
+            return fetcher.get(form["url"], data=body.encode()), form["url"]
+        url = form["url"] + ("&" if "?" in form["url"] else "?") + body
+        return fetcher.get(url), url
+    log(f"[{state}] форму поиска разобрать не удалось — прямой запрос")
+    dump_debug("form", form_html, fetcher)
+    url = search_url(state)
+    return fetcher.get(url), url
+
+
 def collect_listing(fetcher: Fetcher, known: set[str], max_pages: int) -> list[dict]:
-    """Проходит страницы поиска. Останавливается, когда страница целиком из известных ID."""
+    """Проходит все страницы поиска по каждому статусу и собирает ID аукционов.
+    Список дешёвый (1 запрос на 50 аукционов), карточки качаются только для новых."""
     found: dict[str, dict] = {}
-    for state in STATES:
-        url = search_url(state.strip())
-        seen_pages = set()
+    for state in (s.strip() for s in STATES if s.strip()):
+        try:
+            html, url = first_search_page(fetcher, state)
+        except RuntimeError as e:
+            log(f"[{state}] {e}")
+            continue
+        seen_pages = {url}
         for page in range(max_pages):
-            if url in seen_pages:
-                break
-            seen_pages.add(url)
-            html = fetcher.get(url)
             items, nexts = boe.parse_search_page(html, url)
-            fresh = [i for i in items if i["id"] not in known and i["id"] not in found]
+            fresh = [i for i in items if i["id"] not in found]
             for i in items:
                 found.setdefault(i["id"], i)
-            log(f"[{state}] стр.{page + 1}: {len(items)} шт., новых {len(fresh)}")
-            if not items and page == 0:
-                dump_debug(f"search_{state.strip()}", html, fetcher)
-            if not items or (not fresh and page > 0):
+            new_for_db = sum(1 for i in fresh if i["id"] not in known)
+            log(f"[{state}] стр.{page + 1}: {len(items)} шт., новых {new_for_db}")
+            if not items:
+                if page == 0:
+                    err = boe.page_error(html)
+                    if err:
+                        log(f"[{state}] портал ответил: {err}")
+                    dump_debug(f"search_{state}", html, fetcher)
+                break
+            if not fresh:  # страница повторилась — дальше листать нечего
                 break
             nexts = [n for n in nexts if n not in seen_pages]
             if not nexts:
                 break
             url = nexts[0] if len(nexts) == 1 else _pick_next(nexts, page)
+            seen_pages.add(url)
+            html = fetcher.get(url)
     return list(found.values())
 
 
@@ -292,7 +321,7 @@ def post_telegram(items: list[dict]) -> None:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--max-pages", type=int, default=int(os.environ.get("MAX_PAGES", "10")))
+    ap.add_argument("--max-pages", type=int, default=int(os.environ.get("MAX_PAGES", "80")))
     ap.add_argument("--max-new", type=int, default=int(os.environ.get("MAX_NEW", "300")))
     args = ap.parse_args()
 
@@ -301,6 +330,8 @@ def main() -> int:
     first_run = not db
     log(f"в базе {len(db)} аукционов")
 
+    for f in DATA_FILE.parent.glob("debug_*.html"):  # отладка прошлого запуска
+        f.unlink()
     fetcher = Fetcher()
     listing = collect_listing(fetcher, set(db), args.max_pages)
     new = [l for l in listing if l["id"] not in db][: args.max_new]
