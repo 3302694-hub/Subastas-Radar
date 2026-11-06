@@ -1,7 +1,9 @@
 {
-  "actualizado": "2026-11-06T13:05:59.675691+00:00",
-  "total": 0,
-  "nuevas_ultima_ejecucion": 0,
-  "por_estado": {},
+  "actualizado": "2026-11-06T13:17:01.771036+00:00",
+  "total": 400,
+  "nuevas_ultima_ejecucion": 400,
+  "por_estado": {
+    "activa": 400
+  },
   "fuente": "Agencia Estatal Boletín Oficial del Estado — https://subastas.boe.es"
 }
