@@ -478,3 +478,37 @@ def parse_search_form(html: str, page_url: str, state: str) -> dict | None:
     method = (best.get("method") or "get").lower()
     action = urljoin(page_url, best.get("action") or page_url)
     return {"method": method, "url": action, "fields": fields}
+
+
+# ------------------------------------------------- фото и документы
+
+_IMG_EXT = re.compile(r"\.(jpe?g|png|webp|gif)(\?|$)", re.I)
+_SKIP = re.compile(r"logo|icono|icon|boton|flecha|estilos|sprite|banner|cabecera|pie_|/img/|favicon|escudo|loading", re.I)
+
+
+def parse_media(html: str, page_url: str = BASE) -> tuple[list[str], list[str]]:
+    """Ссылки на фотографии и документы (PDF) объекта на странице карточки BOE."""
+    soup = BeautifulSoup(html, "html.parser")
+    content = soup.find(id=re.compile(r"idBloqueDatos|contenido", re.I)) or soup
+    fotos, docs = [], []
+    for img in content.find_all("img", src=True):
+        src = unescape(img["src"])
+        if _SKIP.search(src):
+            continue
+        if _IMG_EXT.search(src) or re.search(r"imagen|foto", src, re.I):
+            u = urljoin(page_url, src)
+            if u not in fotos:
+                fotos.append(u)
+    for a in content.find_all("a", href=True):
+        href = unescape(a["href"])
+        if _SKIP.search(href) or href.startswith(("#", "javascript", "mailto")):
+            continue
+        u = urljoin(page_url, href)
+        label = clean(a.get_text(" ")).lower()
+        if _IMG_EXT.search(href) or re.search(r"verimagen|imagen\.php|foto", href, re.I):
+            if u not in fotos:
+                fotos.append(u)
+        elif href.lower().endswith(".pdf") or "pdf" in href.lower() or "documento" in label or "descargar" in label:
+            if "boe.es" in u and u not in docs:
+                docs.append(u)
+    return fotos[:6], docs[:6]

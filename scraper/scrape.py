@@ -233,11 +233,28 @@ def fetch_detail(fetcher: Fetcher, listing: dict) -> dict:
         authority = boe.parse_authority(fetcher.get(boe.detail_url(sid, 2)))
     except RuntimeError:
         authority = {}
+    fotos, docs = [], []
     try:
-        assets = boe.parse_assets(fetcher.get(boe.detail_url(sid, 3)))
+        html3 = fetcher.get(boe.detail_url(sid, 3))
+        assets = boe.parse_assets(html3)
+        fotos, docs = boe.parse_media(html3, boe.detail_url(sid, 3))
+        _sample(sid, "ver3", html3)
     except RuntimeError:
         assets = []
-    return boe.build_record(listing, general, authority, assets)
+    rec = boe.build_record(listing, general, authority, assets)
+    rec["fotos"], rec["documentos"] = fotos, docs
+    return rec
+
+
+_SAMPLED = set()
+
+
+def _sample(sid: str, tab: str, html: str) -> None:
+    """Сохраняет одну карточку за запуск — чтобы можно было проверить разметку BOE."""
+    if tab in _SAMPLED:
+        return
+    _SAMPLED.add(tab)
+    (DATA_FILE.parent / f"debug_detail_{tab}.html").write_text(html, "utf-8")
 
 
 def refresh_states(db: dict[str, dict], now: datetime) -> None:
