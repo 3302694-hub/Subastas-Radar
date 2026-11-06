@@ -1,0 +1,63 @@
+name: Обновление аукционов и публикация сайта
+
+on:
+  schedule:
+    - cron: "17 5-21/3 * * *"   # каждые 3 часа: 06:17, 09:17 … 21:17 по Мадриду (зимой)
+  workflow_dispatch: {}          # ручной запуск из вкладки Actions
+  push:
+    branches: [main]
+    paths: ["site/**", "!site/data/**", "!site/feed.xml"]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: update-site
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Сбор новых аукционов
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+          SITE_NAME: ${{ vars.SITE_NAME }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python scraper/scrape.py --max-pages 10 --max-new 400
+      - name: Сохранить данные в репозиторий
+        run: |
+          git config user.name "subastas-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add site/data site/feed.xml
+          git diff --cached --quiet || git commit -m "Обновление аукционов $(date -u +'%Y-%m-%d %H:%M')"
+          git push
+
+  deploy:
+    needs: [scrape]
+    if: always() && (needs.scrape.result == 'success' || needs.scrape.result == 'skipped')
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4
