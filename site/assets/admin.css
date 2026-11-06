@@ -62,3 +62,17 @@
   .adm-tag,.adm-who{display:none}
   .adm .top-in .btn{min-height:40px;padding:6px 12px}
 }
+
+/* заказы nota simple */
+.adm-badge{display:inline-block;min-width:20px;padding:1px 6px;border-radius:999px;background:var(--bad);color:#fff;font-size:12px;margin-left:4px}
+.nota-cards{display:flex;flex-direction:column;gap:12px}
+.nota-card header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:10px}
+.nota-card header .btn{margin-left:auto}
+.cp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-bottom:8px}
+.cp{border:1px solid var(--line);border-radius:10px;padding:8px 10px;cursor:copy;background:#fff;transition:background 160ms}
+.cp:hover{background:var(--surf)}
+.cp.copied{background:var(--ok-bg)}
+.cp small{display:block;color:var(--muted);font-size:12px}
+.cp b{font-weight:600;word-break:break-word}
+.nota-bien{margin:0 0 8px}
+.file-btn{cursor:pointer}

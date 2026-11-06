@@ -1,0 +1,6 @@
+-- Заказы nota simple: применено миграцией notas_simples_pedidos (Supabase MCP), 2026-11-07.
+-- Таблица public.notas_pedidos (RLS: свои строки + администраторы; запись только через функции),
+-- функции nota_crear, nota_cancelar, admin_notas_list, admin_nota_update,
+-- приватное хранилище storage 'notas' (PDF, путь {user_id}/{id}.pdf),
+-- настройка settings.notas_pago_activo = 'false' (оплата выключена до alta autónomo).
+-- Письмо клиенту: Edge Function supabase/functions/nota-email (нужен секрет RESEND_API_KEY).

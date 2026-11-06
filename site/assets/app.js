@@ -531,6 +531,130 @@
       <a class="btn ghost" href="https://sede.registradores.org/site/home" target="_blank" rel="noopener">${esc(t("adm_docs_nota"))}${idufir ? " · IDUFIR " + esc(idufir) : rc ? " · " + esc(rc) : ""} ${ic("ext")}</a>
     </div></div>`;
   }
+  // ---------- Nota simple: заказ выписки из Registro de la Propiedad (17 € + IVA)
+  const NOTA = { precio: 17, iva: 21 };
+  const NOTA_CATS = ["vivienda", "garaje", "trastero", "local", "nave", "solar", "rustica"];
+  const eur2 = (v) => new Intl.NumberFormat(locale(), { style: "currency", currency: "EUR" }).format(v);
+  // Регистрационные данные из описания лота в BOE
+  function regData(a) {
+    const txt = String(a.descripcion || "") + " " + String(a.titulo || "");
+    const reg = txt.match(/registro\s+de\s+la\s+propiedad\s*(?:(?:n[º°o.]*|n\.º|número|num\.?)\s*)?(\d+)?\s*(?:de|del)\s+([A-Za-zÁÉÍÓÚÑÜáéíóúñüÀ-ÿ' .-]{2,40}?)(?=\s*[,.;:(]|\s+al\s|\s+tomo|\s+con\s|\s+bajo|\s+como|$)/i);
+    const finca = txt.match(/finca\s*(?:registral)?\s*(?:n[º°o.]*|n\.º|número|num\.?)?\s*:?\s*(\d[\d.\/-]*)/i);
+    const pick = (re) => { const m = txt.match(re); return m ? m[1].replace(/\.$/, "") : ""; };
+    const tomo = pick(/tomo\s*:?\s*([\d.]+)/i), libro = pick(/libro\s*:?\s*([\d.]+)/i), folio = pick(/folio\s*:?\s*([\d.]+)/i);
+    return {
+      registro: reg ? ("Registro de la Propiedad" + (reg[1] ? " nº " + reg[1] : "") + " de " + sentence(reg[2].trim())) : "",
+      finca: finca ? finca[1].replace(/[.\/-]$/, "") : "",
+      datos: [tomo && "tomo " + tomo, libro && "libro " + libro, folio && "folio " + folio].filter(Boolean).join(", ")
+    };
+  }
+  const notaAssets = (s) => (s.bienes || []).filter((a) => !a.matricula && (a.idufir || String(a.ref_catastral || "").replace(/\s/g, "").length >= 14 || /registro\s+de\s+la\s+propiedad|finca/i.test(a.descripcion || "")));
+  function notaBlock(s) {
+    if (!AUTH.enabled || !NOTA_CATS.includes(s.categoria) || !notaAssets(s).length) return "";
+    const total = NOTA.precio * (1 + NOTA.iva / 100);
+    return `<div class="nota-box"><div><h3>${ic("file")} ${esc(t("nota_t"))}</h3><p>${esc(t("nota_d"))}</p>
+      <p class="fine">${esc(t("nota_price", { p: eur2(NOTA.precio), t: eur2(total) }))}</p></div>
+      <button type="button" class="btn" data-nota="${esc(s.id)}">${esc(t("nota_btn"))}</button></div>`;
+  }
+  function notaDialog() {
+    let d = $("#notaDlg");
+    if (!d) {
+      d = document.createElement("dialog"); d.id = "notaDlg"; d.className = "dlg nota";
+      d.setAttribute("aria-labelledby", "notaTitle");
+      document.body.appendChild(d);
+      d.addEventListener("click", (e) => { if (e.target === d || e.target.closest("[data-close]")) d.close(); });
+    }
+    return d;
+  }
+  const closeBtn = () => `<button class="d-close" data-close aria-label="${esc(t("close"))}">${ic("x")}</button>`;
+  function openNota(id) {
+    const s = all.find((x) => x.id === id);
+    if (!s) return;
+    const u = AUTH.user && AUTH.user();
+    if (!u) { if ($("#detail").open) $("#detail").close(); openAuth("login"); return; }
+    const assets = notaAssets(s);
+    const d = notaDialog();
+    const fill = (i) => {
+      const a = assets[i] || {}, r = regData(a);
+      return { idufir: a.idufir || "", rc: String(a.ref_catastral || "").replace(/\s/g, ""), registro: r.registro, finca: r.finca, datos: r.datos,
+        dir: [a.direccion, a.cp, place(a.localidad), place(a.provincia)].filter(Boolean).join(", "), bien: sentence(a.descripcion || a.titulo || "").slice(0, 280) };
+    };
+    const last = store.get("nota_me") || {};
+    const f0 = fill(0);
+    const inp = (name, label, val, attrs = "") => `<label><span>${esc(t(label))}</span><input name="${name}" value="${esc(val || "")}" ${attrs}></label>`;
+    const total = NOTA.precio * (1 + NOTA.iva / 100);
+    d.innerHTML = `<div class="d-head">${closeBtn()}<h2 id="notaTitle">${esc(t("nota_form_t"))}</h2>
+        <p class="muted" style="margin:6px 0 0">${esc(what(s))} · ${esc(place(s.localidad) || place(s._prov) || "")} · ${esc(s.id)}</p></div>
+      <form class="d-body nota-form" id="notaForm" novalidate>
+        <h3>${esc(t("nota_finca"))}</h3>
+        ${assets.length > 1 ? `<label><span>${esc(t("nota_bien"))}</span><select name="bien_i">${assets.map((a, i) => `<option value="${i}">${i + 1}. ${esc(sentence(a.descripcion || a.titulo || "").slice(0, 80))}</option>`).join("")}</select></label>` : ""}
+        <div class="nf-grid">
+          ${inp("idufir", "nota_idufir", f0.idufir, 'maxlength="40"')}
+          ${inp("rc", "nota_rc", f0.rc, 'maxlength="25"')}
+          ${inp("registro", "nota_registro", f0.registro, 'maxlength="160"')}
+          ${inp("finca", "nota_num_finca", f0.finca, 'maxlength="60"')}
+          ${inp("datos", "nota_datos", f0.datos, 'maxlength="300"')}
+          ${inp("dir", "nota_dir", f0.dir, 'maxlength="300"')}
+        </div>
+        <p class="fine">${esc(t("nota_hint"))}</p>
+        <h3>${esc(t("nota_you"))}</h3>
+        <div class="nf-grid">
+          ${inp("nombre", "nota_name", last.nombre, 'required maxlength="160" autocomplete="name"')}
+          ${inp("dni", "nota_dni", "", 'required maxlength="12" autocapitalize="characters"')}
+          ${inp("email", "nota_email", last.email || u.email, 'type="email" required autocomplete="email"')}
+          ${inp("tel", "nota_phone", last.tel, 'type="tel" maxlength="30" autocomplete="tel"')}
+        </div>
+        <label><span>${esc(t("nota_purpose"))}</span><select name="fin">${["subasta", "inversion", "juridica", "otra"].map((k) => `<option value="${k}">${esc(t("nota_p_" + k))}</option>`).join("")}</select></label>
+        <label class="nf-check"><input type="checkbox" name="ok" required> <span>${esc(t("nota_consent"))}</span></label>
+        <div class="nf-total"><span>${esc(t("nota_price", { p: eur2(NOTA.precio), t: eur2(total) }))}</span></div>
+        ${AUTH.notaPago ? "" : `<p class="nf-soon">${esc(t("nota_soon"))}</p>`}
+        <p class="auth-msg" id="notaMsg" role="status" hidden></p>
+        <button class="btn big" type="submit">${esc(t(AUTH.notaPago ? "nota_send_pay" : "nota_send_free"))}</button>
+      </form>`;
+    const form = $("#notaForm");
+    const sel = form.querySelector("[name=bien_i]");
+    if (sel) sel.onchange = () => { const f = fill(+sel.value); form.idufir.value = f.idufir; form.rc.value = f.rc; form.registro.value = f.registro; form.finca.value = f.finca; form.datos.value = f.datos; form.dir.value = f.dir; };
+    const msg = (text, ok) => { const m = $("#notaMsg"); m.textContent = text; m.className = "auth-msg " + (ok ? "ok" : "err"); m.hidden = false; };
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const v = (n) => (form[n] ? form[n].value.trim() : "");
+      const dni = v("dni").toUpperCase().replace(/[\s-]/g, "");
+      if (!v("nombre") || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v("email")) || !form.ok.checked) { msg(t("nota_err_fields"), false); return; }
+      if (!/^([0-9]{8}[A-Z]|[XYZ][0-9]{7}[A-Z]|[A-HJ-NP-SUVW][0-9]{7}[0-9A-J])$/.test(dni)) { msg(t("nota_err_dni"), false); return; }
+      if (!v("idufir") && !v("rc") && !v("finca")) { msg(t("nota_err_finca"), false); return; }
+      const btn = form.querySelector("[type=submit]"); btn.disabled = true;
+      const f = fill(sel ? +sel.value : 0);
+      try {
+        const r = await AUTH.notaCrear({ p_subasta_id: s.id, p_bien: f.bien, p_idufir: v("idufir"), p_ref_catastral: v("rc"), p_registro: v("registro"),
+          p_finca: v("finca"), p_datos_registrales: v("datos"), p_direccion: v("dir"), p_nombre: v("nombre"), p_dni: dni, p_email: v("email"),
+          p_telefono: v("tel"), p_finalidad: v("fin") });
+        store.set("nota_me", { nombre: v("nombre"), email: v("email"), tel: v("tel") });
+        msg(t("nota_ok", { n: r.id, e: r.email }), true);
+        btn.hidden = true;
+      } catch (err) {
+        console.error(err);
+        const c = String(err && err.message || "");
+        msg(t(c.includes("dni") ? "nota_err_dni" : c.includes("finca") ? "nota_err_finca" : c.includes("demasiados") ? "nota_err_many" : "nota_err"), false);
+        btn.disabled = false;
+      }
+    };
+    if (!d.open) d.showModal();
+  }
+  async function openMyNotas() {
+    if (!(AUTH.user && AUTH.user())) { openAuth("login"); return; }
+    const d = notaDialog();
+    d.innerHTML = `<div class="d-head">${closeBtn()}<h2 id="notaTitle">${esc(t("nota_mine"))}</h2></div><div class="d-body" id="myNotas"><p class="muted">…</p></div>`;
+    if (!d.open) d.showModal();
+    let rows = [];
+    try { rows = await AUTH.misNotas(); } catch (e) { console.error(e); $("#myNotas").innerHTML = `<p class="auth-msg err">${esc(t("nota_err"))}</p>`; return; }
+    $("#myNotas").innerHTML = rows.length ? `<ul class="nota-list">${rows.map((r) => `<li>
+        <div><b>#${r.id} · ${esc(r.registro || r.direccion || r.subasta_id)}</b>
+          <span class="fine">${esc(dateFmt(r.created_at))} · ${esc([r.idufir && "IDUFIR " + r.idufir, r.finca && "finca " + r.finca, r.ref_catastral].filter(Boolean).join(" · "))}</span></div>
+        <span class="ns ns-${esc(r.estado)}">${esc(t("ns_" + r.estado))}</span>
+        ${r.estado === "entregado" && r.pdf_path ? `<button class="btn soft" data-nota-pdf="${esc(r.pdf_path)}">${ic("file")} ${esc(t("nota_dl"))}</button>` : ""}
+        ${["solicitado", "pendiente_pago"].includes(r.estado) ? `<button class="link-btn" data-nota-cancel="${r.id}">${esc(t("nota_cancel"))}</button>` : ""}
+      </li>`).join("")}</ul>` : `<p class="muted">${esc(t("nota_none"))}</p>`;
+  }
   function detailHTML(s, idp) {
     if (locked() && done(s)) return lockedDoneHTML(s, idp);
     const r = s._risk, l = left(s), d = disc(s), b = asset0(s);
@@ -586,6 +710,7 @@
         ${atLeast("pro") && REAL_ESTATE_UI.includes(s.categoria) ? priceLinks(s) : ""}
         ${(s.documentos || []).slice(0, 6).map((d, i) => { const u = typeof d === "string" ? d : d.url; const n = typeof d === "string" ? `${t("doc")} ${i + 1}` : sentence(d.nombre); return `<a class="btn ghost" href="${esc(u)}" target="_blank" rel="noopener">${ic("file")} ${esc(n.length > 42 ? n.slice(0, 40) + "…" : n)}</a>`; }).join("")}</div>
       ${s.docs_login ? `<p class="fine" style="margin:8px 0 0">${esc(t("docs_login"))}</p>` : ""}
+      ${done(s) ? "" : notaBlock(s)}
       ${adminDocs(s)}
       <details><summary>${esc(t("d_all"))}</summary>
         <div class="asset"><dl>
@@ -703,7 +828,7 @@
       $("#adminLink").hidden = !st.is_admin;
     }
     $("#setAccount").innerHTML = u
-      ? `<p class="fine" style="width:100%;margin:0">${esc(u.email || "")} · ${esc(access)}</p>${st.is_admin ? `<a class="btn soft" href="admin.html">Панель управления</a>` : ""}<button class="btn ghost" data-act="logout">${esc(t("logout"))}</button>`
+      ? `<p class="fine" style="width:100%;margin:0">${esc(u.email || "")} · ${esc(access)}</p><button class="btn soft" data-my-notas="1">${esc(t("nota_mine"))}</button>${st.is_admin ? `<a class="btn soft" href="admin.html">Панель управления</a>` : ""}<button class="btn ghost" data-act="logout">${esc(t("logout"))}</button>`
       : `<button class="btn" data-act="signup">${esc(t("cta_start"))}</button><button class="btn ghost" data-act="login">${esc(t("login"))}</button>`;
   }
   function renderLock() {
@@ -935,6 +1060,10 @@
       const rm = e.target.closest("[data-rm]"); if (rm) { removeFilter(rm.dataset.rm); return; }
       const f = e.target.closest("[data-fav]"); if (f) { e.preventDefault(); e.stopPropagation(); toggleFav(f.dataset.fav); return; }
       const lk = e.target.closest("[data-locked]"); if (lk) { lockAction(); return; }
+      const nt = e.target.closest("[data-nota]"); if (nt) { openNota(nt.dataset.nota); return; }
+      const nm = e.target.closest("[data-my-notas]"); if (nm) { e.preventDefault(); $("#settingsDlg").open && $("#settingsDlg").close(); openMyNotas(); return; }
+      const np = e.target.closest("[data-nota-pdf]"); if (np) { np.disabled = true; AUTH.notaUrl(np.dataset.notaPdf).then((u) => { window.open(u, "_blank", "noopener"); }).catch(console.error).finally(() => { np.disabled = false; }); return; }
+      const nc = e.target.closest("[data-nota-cancel]"); if (nc) { AUTH.notaCancelar(+nc.dataset.notaCancel).then(openMyNotas).catch(console.error); return; }
       const ss = e.target.closest("[data-ss]"); if (ss) { applySaved(ss.dataset.ss); return; }
       const sd = e.target.closest("[data-ssdel]"); if (sd) { store.set("searches", searches().filter((x) => x.id !== sd.dataset.ssdel)); renderSaved(); return; }
       const so = e.target.closest("[data-sort]"); if (so) { state.sort = so.dataset.sort; buildControls(); render(); return; }

@@ -101,6 +101,8 @@
     try {
       const { data } = await client.from("settings").select("value").eq("key", "default_trial_until").maybeSingle();
       A.trialUntil = data && data.value;
+      const np = await client.from("settings").select("value").eq("key", "notas_pago_activo").maybeSingle();
+      A.notaPago = !!(np.data && np.data.value === "true");
     } catch (e) { /* */ }
     const { data } = await client.auth.getSession();
     A.session = data.session;
@@ -155,6 +157,27 @@
       if (data.length < PAGE) return out;
       from += PAGE;
     }
+  };
+
+  // ---------- nota simple: заказы пользователя (запись — только через функцию nota_crear)
+  A.notaCrear = async (p) => {
+    const { data, error } = await client.rpc("nota_crear", p);
+    if (error) throw error;
+    return data;
+  };
+  A.misNotas = async () => {
+    if (!enabled || !A.session) return [];
+    const { data, error } = await client.from("notas_pedidos")
+      .select("id,created_at,subasta_id,bien,direccion,idufir,ref_catastral,registro,finca,estado,pdf_path,precio_cents,iva_pct")
+      .eq("user_id", A.user().id).order("created_at", { ascending: false }).limit(100);
+    if (error) throw error;
+    return data;
+  };
+  A.notaCancelar = async (id) => { const { error } = await client.rpc("nota_cancelar", { p_id: id }); if (error) throw error; };
+  A.notaUrl = async (path) => {
+    const { data, error } = await client.storage.from("notas").createSignedUrl(path, 600);
+    if (error) throw error;
+    return data.signedUrl;
   };
 
   window.Auth = A;

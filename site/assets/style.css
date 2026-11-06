@@ -449,3 +449,28 @@ td small.mk{display:block;font-size:12px;color:var(--muted)}
 .adm-docs{margin:16px 0 0;padding:12px 14px;border:1px dashed var(--line-2);border-radius:var(--r-s);background:var(--surf)}
 .adm-docs h3{margin:0 0 4px;font-size:15px}
 .adm-docs .fine{margin:0 0 10px}
+
+/* ---------- nota simple */
+.nota-box{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:16px 0 0;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--surf)}
+.nota-box h3{display:flex;gap:8px;align-items:center;margin:0 0 4px;font-size:15px}
+.nota-box h3 svg{width:18px;height:18px}
+.nota-box p{margin:0;font-size:14px;color:var(--ink-2);max-width:52ch}
+.nota-box .fine{margin-top:4px}
+.nota{max-width:600px}
+.nota-form{display:flex;flex-direction:column;gap:12px}
+.nota-form h3{font-size:14px;color:var(--muted);margin:6px 0 0;font-weight:600}
+.nota-form label{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:500;color:var(--ink-2)}
+.nota-form input:not([type=checkbox]),.nota-form select{padding:10px 12px;border:1px solid var(--line-2);border-radius:10px;min-height:44px;font:inherit;background:#fff;color:var(--ink)}
+.nota-form input:focus-visible,.nota-form select:focus-visible{outline:3px solid var(--focus);outline-offset:1px}
+.nf-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:560px){.nf-grid{grid-template-columns:1fr}}
+.nota-form .nf-check{flex-direction:row;align-items:flex-start;gap:10px;font-weight:400;line-height:1.4}
+.nf-check input{width:20px;height:20px;margin-top:1px;flex:none}
+.nf-total{font-weight:700;font-size:16px}
+.nf-soon{margin:0;padding:10px 12px;border-radius:10px;background:var(--accent-soft);font-size:14px}
+.nota-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.nota-list li{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px;border:1px solid var(--line);border-radius:12px}
+.nota-list li>div{flex:1;min-width:200px;display:flex;flex-direction:column;gap:2px}
+.ns{font-size:12px;font-weight:600;padding:4px 9px;border-radius:999px;background:var(--surf-2)}
+.ns-entregado{background:var(--ok-bg);color:var(--ok)}
+.ns-error,.ns-cancelado{background:var(--bad-bg);color:var(--bad)}

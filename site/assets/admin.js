@@ -107,12 +107,74 @@
       : `<li><span class="muted">Список пуст.</span></li>`;
   }
 
+  // ---------- заказы nota simple
+  const NS = { solicitado: "Новая заявка", pendiente_pago: "Ждёт оплаты", pagado: "Оплачено", en_tramite: "В работе", entregado: "Готово", cancelado: "Отменено", error: "Проблема" };
+  const FIN = { subasta: "участие в аукционе", inversion: "покупка / инвестиция", juridica: "юридическая проверка", otra: "другая цель" };
+  let notas = [];
+  const cp = (label, v) => v ? `<div class="cp" data-copy="${esc(v)}" title="Нажмите, чтобы скопировать"><small>${esc(label)}</small><b>${esc(v)}</b></div>` : "";
+  function notaCard(n, i) {
+    const total = (n.precio_cents / 100 * (1 + n.iva_pct / 100)).toFixed(2).replace(".", ",");
+    return `<article class="adm-card nota-card" data-i="${i}">
+      <header><b>#${n.id}</b> <span class="rp ${n.estado === "entregado" ? "ok" : ["error", "cancelado"].includes(n.estado) ? "bad" : "warn"}">${esc(NS[n.estado] || n.estado)}</span>
+        <span class="muted">${when(n.created_at)} · ${(n.precio_cents / 100).toFixed(2).replace(".", ",")} € + IVA (${total} €)</span>
+        <a class="btn ghost" href="./#/s/${encodeURIComponent(n.subasta_id)}" target="_blank" rel="noopener">Аукцион ${esc(n.subasta_id)} ↗</a></header>
+      <div class="cp-grid">
+        ${cp("IDUFIR / CRU", n.idufir)}${cp("Кадастровый номер", n.ref_catastral)}${cp("Реестр", n.registro)}${cp("Finca №", n.finca)}${cp("Том, книга, лист", n.datos_registrales)}${cp("Адрес", n.direccion)}
+      </div>
+      <div class="cp-grid">
+        ${cp("Заявитель", n.nombre)}${cp("DNI / NIE / CIF", n.dni)}${cp("Email", n.email)}${cp("Телефон", n.telefono)}${cp("Законный интерес", FIN[n.finalidad] || n.finalidad)}
+      </div>
+      ${n.bien ? `<p class="fine nota-bien">${esc(n.bien)}</p>` : ""}
+      <div class="adm-bar">
+        <label class="fld"><span>Статус</span><select data-f="estado">${Object.entries(NS).map(([k, l]) => `<option value="${k}"${k === n.estado ? " selected" : ""}>${l}</option>`).join("")}</select></label>
+        <label class="fld grow"><span>Заметка (видна только админам)</span><input type="text" data-f="nota" value="${esc(n.nota_admin || "")}" maxlength="300"></label>
+        <button class="btn ghost" data-nsave>Сохранить</button>
+      </div>
+      <div class="adm-bar">
+        <label class="btn soft file-btn">${n.pdf_path ? "Заменить PDF" : "Загрузить PDF"}<input type="file" accept="application/pdf" data-pdf hidden></label>
+        ${n.pdf_path ? `<button class="btn ghost" data-open-pdf>Открыть PDF</button><button class="btn" data-mail>Отправить письмо клиенту</button>` : ""}
+      </div>
+    </article>`;
+  }
+  async function loadNotas() {
+    const f = $("#nFilter").value || null;
+    notas = await rpc("admin_notas_list", { p_estado: f, p_limit: 300 });
+    $("#notas").innerHTML = notas.length ? notas.map(notaCard).join("") : `<p class="muted">Заказов нет.</p>`;
+    $("#nCount").textContent = `найдено: ${notas.length}`;
+  }
+  async function notasBadge() {
+    try {
+      const n = await rpc("admin_notas_list", { p_estado: "solicitado", p_limit: 1000 });
+      const p = await rpc("admin_notas_list", { p_estado: "pagado", p_limit: 1000 });
+      const c = n.length + p.length;
+      $("#notasBadge").textContent = c; $("#notasBadge").hidden = !c;
+    } catch (e) { console.error(e); }
+  }
+  function mailtoNota(n, url) {
+    const subj = `Tu nota simple #${n.id} — SubastaRadar`;
+    const body = `Hola ${n.nombre}:\n\nYa tienes la nota simple que pediste (pedido #${n.id}${n.registro ? ", " + n.registro : ""}${n.finca ? ", finca " + n.finca : ""}).\n\nPuedes descargarla en SubastaRadar → Mis notas simples:\nhttps://subasta-radar.es/\n${url ? "\nEnlace directo (válido 7 días):\n" + url + "\n" : ""}\nUn saludo,\nSubastaRadar`;
+    location.href = `mailto:${encodeURIComponent(n.email)}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`;
+  }
+  async function sendNotaMail(n) {
+    // Сначала — письмо через Resend (функция nota-email). Если её ключ ещё не задан — откроется ваша почта с готовым текстом.
+    try {
+      const { data, error } = await A.client.functions.invoke("nota-email", { body: { id: n.id } });
+      if (error || !data || !data.ok) throw error || new Error((data && data.error) || "send failed");
+      msg(`Письмо отправлено: ${n.email}`);
+      return;
+    } catch (e) { console.warn("nota-email", e); }
+    let url = "";
+    try { const r = await A.client.storage.from("notas").createSignedUrl(n.pdf_path, 7 * 24 * 3600); url = r.data && r.data.signedUrl; } catch (e) { /* */ }
+    mailtoNota(n, url);
+  }
+
   // ---------- события
   function bind() {
     $$(".adm-tabs [data-tab]").forEach((b) => b.addEventListener("click", () => {
       $$(".adm-tabs [data-tab]").forEach((x) => x.setAttribute("aria-selected", x === b));
       $$(".adm-tab").forEach((s) => (s.hidden = s.id !== "tab-" + b.dataset.tab));
       if (b.dataset.tab === "trusted") loadTrusted().catch(fail);
+      if (b.dataset.tab === "notas") loadNotas().catch(fail);
     }));
     let t; $("#q").addEventListener("input", () => { clearTimeout(t); t = setTimeout(() => { page = 0; loadUsers().catch(fail); }, 300); });
     $("#filter").addEventListener("change", () => { page = 0; loadUsers().catch(fail); });
@@ -146,6 +208,34 @@
       if (!confirm(`Продлить до ${day(to)} всем, у кого доступ до ${day(from)}${exp ? " или уже истёк" : ""}?`)) return;
       try { const r = await rpc("admin_bulk_extend", { p_from: from, p_to: to, p_include_expired: exp }); msg(`Продлено: ${r.updated}`); await Promise.all([loadStats(), loadUsers()]); } catch (err) { fail(err); }
     });
+    $("#nFilter").addEventListener("change", () => loadNotas().catch(fail));
+    $("#notas").addEventListener("click", async (e) => {
+      const c = e.target.closest("[data-copy]");
+      if (c) { try { await navigator.clipboard.writeText(c.dataset.copy); c.classList.add("copied"); setTimeout(() => c.classList.remove("copied"), 900); } catch (err) { fail(err); } return; }
+      const card = e.target.closest(".nota-card"); if (!card) return;
+      const n = notas[+card.dataset.i];
+      if (e.target.closest("[data-nsave]")) {
+        try { await rpc("admin_nota_update", { p_id: n.id, p_estado: card.querySelector('[data-f="estado"]').value, p_nota: card.querySelector('[data-f="nota"]').value }); msg(`Заказ #${n.id} сохранён.`); await loadNotas(); notasBadge(); } catch (err) { fail(err); }
+      }
+      if (e.target.closest("[data-open-pdf]")) {
+        try { const r = await A.client.storage.from("notas").createSignedUrl(n.pdf_path, 600); if (r.error) throw r.error; window.open(r.data.signedUrl, "_blank", "noopener"); } catch (err) { fail(err); }
+      }
+      if (e.target.closest("[data-mail]")) sendNotaMail(n);
+    });
+    $("#notas").addEventListener("change", async (e) => {
+      const inp = e.target.closest("[data-pdf]"); if (!inp || !inp.files[0]) return;
+      const n = notas[+inp.closest(".nota-card").dataset.i];
+      const file = inp.files[0];
+      if (file.type !== "application/pdf") return msg("Нужен файл PDF.", true);
+      const path = `${n.user_id}/${n.id}.pdf`;
+      try {
+        const up = await A.client.storage.from("notas").upload(path, file, { upsert: true, contentType: "application/pdf" });
+        if (up.error) throw up.error;
+        await rpc("admin_nota_update", { p_id: n.id, p_estado: "entregado", p_pdf_path: path });
+        msg(`PDF загружен, заказ #${n.id} — «Готово». Теперь отправьте письмо клиенту.`);
+        await loadNotas(); notasBadge();
+      } catch (err) { fail(err); }
+    });
     $("#logout").onclick = async () => { await A.signOut(); location.reload(); };
     $("#loginForm").addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -169,6 +259,7 @@
     if (!(A.status && A.status.is_admin)) { $("#denied").hidden = false; $("#app").hidden = true; return; }
     $("#denied").hidden = true; $("#app").hidden = false;
     try { await loadStats(); await loadUsers(); } catch (e) { fail(e); }
+    notasBadge();
   }
 
   (async () => {
