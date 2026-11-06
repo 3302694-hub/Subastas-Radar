@@ -39,6 +39,9 @@
   let current = [];              // текущий отфильтрованный список
   let map, mapLayer;
   let hist = null, histIdx = null, histLoading = null;   // архив завершённых (data/historico)
+  // Без полного доступа по умолчанию показываем и завершённые аукционы (их список открыт всем)
+  let statusTouched = false;
+  const defStatus = () => (locked() ? "all" : "open");
   const histView = () => ["finalizada", "cancelada", "all"].includes(state.status);
   const done = (s) => ["finalizada", "cancelada", "suspendida"].includes(s.estado);
   const state = Object.assign({}, DEFAULTS, { origin: [] });
@@ -282,7 +285,7 @@
     if (!sorts.includes(state.sort)) state.sort = "end";
     $("#sort").innerHTML = sorts.map((s) => opt(s, t("sort_" + s), state.sort === s)).join("");
     $("#q").value = state.q; $("#pMin").value = state.min; $("#pMax").value = state.max; $("#fRisk").checked = !!state.norisk;
-    const adv = (state.origin.length ? 1 : 0) + (state.status !== "open" ? 1 : 0) + (state.fresh ? 1 : 0) + (state.min !== "" ? 1 : 0) + (state.norisk ? 1 : 0);
+    const adv = (state.origin.length ? 1 : 0) + (state.status !== defStatus() ? 1 : 0) + (state.fresh ? 1 : 0) + (state.min !== "" ? 1 : 0) + (state.norisk ? 1 : 0);
     $("#advCount").textContent = adv; $("#advCount").hidden = !adv;
   }
 
@@ -295,21 +298,23 @@
     if (state.prov) chips.push(["prov", place(state.prov)]);
     if (state.min !== "" || state.max !== "") chips.push(["price", state.min !== "" && state.max !== "" ? `${eur(+state.min)} – ${eur(+state.max)}` : state.max !== "" ? t("upto", { v: eur(+state.max) }) : t("from", { v: eur(+state.min) })]);
     state.origin.forEach((o) => chips.push(["origin:" + o, t("o_" + o)]));
-    if (state.status !== "open") chips.push(["status", state.status === "all" ? t("st_all") : t("s_" + state.status)]);
+    if (state.status !== defStatus()) chips.push(["status", state.status === "all" ? t("st_all") : t("s_" + state.status)]);
     if (state.fresh) chips.push(["fresh", state.fresh === "24" ? t("fresh_24") : t("fresh_7")]);
     if (state.norisk) chips.push(["norisk", t("f_norisk")]);
     if (onlyFavs) chips.push(["favs", t("nav_saved")]);
     $("#active").innerHTML = chips.map(([k, l]) => `<button type="button" class="a-chip" data-rm="${esc(k)}" aria-label="${esc(t("remove_filter", { f: l }))}">${esc(l)}${x}</button>`).join("")
       + (chips.length > 1 ? `<button type="button" class="a-chip clear" data-rm="*">${esc(t("clear_all"))}</button>` : "");
+    $("#clearFilters").hidden = !chips.length;
   }
   function removeFilter(k) {
-    if (k === "*") { Object.assign(state, DEFAULTS, { origin: [], sort: state.sort }); onlyFavs = false; }
+    if (k === "*") { Object.assign(state, DEFAULTS, { origin: [], sort: state.sort, status: defStatus() }); onlyFavs = false; }
     else if (k === "q") state.q = "";
     else if (k === "cat") state.cat = "";
     else if (k === "prov") state.prov = "";
     else if (k === "price") { state.min = ""; state.max = ""; }
     else if (k.startsWith("origin:")) state.origin = state.origin.filter((o) => o !== k.slice(7));
     else if (k === "favs") onlyFavs = false;
+    else if (k === "status") state.status = defStatus();
     else state[k] = DEFAULTS[k];
     shown = CFG.pageSize; buildControls(); render();
   }
@@ -330,7 +335,7 @@
     const city = place(s.localidad) || place(s._prov) || "—";
     const l = left(s), r = s._risk;
     return `<article class="n-card">
-      ${media(s)}
+      ${locked() && done(s) ? `<div class="c-media m-empty">${ic(s.categoria)}</div>` : media(s)}
       <div class="n-body">
         <div class="n-head"><div><h3><a href="#/s/${encodeURIComponent(s.id)}" data-open="${esc(s.id)}">${esc(t("card_title", { what: t("c_" + s.categoria), city }))}</a></h3>
           <span class="n-sub">${esc([place(s._prov) !== city ? place(s._prov) : "", t("origin_" + s.origen)].filter(Boolean).join(" · "))}${isNew(s) ? ` <span class="tag new">${esc(t("new_badge"))}</span>` : ""}</span></div>
@@ -399,7 +404,7 @@
     $("#resTitle").textContent = resultTitle(n);
     const totalOpen = Math.max(openNow().length, meta.actuales || 0);
     $("#resCount").textContent = histView()
-      ? (hist ? t("res_count_hist", { n: num(n) }) + (histIdx && histIdx.desde ? " · " + t("hist_since", { m: monthName(histIdx.desde) }) : "") : t("hist_loading"))
+      ? (hist ? t(state.status === "all" ? "res_short" : "res_count_hist", { n: num(n) }) + (histIdx && histIdx.desde ? " · " + t("hist_since", { m: monthName(histIdx.desde) }) : "") : t("hist_loading"))
       : t("res_count", { n: num(n), total: num(totalOpen) });
     activeChips();
     const page = current.slice(0, shown);
@@ -445,7 +450,27 @@
     const icon = tone === "ok" ? "check" : tone === "n" ? "info" : "alert";
     return `<li class="${tone}">${ic(icon)}<div><b>${esc(title)}</b><span>${esc(text)}</span></div></li>`;
   }
+  // Без полного доступа у завершённого аукциона видна только сводка — как в списке
+  function lockedDoneHTML(s, idp) {
+    const q = result(s) || {};
+    const city = place(s.localidad) || place(s._prov) || "";
+    const u = AUTH.user && AUTH.user();
+    return `<div class="dv">
+      <div class="c-media big m-empty">${ic(s.categoria)}</div>
+      <div class="dv-head"><div><span class="muted" style="font-size:13px">${esc(t("c_" + s.categoria))} · ${esc(t("origin_" + s.origen))}</span>
+        <h2 id="${idp}Title">${esc(city)}</h2><span class="dv-id">${esc(place(s._prov))}</span></div></div>
+      <div class="dv-kv">
+        <div><small>${esc(t("value"))}</small><b>${eur(s.valor_subasta)}</b></div>
+        <div><small>${esc(t("col_ended"))}</small><b>${day(s.fecha_fin)}</b></div>
+        <div class="${q.tone === "ok" ? "good" : ""}"><small>${esc(t("col_bid"))}</small><b>${esc(q.label || "—")}</b></div>
+      </div>
+      <div class="locked-box" style="margin-top:16px"><h3 style="margin:0 0 6px">${esc(t("done_locked_t"))}</h3>
+        <p class="muted" style="margin:0 0 12px">${esc(t("done_locked_d"))}</p>
+        ${u ? (CFG.contactEmail ? `<a class="btn" href="mailto:${esc(CFG.contactEmail)}">${esc(t("lock_cta_user"))}</a>` : "") : `<button class="btn" data-locked="1">${esc(t("lock_cta_guest"))}</button>`}</div>
+    </div>`;
+  }
   function detailHTML(s, idp) {
+    if (locked() && done(s)) return lockedDoneHTML(s, idp);
     const r = s._risk, l = left(s), d = disc(s), b = asset0(s);
     const city = place(s.localidad) || place(s._prov) || "";
     const checks = [];
@@ -717,7 +742,7 @@
   function writeUrl() {
     const p = new URLSearchParams();
     Object.entries(state).forEach(([k, v]) => {
-      const def = DEFAULTS[k];
+      const def = k === "status" ? defStatus() : DEFAULTS[k];
       if (Array.isArray(v) ? v.length : v !== "" && v !== def) p.set(k, Array.isArray(v) ? v.join(",") : v);
     });
     const qs = p.toString();
@@ -726,6 +751,7 @@
   function readUrl() {
     const p = new URLSearchParams(location.search);
     Object.keys(state).forEach((k) => { if (p.has(k)) state[k] = k === "origin" ? p.get(k).split(",").filter(Boolean) : p.get(k); });
+    statusTouched = p.has("status");
     if (p.has("mode") && MODES.includes(p.get("mode"))) mode = p.get("mode");
   }
 
@@ -764,7 +790,7 @@
       shown = CFG.pageSize; buildControls(); render();
     });
     [["#fCat", "cat"], ["#fProv", "prov"], ["#fStatus", "status"], ["#fFresh", "fresh"], ["#sort", "sort"], ["#fPrice", "max"]].forEach(([sel, k]) =>
-      $(sel).addEventListener("change", (e) => { state[k] = e.target.value; shown = CFG.pageSize; buildControls(); render(); }));
+      $(sel).addEventListener("change", (e) => { state[k] = e.target.value; if (k === "status") statusTouched = true; shown = CFG.pageSize; buildControls(); render(); }));
     $("#fRisk").addEventListener("change", (e) => { state.norisk = e.target.checked ? "1" : ""; buildControls(); render(); });
     const range = () => {
       const a = $("#pMin").value, b = $("#pMax").value;
@@ -803,7 +829,7 @@
     $("#settingsBtn").onclick = () => $("#settingsDlg").showModal();
     $$("[data-nav]").forEach((a) => a.addEventListener("click", (e) => {
       const n = a.dataset.nav;
-      if (n === "hist") { e.preventDefault(); onlyFavs = false; state.status = "finalizada"; shown = CFG.pageSize; buildControls(); render(); $("#catalogo").scrollIntoView({ block: "start" }); }
+      if (n === "hist") { e.preventDefault(); onlyFavs = false; state.status = "finalizada"; statusTouched = true; shown = CFG.pageSize; buildControls(); render(); $("#catalogo").scrollIntoView({ block: "start" }); }
       if (n === "list" || n === "saved") { e.preventDefault(); onlyFavs = n === "saved"; shown = CFG.pageSize; render(); $("#catalogo").scrollIntoView({ block: "start" }); }
       if (n === "map" && mode === "pro") { e.preventDefault(); $("#proMap").scrollIntoView({ block: "start" }); }
       $$(".nav a").forEach((x) => x.classList.toggle("on", x === a));
@@ -844,7 +870,9 @@
     AUTH.on(async (type) => {
       if (type === "recovery") return openAuth("recovery");
       syncModeFromProfile();
-      await loadData(); applyI18n(); checkSaved();
+      await loadData();
+      if (!statusTouched) state.status = defStatus();
+      applyI18n(); checkSaved();
     });
   }
   function syncModeFromProfile() {
@@ -907,6 +935,7 @@
     updateFavCount();
     if (AUTH.enabled) { try { await AUTH.init(); } catch (e) { console.error(e); } syncModeFromProfile(); }
     readUrl(); bind(); bindAuth();
+    if (!statusTouched) state.status = defStatus();
     await loadData();
     $("#demoBanner").hidden = !isDemo;
     applyI18n(); checkSaved();
