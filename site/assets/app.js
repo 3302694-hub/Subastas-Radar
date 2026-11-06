@@ -510,6 +510,27 @@
         ${u ? (CFG.contactEmail ? `<a class="btn" href="mailto:${esc(CFG.contactEmail)}">${esc(t("lock_cta_user"))}</a>` : "") : `<button class="btn" data-locked="1">${esc(t("lock_cta_guest"))}</button>`}</div>
     </div>`;
   }
+  // Цены объявлений в районе — открываем сами порталы (мы их данные не копируем)
+  const REAL_ESTATE_UI = ["vivienda", "garaje", "trastero", "local", "nave", "solar", "rustica"];
+  function priceLinks(s) {
+    const town = place(s.localidad) || place(s._prov);
+    if (!town) return "";
+    const q = (site) => `https://www.google.com/search?q=${encodeURIComponent(`${site} precio m2 ${(I18N.es["c_" + s.categoria] || "vivienda").toLowerCase()} ${town} ${place(s._prov)}`)}`;
+    return `<a class="btn ghost" href="${esc(q("idealista"))}" target="_blank" rel="noopener">${esc(t("prices_on", { site: "idealista" }))} ${ic("ext")}</a>
+      <a class="btn ghost" href="${esc(q("fotocasa"))}" target="_blank" rel="noopener">${esc(t("prices_on", { site: "Fotocasa" }))} ${ic("ext")}</a>`;
+  }
+  // Только для администраторов: где взять все документы по аукциону
+  function adminDocs(s) {
+    if (!(AUTH.status && AUTH.status.is_admin)) return "";
+    const rc = (s.bienes || []).map((b) => String(b.ref_catastral || "").replace(/\s/g, "")).find((x) => x.length >= 14) || "";
+    const idufir = (s.bienes || []).map((b) => b.idufir).find(Boolean) || "";
+    return `<div class="adm-docs"><h3>${esc(t("adm_docs_t"))}</h3><p class="fine">${esc(t("adm_docs_d"))}</p><div class="dv-more">
+      <a class="btn" href="https://subastas.boe.es/detalleSubasta.php?idSub=${encodeURIComponent(s.id)}&ver=1" target="_blank" rel="noopener">${ic("file")} ${esc(t("adm_docs_boe"))} ${ic("ext")}</a>
+      ${s.anuncio_boe ? `<a class="btn ghost" href="https://www.boe.es/diario_boe/txt.php?id=${encodeURIComponent(s.anuncio_boe)}" target="_blank" rel="noopener">${esc(t("adm_docs_edict"))} ${ic("ext")}</a>` : ""}
+      ${rc ? `<a class="btn ghost" href="https://www1.sedecatastro.gob.es/CYCBienInmueble/OVCListaBienes.aspx?rc1=${encodeURIComponent(rc.slice(0, 7))}&rc2=${encodeURIComponent(rc.slice(7, 14))}" target="_blank" rel="noopener">${esc(t("adm_docs_cat"))} ${ic("ext")}</a>` : ""}
+      <a class="btn ghost" href="https://sede.registradores.org/site/home" target="_blank" rel="noopener">${esc(t("adm_docs_nota"))}${idufir ? " · IDUFIR " + esc(idufir) : rc ? " · " + esc(rc) : ""} ${ic("ext")}</a>
+    </div></div>`;
+  }
   function detailHTML(s, idp) {
     if (locked() && done(s)) return lockedDoneHTML(s, idp);
     const r = s._risk, l = left(s), d = disc(s), b = asset0(s);
@@ -562,8 +583,10 @@
         <a class="btn" href="${esc(s.url)}" target="_blank" rel="noopener">${esc(t("open_boe"))} ${ic("ext")}</a></div>
       <div class="dv-more">${NO_MAP.includes(s.categoria) ? "" : `<a class="btn ghost" href="${esc(gmapLink(mq))}" target="_blank" rel="noopener">${esc(t(ex ? "open_map_exact" : "open_map"))} ${ic("ext")}</a>`}
         ${ex && ex.mapa ? `<a class="btn ghost" href="${esc(ex.mapa)}" target="_blank" rel="noopener">${esc(t("open_cat_map"))} ${ic("ext")}</a>` : ""}
+        ${atLeast("pro") && REAL_ESTATE_UI.includes(s.categoria) ? priceLinks(s) : ""}
         ${(s.documentos || []).slice(0, 6).map((d, i) => { const u = typeof d === "string" ? d : d.url; const n = typeof d === "string" ? `${t("doc")} ${i + 1}` : sentence(d.nombre); return `<a class="btn ghost" href="${esc(u)}" target="_blank" rel="noopener">${ic("file")} ${esc(n.length > 42 ? n.slice(0, 40) + "…" : n)}</a>`; }).join("")}</div>
       ${s.docs_login ? `<p class="fine" style="margin:8px 0 0">${esc(t("docs_login"))}</p>` : ""}
+      ${adminDocs(s)}
       <details><summary>${esc(t("d_all"))}</summary>
         <div class="asset"><dl>
           <dt>${esc(t("date_start"))}</dt><dd>${dateFmt(s.fecha_inicio, true)}</dd>
