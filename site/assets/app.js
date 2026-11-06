@@ -647,6 +647,7 @@
     $("#authTabs").hidden = authMode === "reset" || authMode === "recovery";
     const providers = CFG.oauthProviders || [];
     $$(".oauth-btn").forEach((b) => (b.hidden = !providers.includes(b.dataset.provider)));
+    if (providers.includes("google") && CFG.googleClientId) renderGoogleButton();
     $("#oauthBox").hidden = !providers.length || authMode === "reset" || authMode === "recovery";
     $("#authLead").textContent = t({ signup: "lead_signup", login: "lead_login", reset: "lead_reset", recovery: "lead_recovery" }[authMode], { date: trialDate() });
     $("#authEmail").closest("label").hidden = authMode === "recovery";
@@ -660,6 +661,47 @@
     $("#authMsg").hidden = true;
     if ($("#settingsDlg").open) $("#settingsDlg").close();
     if (!dlg.open) dlg.showModal();
+  }
+  // Кнопка Google Identity Services: окно входа Google показывает домен сайта.
+  // Если библиотека Google не загрузилась, остаётся обычная кнопка (вход через Supabase).
+  let gsiNonce = "", gsiReady = false;
+  async function sha256hex(s) {
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+    return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  }
+  async function renderGoogleButton() {
+    const box = $("#gsiBtn"), fallback = $('.oauth-btn[data-provider="google"]');
+    if (!window.google || !google.accounts || !google.accounts.id || !window.crypto || !crypto.subtle) {
+      if (!renderGoogleButton._wait) { renderGoogleButton._wait = setTimeout(() => { renderGoogleButton._wait = 0; if ($("#authDlg").open) renderGoogleButton(); }, 800); }
+      return;
+    }
+    gsiNonce = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2)) + Date.now();
+    google.accounts.id.initialize({
+      client_id: CFG.googleClientId,
+      nonce: await sha256hex(gsiNonce),
+      callback: onGoogleCredential,
+      use_fedcm_for_button: true,
+      ux_mode: "popup",
+      context: authMode === "login" ? "signin" : "signup"
+    });
+    box.innerHTML = "";
+    google.accounts.id.renderButton(box, {
+      type: "standard", theme: "outline", size: "large", shape: "rectangular",
+      text: authMode === "login" ? "signin_with" : "signup_with",
+      width: Math.min(400, Math.max(240, box.parentElement.clientWidth || 320)),
+      locale: lang
+    });
+    box.hidden = false; fallback.hidden = true; gsiReady = true;
+  }
+  async function onGoogleCredential(resp) {
+    try {
+      const { error } = await AUTH.googleIdToken(resp.credential, gsiNonce);
+      if (error) throw error;
+      $("#authDlg").close();
+    } catch (err) {
+      console.error(err);
+      authMsg(`${t("err_generic")} (${err.message || err})`);
+    }
   }
   function authMsg(text, ok) { const m = $("#authMsg"); m.textContent = text; m.className = "auth-msg" + (ok ? " ok" : " err"); m.hidden = false; }
   async function submitAuth(e) {

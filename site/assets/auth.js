@@ -124,6 +124,8 @@
   A.reset = (email) => client.auth.resetPasswordForEmail(email, { redirectTo: redirectTo() });
   A.updatePassword = (password) => client.auth.updateUser({ password });
   A.signOut = () => client.auth.signOut();
+  // Вход по токену Google Identity Services (кнопка Google на самом сайте)
+  A.googleIdToken = (token, nonce) => client.auth.signInWithIdToken({ provider: "google", token, nonce });
 
   // Загрузка аукционов, разрешённых текущему пользователю (RLS решает на сервере)
   A.loadSubastas = async function () {

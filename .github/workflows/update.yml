@@ -30,7 +30,7 @@ jobs:
       - run: pip install -r requirements.txt
       - name: Сбор новых аукционов
         env:
-          SITE_URL: ${{ vars.SITE_URL }}
+          SITE_URL: https://subasta-radar.es
           SITE_NAME: ${{ vars.SITE_NAME }}
           SUPABASE_URL: ${{ vars.SUPABASE_URL || 'https://jkxvxdhmothlamhotecu.supabase.co' }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}

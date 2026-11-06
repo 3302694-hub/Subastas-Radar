@@ -430,3 +430,5 @@ html[data-mode="pro"] .foot,html[data-mode="pro"] #alertas{display:none}
 td .res+small,.n-res small{display:block;font-size:12px;color:var(--muted);font-weight:500}
 .user-menu a{display:flex;align-items:center;padding:10px 12px;border-radius:8px;min-height:44px;color:var(--ink);text-decoration:none;white-space:nowrap}
 .user-menu a:hover{background:var(--surf);color:var(--ink)}
+
+.gsi-btn{display:flex;justify-content:center;min-height:44px}
