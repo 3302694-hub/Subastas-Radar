@@ -528,6 +528,8 @@
     if (!window.L) return;
     if (!map) {
       map = L.map("map", { scrollWheelZoom: mode === "pro" });
+      // подпись библиотеки — простой текстовой ссылкой, без значка-флага
+      map.attributionControl.setPrefix('<a href="https://leafletjs.com" target="_blank" rel="noopener">Leaflet</a>');
       L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>', maxZoom: 18 }).addTo(map);
       map.fitBounds([[35.6, -9.6], [43.9, 4.5]]);
       mapLayer = L.layerGroup().addTo(map);
