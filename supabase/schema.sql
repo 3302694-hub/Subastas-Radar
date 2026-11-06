@@ -8,7 +8,7 @@ create table if not exists public.settings (
   key   text primary key,
   value text not null
 );
-insert into public.settings (key, value) values ('default_trial_until', '2027-12-31')
+insert into public.settings (key, value) values ('default_trial_until', '2026-12-31')
 on conflict (key) do nothing;
 
 -- ---------- Доверенные адреса: полный доступ без ограничения срока

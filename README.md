@@ -128,7 +128,7 @@ cd site && python3 -m http.server 8000
 
 ### Управление (Supabase → Table Editor)
 
-- **Срок для новых пользователей** — таблица `settings`, строка `default_trial_until` (сейчас `2027-12-31`).
+- **Срок для новых пользователей** — таблица `settings`, строка `default_trial_until` (сейчас `2026-12-31`).
   Меняет срок только для тех, кто зарегистрируется после изменения.
 - **Срок конкретного пользователя** — таблица `profiles`, колонка `access_until` (дата включительно).
   Пусто = доступа нет. Удобный список — представление `admin_users`.
@@ -140,8 +140,8 @@ cd site && python3 -m http.server 8000
 
 Полезные SQL-запросы (SQL Editor):
 ```sql
--- продлить всем, у кого доступ кончается 31.12.2027, до 30.06.2028
-update profiles set access_until = '2028-06-30' where access_until = '2027-12-31';
+-- продлить всем, у кого доступ кончается 31.12.2026, до 30.06.2027
+update profiles set access_until = '2027-06-30' where access_until = '2026-12-31';
 -- кто получил отказ как дубль
 select * from admin_users where trial_denied_reason is not null;
 ```

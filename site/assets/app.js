@@ -576,7 +576,7 @@
   }
 
   // ---------- аккаунт и доступ
-  function trialDate() { return day(AUTH.trialUntil || "2027-12-31"); }
+  function trialDate() { return day(AUTH.trialUntil || "2026-12-31"); }
   function renderAccount() {
     if (!AUTH.enabled) { $("#account").hidden = true; $("#setAccount").innerHTML = ""; return; }
     $("#account").hidden = false;
@@ -856,7 +856,8 @@
     meta = await fetch("data/meta.json", { cache: "no-cache" }).then((r) => r.json()).catch(() => ({}));
     try {
       if (AUTH.enabled) { all = await AUTH.loadSubastas(); isDemo = false; }
-      else {
+      // база ещё пустая (первый запуск) — показываем открытый файл, если он есть
+      if (!AUTH.enabled || !all.length) {
         const d = await fetch("data/subastas.json", { cache: "no-cache" }).then((r) => r.json());
         all = d.subastas || d || []; isDemo = !!d.demo;
         if (!meta.actualizado) meta.actualizado = d.generado;

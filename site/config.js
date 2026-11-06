@@ -10,7 +10,7 @@ window.SITE_CONFIG = {
 
   // Supabase: Project Settings → API. Ключ anon публичный по замыслу, его можно хранить здесь.
   // Пока поля пустые, сайт работает в открытом режиме (все данные из site/data/subastas.json).
-  supabaseUrl: "",               // например "https://abcdefghijkl.supabase.co"
-  supabaseAnonKey: "",           // длинный ключ "eyJ..." (anon / public)
-  oauthProviders: ["google", "apple"]  // кнопки входа; уберите те, что не настроены в Supabase
+  supabaseUrl: "https://jkxvxdhmothlamhotecu.supabase.co",
+  supabaseAnonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpreHZ4ZGhtb3RobGFtaG90ZWN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM5NzczNzgsImV4cCI6MjEwOTU1MzM3OH0.S4CoToxM2Ai9Sm87UDp5DwlpAAnPrpjkJ-nYa4Akc1g",  // публичный ключ (anon)
+  oauthProviders: []  // добавьте "google" после настройки Google в Supabase
 };
