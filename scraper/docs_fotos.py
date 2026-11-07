@@ -138,7 +138,26 @@ def main():
         print(f"фото {d['path']}: найдено {saved}")
         total += saved
     print(f"фото: документов {len(docs)}, сохранено фото {total}")
+    aereo_auto(int(os.environ.get("AEREO_LIMIT", "30")))
     return 0
+
+
+def aereo_auto(limit: int):
+    """Аэрофото для участков, домов на земле и «недвижимости без типа», у которых нет своих фото."""
+    pend = rest(f"v_aereo_pendientes?select=subasta_id&order=fecha_fin.asc.nullslast&limit={limit}") or []
+    ok = 0
+    for p in pend:
+        sid = p["subasta_id"]
+        try:
+            good = aereo(sid)
+            nota = None if good else "нет контура или номера"
+        except Exception as e:  # noqa: BLE001
+            good, nota = False, repr(e)[:200]
+        rest("aereo_intentos?on_conflict=subasta_id", "POST", {"subasta_id": sid, "ok": good, "nota": nota},
+             prefer="resolution=merge-duplicates,return=minimal")
+        ok += good
+    if pend:
+        print(f"аэрофото: обработано {len(pend)}, готово {ok}")
 
 
 def preview(sid: str):
