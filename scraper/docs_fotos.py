@@ -106,7 +106,7 @@ def main():
             hashes = set()
             cands = []
             for im in images_from(d, raw):
-                sc = photo_score(im, d["origen"] == "manual" and (d.get("mime") or "").startswith("image/"))
+                sc = photo_score(im, (d.get("mime") or "").startswith("image/"))   # отдельная картинка — это фото лота
                 if sc is None:
                     continue
                 hsh = ahash(im)

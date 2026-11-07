@@ -12,16 +12,20 @@ Edge Function `docs-boe` (supabase/functions/docs-boe): берёт свежие 
 ## 2а. Вручную — «Загрузить файлы» в той же карточке.
 
 ## 2б. Через Chrome пользователя (документы, закрытые входом на портал)
-Пользователь входит на subastas.boe.es в своём Chrome (Cl@ve / сертификат) и пишет
-«забери документы по SUB-…». Порядок для Claude (Claude in Chrome):
-1. Вкладка subasta-radar.es, где пользователь вошёл как администратор: прочитать сессию
-   Supabase из localStorage (ключ `sb-jkxvxdhmothlamhotecu-auth-token` → access_token). Не выводить токен в чат.
-2. Вкладка subastas.boe.es (с входом): открыть detalleSubasta.php?idSub=…&ver=1 (и ver=3),
-   через javascript собрать ссылки verDocumento.php, скачать их `fetch` (cookies портала) как Blob.
-3. Из той же вкладки отправить каждый Blob: `POST https://jkxvxdhmothlamhotecu.supabase.co/storage/v1/object/docs/{id}/chrome-{n}-{имя}.pdf`
-   (заголовки apikey = anon-ключ из site/config.js, Authorization: Bearer <access_token>, x-upsert: true),
-   затем строку в `/rest/v1/subasta_docs` с origen = "chrome".
-4. Сказать пользователю, сколько файлов сохранено.
+Пользователь входит на subastas.boe.es в своём Chrome (Cl@ve / сертификат) и пишет «забери документы по SUB-…».
+Сессию сайта SubastaRadar брать нельзя (расширение не отдаёт токены), а портал BOE запрещает запросы
+на чужие сайты (CSP connect-src 'self'). Поэтому так:
+1. Создать одноразовый билет в базе (SQL):
+   `insert into docs_tickets(token, subasta_id) values (encode(gen_random_bytes(24),'hex'), 'SUB-…') returning token;`
+   (действует 15 минут, только этот аукцион, до 30 файлов).
+2. Вкладка `https://subastas.boe.es/reg/detalleSubasta.php?idSub=SUB-…&ver=3` (и ver=1): через javascript
+   собрать ссылки `verDocumento`, скачать каждую `fetch(..., {credentials:'include'})` в Blob.
+3. В той же вкладке собрать `<form method=POST enctype=multipart/form-data target=_self
+   action=https://jkxvxdhmothlamhotecu.supabase.co/functions/v1/docs-ingest>` с полями id, ticket, names[]
+   и `<input type=file name=files multiple>` (файлы через DataTransfer) и отправить — отправка формы CSP не мешает.
+   Ответ — страница «сохранено N из M».
+4. Погасить билет: `update docs_tickets set expires_at = now() where token = '…'`. Закрыть свои вкладки.
+Фото из этих файлов подхватит workflow «Фото из документов аукционов».
 
 ## 3. Автоархив избранного
 Аукционы, которые администратор добавил в избранное (таблица `favoritos`, представление
