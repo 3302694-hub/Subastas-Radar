@@ -212,6 +212,40 @@
     try { const n = await rpc("admin_ayuda_list", { p_estado: "nueva", p_limit: 1000 }); $("#ayudaBadge").textContent = n.length; $("#ayudaBadge").hidden = !n.length; } catch (e) { console.error(e); }
   }
 
+  // ---------- соцсети
+  const SOCN = { r1: "Рилс 1 · Цена-крючок", r2: "Рилс 2 · Разбор цифр", r3: "Рилс 3 · Топ-10 недели", r4: "Рилс 4 · Чем закончилось",
+    r5: "Рилс 5 · Где покупать дёшево", s1: "Сторис · Закрывается сегодня", s2: "Сторис · Объект дня", tg: "Telegram · подборка" };
+  const SOCS = { pendiente: "в очереди", procesar: "к обработке", listo: "готово", publicado: "опубликовано", descartado: "отклонено" };
+  const eurf = (v) => v ? Number(v).toLocaleString("es-ES", { maximumFractionDigits: 0 }) + " €" : "—";
+  let soc = [];
+  async function loadSoc() {
+    const f = $("#sFilter").value;
+    let q = A.client.from("social_cola").select("*").order("escenario").order("created_at");
+    if (f) q = q.eq("estado", f);
+    const { data, error } = await q.limit(500);
+    if (error) throw error;
+    soc = data;
+    const groups = {};
+    soc.forEach((r, i) => (groups[r.escenario] = groups[r.escenario] || []).push([r, i]));
+    $("#soc").innerHTML = soc.length ? Object.entries(groups).map(([k, rows]) => `<section class="soc-group"><h3>${esc(SOCN[k] || k)} <span class="muted">· ${rows.length}</span></h3>
+      ${rows.map(([r, i]) => { const x = r.resumen || {}; const v = x.valoracion || {};
+        return `<div class="soc-row" data-i="${i}">
+          <label class="soc-sel"><input type="checkbox" data-sel${r.estado === "pendiente" ? " checked" : ""}></label>
+          <div class="soc-main"><b>${esc(x.titulo || r.subasta_id)}</b>
+            <span class="muted">${esc([x.localidad, x.provincia].filter(Boolean).join(", "))} · ${esc(r.subasta_id)} · стартовая ${eurf(x.valor_subasta)}${v.estimado ? " · рынок ≈ " + eurf(v.estimado) : ""}${x.fecha_fin ? " · до " + esc(String(x.fecha_fin).slice(0, 10)) : ""}</span>
+            ${r.resultado ? `<span class="soc-res">${Object.entries(r.resultado).map(([l, o]) => `${esc(l.toUpperCase())}: ${o && o.url ? `<a href="${esc(o.url)}" target="_blank" rel="noopener">файл</a>` : ""}${o && o.permalink ? ` · <a href="${esc(o.permalink)}" target="_blank" rel="noopener">пост</a>` : ""}`).join(" · ")}</span>` : ""}
+          </div>
+          <div class="soc-langs">${["es", "en", "ru"].map((l) => `<label><input type="checkbox" data-lang="${l}"${(r.idiomas || []).includes(l) ? " checked" : ""}> ${l.toUpperCase()}</label>`).join("")}</div>
+          <span class="rp ${r.estado === "publicado" ? "ok" : r.estado === "descartado" ? "bad" : "warn"}">${esc(SOCS[r.estado] || r.estado)}</span>
+          <a class="btn ghost" href="./#/s/${encodeURIComponent(r.subasta_id)}" target="_blank" rel="noopener">↗</a>
+          <button class="btn ghost" data-sdel title="Убрать из очереди">✕</button>
+        </div>`; }).join("")}</section>`).join("") : `<p class="muted">Пусто. Отмечайте аукционы в карточках кнопками «В соцсети».</p>`;
+    $("#sCount").textContent = `всего: ${soc.length}`;
+  }
+  async function socBadge() {
+    try { const { count } = await A.client.from("social_cola").select("id", { count: "exact", head: true }).in("estado", ["pendiente", "listo"]); $("#socBadge").textContent = count || 0; $("#socBadge").hidden = !count; } catch (e) { console.error(e); }
+  }
+
   // ---------- события
   function bind() {
     $$(".adm-tabs [data-tab]").forEach((b) => b.addEventListener("click", () => {
@@ -220,6 +254,7 @@
       if (b.dataset.tab === "trusted") loadTrusted().catch(fail);
       if (b.dataset.tab === "notas") loadNotas().catch(fail);
       if (b.dataset.tab === "ayuda") loadAyuda().catch(fail);
+      if (b.dataset.tab === "soc") loadSoc().catch(fail);
     }));
     let t; $("#q").addEventListener("input", () => { clearTimeout(t); t = setTimeout(() => { page = 0; loadUsers().catch(fail); }, 300); });
     $("#filter").addEventListener("change", () => { page = 0; loadUsers().catch(fail); });
@@ -252,6 +287,32 @@
       const from = $("#bFrom").value, to = $("#bTo").value, exp = $("#bExp").checked;
       if (!confirm(`Продлить до ${day(to)} всем, у кого доступ до ${day(from)}${exp ? " или уже истёк" : ""}?`)) return;
       try { const r = await rpc("admin_bulk_extend", { p_from: from, p_to: to, p_include_expired: exp }); msg(`Продлено: ${r.updated}`); await Promise.all([loadStats(), loadUsers()]); } catch (err) { fail(err); }
+    });
+    $("#sFilter").addEventListener("change", () => loadSoc().catch(fail));
+    $("#sAll").onclick = () => { const boxes = $$("#soc [data-sel]"); const all = boxes.every((b) => b.checked); boxes.forEach((b) => (b.checked = !all)); };
+    $("#sProcess").onclick = async () => {
+      const ids = $$("#soc .soc-row").filter((r) => r.querySelector("[data-sel]").checked).map((r) => soc[+r.dataset.i]).filter((r) => ["pendiente", "procesar"].includes(r.estado)).map((r) => r.id);
+      if (!ids.length) return msg("Ничего не выбрано (обрабатываются только записи «в очереди»).", true);
+      try {
+        const { error } = await A.client.from("social_cola").update({ estado: "procesar", updated_at: new Date().toISOString() }).in("id", ids);
+        if (error) throw error;
+        msg(`К обработке: ${ids.length}. Теперь напишите Claude в чате: «обработай очередь соцсетей».`);
+        await loadSoc(); socBadge();
+      } catch (err) { fail(err); }
+    };
+    $("#soc").addEventListener("change", async (e) => {
+      const l = e.target.closest("[data-lang]"); if (!l) return;
+      const row = l.closest(".soc-row"), r = soc[+row.dataset.i];
+      const idiomas = [...row.querySelectorAll("[data-lang]")].filter((x) => x.checked).map((x) => x.dataset.lang);
+      try { const { error } = await A.client.from("social_cola").update({ idiomas, updated_at: new Date().toISOString() }).eq("id", r.id); if (error) throw error; r.idiomas = idiomas; } catch (err) { fail(err); }
+    });
+    $("#soc").addEventListener("click", async (e) => {
+      if (!e.target.closest("[data-sdel]")) return;
+      const r = soc[+e.target.closest(".soc-row").dataset.i];
+      try {
+        const q = r.estado === "pendiente" ? A.client.from("social_cola").delete().eq("id", r.id) : A.client.from("social_cola").update({ estado: "descartado" }).eq("id", r.id);
+        const { error } = await q; if (error) throw error; await loadSoc(); socBadge();
+      } catch (err) { fail(err); }
     });
     $("#aFilter").addEventListener("change", () => loadAyuda().catch(fail));
     $("#ayuda").addEventListener("click", async (e) => {
@@ -322,7 +383,8 @@
     if (!(A.status && A.status.is_admin)) { $("#denied").hidden = false; $("#app").hidden = true; return; }
     $("#denied").hidden = true; $("#app").hidden = false;
     try { await loadStats(); await loadUsers(); } catch (e) { fail(e); }
-    notasBadge(); ayudaBadge();
+    notasBadge(); ayudaBadge(); socBadge();
+    if (location.hash === "#soc") { const t = $('.adm-tabs [data-tab="soc"]'); if (t) t.click(); }
   }
 
   (async () => {

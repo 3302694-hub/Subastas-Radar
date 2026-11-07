@@ -10,8 +10,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20261107c">
-<link rel="stylesheet" href="assets/admin.css?v=20261107c">
+<link rel="stylesheet" href="assets/style.css?v=20261107d">
+<link rel="stylesheet" href="assets/admin.css?v=20261107d">
 </head>
 <body class="adm">
 <header class="top">
@@ -49,6 +49,7 @@
     <nav class="adm-tabs" role="tablist">
       <button role="tab" data-tab="users" aria-selected="true">Пользователи</button>
       <button role="tab" data-tab="trusted" aria-selected="false">Доверенные адреса</button>
+      <button role="tab" data-tab="soc" aria-selected="false">Соцсети <span class="adm-badge" id="socBadge" hidden></span></button>
       <button role="tab" data-tab="ayuda" aria-selected="false">Сопровождение <span class="adm-badge" id="ayudaBadge" hidden></span></button>
       <button role="tab" data-tab="notas" aria-selected="false">Заказы документов <span class="adm-badge" id="notasBadge" hidden></span></button>
       <button role="tab" data-tab="settings" aria-selected="false">Сроки доступа</button>
@@ -95,6 +96,26 @@
         <button class="btn">Добавить</button>
       </form>
       <ul class="adm-list" id="trusted"></ul>
+    </section>
+
+    <!-- соцсети: очередь сценариев -->
+    <section id="tab-soc" class="adm-tab" hidden>
+      <p class="muted adm-lead">Аукционы, отмеченные в карточках кнопками «В соцсети». Выберите, на каких языках делать (ES / EN / RU — три аккаунта), отметьте нужные и нажмите «Обработать выбранные». Потом напишите Claude в чате: «обработай очередь соцсетей» — он соберёт ролики и подписи, покажет их и опубликует после вашего подтверждения.</p>
+      <div class="adm-bar">
+        <label class="fld"><span class="sr">Статус</span>
+          <select id="sFilter">
+            <option value="pendiente" selected>В очереди</option>
+            <option value="procesar">К обработке</option>
+            <option value="listo">Готово к публикации</option>
+            <option value="publicado">Опубликовано</option>
+            <option value="descartado">Отклонено</option>
+            <option value="">Все</option>
+          </select></label>
+        <button class="btn ghost" id="sAll">Выбрать все</button>
+        <button class="btn" id="sProcess">Обработать выбранные</button>
+        <span class="muted" id="sCount"></span>
+      </div>
+      <div id="soc"></div>
     </section>
 
     <!-- заявки на сопровождение -->
@@ -161,9 +182,9 @@
   </div>
 </main>
 
-<script src="config.js?v=20261107c"></script>
+<script src="config.js?v=20261107d"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/auth.js?v=20261107c"></script>
-<script src="assets/admin.js?v=20261107c"></script>
+<script src="assets/auth.js?v=20261107d"></script>
+<script src="assets/admin.js?v=20261107d"></script>
 </body>
 </html>

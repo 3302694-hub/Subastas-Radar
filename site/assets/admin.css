@@ -76,3 +76,13 @@
 .cp b{font-weight:600;word-break:break-word}
 .nota-bien{margin:0 0 8px}
 .file-btn{cursor:pointer}
+
+/* соцсети */
+.soc-group{margin:0 0 18px}
+.soc-group h3{font-size:15px;margin:0 0 8px}
+.soc-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;margin-bottom:6px}
+.soc-sel input,.soc-langs input{width:18px;height:18px}
+.soc-main{flex:1;min-width:240px;display:flex;flex-direction:column;gap:2px}
+.soc-res{font-size:13px}
+.soc-langs{display:flex;gap:10px;font-size:13px;font-weight:600}
+.soc-langs label{display:flex;gap:4px;align-items:center}

@@ -520,6 +520,54 @@
       <a class="btn ghost" href="${esc(q("fotocasa"))}" target="_blank" rel="noopener">${esc(t("prices_on", { site: "Fotocasa" }))} ${ic("ext")}</a>`;
   }
   // Только для администраторов: где взять все документы по аукциону
+  // ---------- соцсети: админ отмечает аукцион для сценария рилс/сторис/Telegram
+  const SOC = [["r1", "Рилс 1 · Цена-крючок"], ["r2", "Рилс 2 · Разбор цифр"], ["r3", "Рилс 3 · Топ-10 недели"], ["r4", "Рилс 4 · Чем закончилось"],
+    ["s1", "Сторис · Закрывается сегодня"], ["s2", "Сторис · Объект дня"], ["tg", "Telegram · подборка"]];
+  const isAdm = () => !!(AUTH.status && AUTH.status.is_admin);
+  function socBlock(s) {
+    if (!isAdm() || !AUTH.client) return "";
+    setTimeout(socFill, 0);
+    const list = SOC.filter(([k]) => (k === "r4") === !!done(s) || k === "tg");
+    return `<div class="soc" data-soc="${esc(s.id)}"><h3>В соцсети <a class="fine" href="admin.html#soc">очередь →</a></h3>
+      <div class="soc-chips">${list.map(([k, l]) => `<button type="button" class="soc-chip" data-soc-k="${k}" aria-pressed="false" disabled>${esc(l)}</button>`).join("")}</div></div>`;
+  }
+  async function socFill() {
+    for (const box of $$("[data-soc]:not([data-ok])")) {
+      box.dataset.ok = "1";
+      try {
+        const { data, error } = await AUTH.client.from("social_cola").select("escenario,estado").eq("subasta_id", box.dataset.soc);
+        if (error) throw error;
+        const st = Object.fromEntries(data.map((r) => [r.escenario, r.estado]));
+        box.querySelectorAll("[data-soc-k]").forEach((b) => {
+          const e = st[b.dataset.socK];
+          b.setAttribute("aria-pressed", !!e);
+          b.disabled = !!e && e !== "pendiente";       // уже в обработке/опубликовано — не трогаем
+          b.title = e ? "Статус: " + e : "";
+        });
+      } catch (e) { console.error(e); }
+    }
+  }
+  async function socToggle(btn) {
+    const box = btn.closest("[data-soc]"), id = box.dataset.soc, k = btn.dataset.socK;
+    const s = all.find((x) => x.id === id) || (hist || []).find((x) => x.id === id) || {};
+    const on = btn.getAttribute("aria-pressed") === "true";
+    btn.disabled = true;
+    try {
+      if (on) {
+        const { error } = await AUTH.client.from("social_cola").delete().eq("subasta_id", id).eq("escenario", k).eq("estado", "pendiente");
+        if (error) throw error;
+      } else {
+        const b = (s.bienes || [])[0] || {}, x = s._inv || {}, c = s.catastro || {};
+        const resumen = { categoria: s.categoria, localidad: s.localidad || b.localidad, provincia: s.provincia || s._prov, cp: s.cp || b.cp,
+          valor_subasta: s.valor_subasta, deposito: s.deposito, fecha_fin: s.fecha_fin, url: s.url, sup: c.sup, anio: c.anio,
+          valoracion: x.valoracion || null, pujas: x.pujas || null, estado: s.estado, puja_maxima: s.puja_maxima || null, sin_pujas: s.sin_pujas || null, titulo: sentence(b.descripcion || b.titulo || "").slice(0, 200) };
+        const { error } = await AUTH.client.from("social_cola").insert({ subasta_id: id, escenario: k, resumen, creado_por: (AUTH.user() || {}).email });
+        if (error) throw error;
+      }
+      btn.setAttribute("aria-pressed", !on);
+    } catch (e) { console.error(e); alert("Не удалось: " + (e.message || e)); }
+    btn.disabled = false;
+  }
   function adminDocs(s) {
     if (!(AUTH.status && AUTH.status.is_admin)) return "";
     const rc = (s.bienes || []).map((b) => String(b.ref_catastral || "").replace(/\s/g, "")).find((x) => x.length >= 14) || "";
@@ -725,6 +773,7 @@
         ${(s.documentos || []).slice(0, 6).map((d, i) => { const u = typeof d === "string" ? d : d.url; const n = typeof d === "string" ? `${t("doc")} ${i + 1}` : sentence(d.nombre); return `<a class="btn ghost" href="${esc(u)}" target="_blank" rel="noopener">${ic("file")} ${esc(n.length > 42 ? n.slice(0, 40) + "…" : n)}</a>`; }).join("")}</div>
       ${s.docs_login ? `<p class="fine" style="margin:8px 0 0">${esc(t("docs_login"))}</p>` : ""}
       ${adminDocs(s)}
+      ${socBlock(s)}
       <details><summary>${esc(t("d_all"))}</summary>
         <div class="asset"><dl>
           <dt>${esc(t("date_start"))}</dt><dd>${dateFmt(s.fecha_inicio, true)}</dd>
@@ -1075,6 +1124,7 @@
       const lk = e.target.closest("[data-locked]"); if (lk) { lockAction(); return; }
       const nt = e.target.closest("[data-nota]"); if (nt) { openNota(nt.dataset.nota, "nota"); return; }
       const pk = e.target.closest("[data-pack]"); if (pk) { openNota(pk.dataset.pack, "pack"); return; }
+      const sc = e.target.closest("[data-soc-k]"); if (sc) { socToggle(sc); return; }
       const nm = e.target.closest("[data-my-notas]"); if (nm) { e.preventDefault(); $("#settingsDlg").open && $("#settingsDlg").close(); openMyNotas(); return; }
       const np = e.target.closest("[data-nota-pdf]"); if (np) { np.disabled = true; AUTH.notaUrl(np.dataset.notaPdf).then((u) => { window.open(u, "_blank", "noopener"); }).catch(console.error).finally(() => { np.disabled = false; }); return; }
       const nc = e.target.closest("[data-nota-cancel]"); if (nc) { AUTH.notaCancelar(+nc.dataset.notaCancel).then(openMyNotas).catch(console.error); return; }
