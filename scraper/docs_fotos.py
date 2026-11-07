@@ -153,7 +153,8 @@ def aereo_auto(limit: int):
             nota = None if good else "нет контура или номера"
         except Exception as e:  # noqa: BLE001
             good, nota = False, repr(e)[:200]
-        rest("aereo_intentos?on_conflict=subasta_id", "POST", {"subasta_id": sid, "ok": good, "nota": nota},
+        rest("aereo_intentos?on_conflict=subasta_id", "POST", {"subasta_id": sid, "ok": good, "nota": nota,
+              "at": datetime.now(timezone.utc).isoformat()},
              prefer="resolution=merge-duplicates,return=minimal")
         ok += good
     if pend:
