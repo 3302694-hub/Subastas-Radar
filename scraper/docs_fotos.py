@@ -18,7 +18,7 @@ from datetime import datetime, timezone
 
 import fitz  # PyMuPDF
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageOps
 
 URL = os.environ.get("SUPABASE_URL", "https://jkxvxdhmothlamhotecu.supabase.co").rstrip("/")
 KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
@@ -71,7 +71,7 @@ def ahash(im: Image.Image) -> int:
 
 def images_from(doc: dict, raw: bytes):
     if (doc.get("mime") or "").startswith("image/"):
-        yield Image.open(io.BytesIO(raw))
+        yield ImageOps.exif_transpose(Image.open(io.BytesIO(raw)))   # поворот по EXIF (фото с телефона)
         return
     pdf = fitz.open(stream=raw, filetype="pdf")
     seen = set()
