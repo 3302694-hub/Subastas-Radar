@@ -53,6 +53,12 @@ def main(args):
                     f"https://ovc.catastro.meh.es/OVCServWeb/OVCWcfLibres/OVCFotoFachada.svc/RecuperarFotoFachadaGet?ReferenciaCatastral={rc14}"))
             except Exception as e:  # noqa: BLE001
                 print(sid, "фасад:", e)
+            try:   # контур участка (INSPIRE, кадастровые участки)
+                (d / f"parcela{n}.gml").write_bytes(binary(
+                    "https://ovc.catastro.meh.es/INSPIRE/wfsCP.aspx?service=wfs&version=2&request=getfeature"
+                    f"&STOREDQUERIE_ID=GetParcel&refcat={rc14}&srsname=EPSG::4326"))
+            except Exception as e:  # noqa: BLE001
+                print(sid, "контур:", e)
             if cat.get("lat"):
                 for name, (w, h) in {"aereo_cerca": (70, 125), "aereo_medio": (160, 285), "aereo_lejos": (600, 1065)}.items():
                     try:
