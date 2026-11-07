@@ -596,7 +596,8 @@
       <div class="af-head"><b>Файлы аукциона</b>
         <button type="button" class="btn soft" data-docs-boe>${ic("file")} Скачать документы с BOE</button>
         <label class="btn ghost af-up">Загрузить файлы<input type="file" multiple data-docs-up hidden></label></div>
-      <p class="fine af-msg" hidden></p><ul class="af-list"><li class="muted">…</li></ul></div>`;
+      <p class="fine af-msg" hidden></p><ul class="af-list"><li class="muted">…</li></ul>
+      <div class="af-fotos"></div></div>`;
   }
   const kb = (n) => n > 1048576 ? (n / 1048576).toFixed(1) + " МБ" : Math.max(1, Math.round(n / 1024)) + " КБ";
   const ORIG = { boe: "BOE", catastro: "Катастро", manual: "вручную", chrome: "через Chrome" };
@@ -611,7 +612,30 @@
           <span class="fine">${esc(ORIG[f.origen] || f.origen)} · ${kb(f.bytes || 0)}</span>
           <button type="button" class="link-btn af-del" data-doc-del title="Удалить">✕</button></li>`).join("")
         : `<li class="muted">Файлов пока нет.</li>`;
+      const pend = data.filter((f) => !f.fotos_ok && (/pdf|image/.test(f.mime || ""))).length;
+      const { data: fotos } = await AUTH.client.from("subasta_fotos").select("*").eq("subasta_id", box.dataset.filesSub).order("portada", { ascending: false }).order("score", { ascending: false });
+      const base = CFG.supabaseUrl.replace(/\/$/, "") + "/storage/v1/object/public/fotos/";
+      box.querySelector(".af-fotos").innerHTML = (fotos && fotos.length ? `<b class="af-ft">Фото из документов (${fotos.length})</b><div class="af-grid">${fotos.map((f) => `
+        <figure class="af-foto${f.visible ? "" : " off"}${f.portada ? " main" : ""}" data-foto="${f.id}">
+          <img src="${esc(base + f.path)}" loading="lazy" alt="">
+          <figcaption>${f.portada ? "★ на плашке" : `<button type="button" class="link-btn" data-foto-main>★ на плашку</button>`}
+            <button type="button" class="link-btn" data-foto-vis>${f.visible ? "скрыть" : "показать"}</button></figcaption></figure>`).join("")}</div>` : "")
+        + (pend ? `<p class="fine">Фото ищутся в ${pend} документ(ах) — появятся в течение ~15 минут.</p>` : "");
     }
+  }
+  async function fotoAction(btn) {
+    const fig = btn.closest("[data-foto]"), id = +fig.dataset.foto, box = btn.closest("[data-files-sub]"), sid = box.dataset.filesSub;
+    try {
+      if (btn.hasAttribute("data-foto-main")) {
+        await AUTH.client.from("subasta_fotos").update({ portada: false }).eq("subasta_id", sid).eq("portada", true);
+        const { error } = await AUTH.client.from("subasta_fotos").update({ portada: true, visible: true }).eq("id", id); if (error) throw error;
+      } else {
+        const off = !fig.classList.contains("off");
+        const { error } = await AUTH.client.from("subasta_fotos").update(off ? { visible: false, portada: false } : { visible: true }).eq("id", id); if (error) throw error;
+      }
+      await filesFill(true);
+      await loadFotos(); applyFotos(all); render();
+    } catch (e) { alert(e.message || e); }
   }
   const afMsg = (box, text) => { const m = box.querySelector(".af-msg"); m.textContent = text; m.hidden = !text; };
   async function docsBoe(btn) {
@@ -1216,6 +1240,7 @@
       const pk = e.target.closest("[data-pack]"); if (pk) { openNota(pk.dataset.pack, "pack"); return; }
       const sc = e.target.closest("[data-soc-k]"); if (sc) { socToggle(sc); return; }
       const db = e.target.closest("[data-docs-boe]"); if (db) { docsBoe(db); return; }
+      const fa = e.target.closest("[data-foto-main],[data-foto-vis]"); if (fa) { fotoAction(fa); return; }
       const dop = e.target.closest("[data-doc-open]"); if (dop) {
         const path = dop.closest("[data-path]").dataset.path;
         AUTH.client.storage.from("docs").createSignedUrl(path, 600).then(({ data, error }) => { if (error) throw error; window.open(data.signedUrl, "_blank", "noopener"); }).catch((er) => alert(er.message || er));
@@ -1337,6 +1362,8 @@
     } catch (e) { console.error("data", e); all = []; }
     all.forEach(prep);
     if (hist) mergeHist();
+    await loadFotos();
+    applyFotos(all);
     const fresh = all.filter((s) => s.detectada && (Date.now() - new Date(s.detectada).getTime()) < 864e5).length;
     newShare = all.length ? fresh / all.length : 0;
   }
@@ -1347,10 +1374,30 @@
         ...(s.bienes || []).map((b) => [b.descripcion, b.ref_catastral, b.matricula].join(" "))]
         .join(" ").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   }
+  // Фото объекта из документов аукциона (таблица subasta_fotos, публичное хранилище fotos/)
+  let fotoMap = new Map();
+  async function loadFotos() {
+    if (!AUTH.client) return;
+    try {
+      const { data, error } = await AUTH.client.from("subasta_fotos").select("subasta_id,path,portada,visible,score").eq("visible", true).order("portada", { ascending: false }).order("score", { ascending: false }).limit(5000);
+      if (error) throw error;
+      const base = CFG.supabaseUrl.replace(/\/$/, "") + "/storage/v1/object/public/fotos/";
+      fotoMap = new Map();
+      data.forEach((f) => { if (!fotoMap.has(f.subasta_id)) fotoMap.set(f.subasta_id, []); fotoMap.get(f.subasta_id).push(base + f.path.split("/").map(encodeURIComponent).join("/")); });
+    } catch (e) { console.warn("fotos", e); }
+  }
+  function applyFotos(list) {
+    list.forEach((s) => {
+      if (!("_fotos0" in s)) s._fotos0 = s.fotos || [];
+      const extra = fotoMap.get(s.id);
+      s.fotos = extra ? [...extra, ...s._fotos0] : s._fotos0;
+    });
+  }
   function mergeHist() {
     const byId = new Map(all.map((s) => [s.id, s]));
     hist.forEach((s) => byId.set(s.id, s));   // в архиве есть итоговая ставка — он важнее
     all = [...byId.values()];
+    applyFotos(all);
   }
   // Архив грузится только когда пользователь выбрал завершённые
   function ensureHistory() {
