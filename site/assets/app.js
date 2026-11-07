@@ -521,13 +521,14 @@
   }
   // Только для администраторов: где взять все документы по аукциону
   // ---------- соцсети: админ отмечает аукцион для сценария рилс/сторис/Telegram
-  const SOC = [["r1", "Рилс 1 · Цена-крючок"], ["r2", "Рилс 2 · Разбор цифр"], ["r3", "Рилс 3 · Топ-10 недели"], ["r4", "Рилс 4 · Чем закончилось"],
+  const SOC = [["r1", "Рилс 1 · Цена-крючок"], ["r2", "Рилс 2 · Разбор цифр"], ["r3", "Рилс 3 · Топ-10 недели"], ["r4", "Рилс 4 · Чем закончилось"], ["r6", "Рилс 6 · Дом с бассейном по цене квартиры"],
     ["s1", "Сторис · Закрывается сегодня"], ["s2", "Сторис · Объект дня"], ["tg", "Telegram · подборка"]];
   const isAdm = () => !!(AUTH.status && AUTH.status.is_admin);
   function socBlock(s) {
     if (!isAdm() || !AUTH.client) return "";
     setTimeout(socFill, 0);
-    const list = SOC.filter(([k]) => (k === "r4") === !!done(s) || k === "tg");
+    // r4 — только завершённые, r6 и Telegram — любые, остальные — только идущие
+    const list = SOC.filter(([k]) => k === "tg" || k === "r6" || (k === "r4") === !!done(s));
     return `<div class="soc" data-soc="${esc(s.id)}"><h3>В соцсети <a class="fine" href="admin.html#soc">очередь →</a></h3>
       <div class="soc-chips">${list.map(([k, l]) => `<button type="button" class="soc-chip" data-soc-k="${k}" aria-pressed="false" disabled>${esc(l)}</button>`).join("")}</div></div>`;
   }
