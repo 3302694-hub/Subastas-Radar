@@ -1,13 +1,14 @@
-name: Соцсети — фото фасада из Катастро
+name: Соцсети — материалы для рилс
 on:
   workflow_dispatch:
     inputs:
-      rc:
-        description: "Кадастровый номер (14+ символов)"
+      ids:
+        description: "Номера аукционов через пробел"
         required: true
-      name:
-        description: "Имя файла без расширения"
-        required: true
+      music:
+        description: "Ссылка на музыку (необязательно)"
+        required: false
+        default: ""
 permissions:
   contents: write
 jobs:
@@ -15,16 +16,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Скачать фото фасада
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r requirements.txt
+      - name: Скачать материалы
         env:
-          RC: ${{ inputs.rc }}
-          NAME: ${{ inputs.name }}
+          IDS: ${{ inputs.ids }}
+          MUSIC: ${{ inputs.music }}
         run: |
           set -e
-          [[ "$RC" =~ ^[0-9A-Z]{14,20}$ ]] || { echo "плохой номер"; exit 1; }
-          [[ "$NAME" =~ ^[a-z0-9_-]{1,60}$ ]] || { echo "плохое имя"; exit 1; }
-          mkdir -p site/social/src
-          curl -fsSL -A "Mozilla/5.0" "https://ovc.catastro.meh.es/OVCServWeb/OVCWcfLibres/OVCFotoFachada.svc/RecuperarFotoFachadaGet?ReferenciaCatastral=${RC:0:14}" -o "site/social/src/$NAME.jpg"
-          file "site/social/src/$NAME.jpg"
+          ARGS=()
+          for i in $IDS; do [[ "$i" =~ ^SUB-[A-Z]{2}-[0-9]{4}-[0-9A-Z]+$ ]] && ARGS+=("$i"); done
+          [ -n "$MUSIC" ] && ARGS+=(--music "$MUSIC")
+          python tools/social_assets.py "${ARGS[@]}"
           git config user.name "subastaradar-bot"; git config user.email "bot@subasta-radar.es"
-          git add site/social/src && git commit -m "Фото фасада для соцсетей: $NAME" && git push
+          git add site/social/src && git commit -m "Материалы для соцсетей" && git pull --rebase && git push || echo "нечего коммитить"
