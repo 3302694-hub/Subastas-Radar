@@ -139,5 +139,27 @@ def main():
     return 0
 
 
+def preview(sid: str):
+    """Лист-превью всех фото аукциона (для проверки отбора): site/social/src/preview/<id>.jpg"""
+    from pathlib import Path
+    rows = rest(f"subasta_fotos?select=path,portada,visible,score&subasta_id=eq.{urllib.parse.quote(sid)}&order=score.desc") or []
+    ims = []
+    for r in rows:
+        im = Image.open(io.BytesIO(http(f"{URL}/storage/v1/object/public/fotos/{urllib.parse.quote(r['path'])}"))).convert("RGB")
+        im.thumbnail((360, 270)); ims.append(im)
+    if not ims:
+        print("превью: фото нет"); return
+    cols = 4; W = 370; rows_n = (len(ims) + cols - 1) // cols
+    sheet = Image.new("RGB", (cols * W, rows_n * 280), "white")
+    for i, im in enumerate(ims):
+        sheet.paste(im, ((i % cols) * W, (i // cols) * 280))
+    out = Path(__file__).resolve().parent.parent / "site" / "social" / "src" / "preview"
+    out.mkdir(parents=True, exist_ok=True)
+    sheet.save(out / f"{sid}.jpg", quality=80)
+    print("превью:", len(ims), "фото")
+
+
 if __name__ == "__main__":
+    if len(sys.argv) > 2 and sys.argv[1] == "--preview":
+        preview(sys.argv[2]); sys.exit(0)
     sys.exit(main())

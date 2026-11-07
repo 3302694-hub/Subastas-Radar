@@ -1,6 +1,13 @@
 name: Фото из документов аукционов
 on:
   workflow_dispatch:
+    inputs:
+      preview:
+        description: "Номер аукциона для листа-превью фото (необязательно)"
+        required: false
+        default: ""
+permissions:
+  contents: write
   schedule:
     - cron: "*/15 * * * *"   # быстро выходит, если новых документов нет
 concurrency:
@@ -20,3 +27,14 @@ jobs:
           SUPABASE_URL: ${{ vars.SUPABASE_URL || 'https://jkxvxdhmothlamhotecu.supabase.co' }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: python scraper/docs_fotos.py
+      - name: Превью фото
+        if: ${{ inputs.preview != '' }}
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL || 'https://jkxvxdhmothlamhotecu.supabase.co' }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          SID: ${{ inputs.preview }}
+        run: |
+          [[ "$SID" =~ ^SUB-[A-Z]{2}-[0-9]{4}-[0-9A-Z]+$ ]] || exit 1
+          python scraper/docs_fotos.py --preview "$SID"
+          git config user.name "subastaradar-bot"; git config user.email "bot@subasta-radar.es"
+          git add site/social/src/preview && git commit -m "Превью фото $SID" && git pull --rebase && git push || true
