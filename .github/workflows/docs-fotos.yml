@@ -6,10 +6,10 @@ on:
         description: "Номер аукциона для листа-превью фото (необязательно)"
         required: false
         default: ""
-permissions:
-  contents: write
   schedule:
     - cron: "*/15 * * * *"   # быстро выходит, если новых документов нет
+permissions:
+  contents: write
 concurrency:
   group: docs-fotos
   cancel-in-progress: false
