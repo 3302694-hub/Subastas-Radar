@@ -162,20 +162,15 @@ def preview(sid: str):
 
 
 def debug(sid: str):
-    """Разбор PDF аукциона: страницы (уменьшенные) и встроенные картинки с метриками фильтра."""
-    from pathlib import Path
-    out = Path(__file__).resolve().parent.parent / "site" / "social" / "src" / "preview" / f"{sid}-debug"
-    out.mkdir(parents=True, exist_ok=True)
+    """Разбор PDF аукциона: сколько страниц и картинок (только в лог)."""
     for d in rest(f"subasta_docs?select=path,mime&subasta_id=eq.{urllib.parse.quote(sid)}&mime=eq.application/pdf") or []:
         raw = http(f"{URL}/storage/v1/object/docs/{urllib.parse.quote(d['path'])}")
         pdf = fitz.open(stream=raw, filetype="pdf")
-        base = d["path"].rsplit("/", 1)[-1][:30]
         print(d["path"], "страниц", len(pdf))
         for pn, page in enumerate(pdf):
             imgs = page.get_images(full=True)
             print(f"  стр {pn + 1}: картинок {len(imgs)}", [(i[2], i[3]) for i in imgs[:6]])
-            if pn < 12:
-                pix = page.get_pixmap(dpi=40); pix.save(str(out / f"{base}-p{pn + 1:02d}.png"))
+            # страницы не сохраняем: в документах бывают персональные данные
 
 
 if __name__ == "__main__":
