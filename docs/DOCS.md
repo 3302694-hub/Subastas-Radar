@@ -19,7 +19,7 @@ Edge Function `docs-boe` (supabase/functions/docs-boe): берёт свежие 
    `insert into docs_tickets(token, subasta_id) values (encode(gen_random_bytes(24),'hex'), 'SUB-…') returning token;`
    (действует 15 минут, только этот аукцион, до 30 файлов).
 2. Вкладка `https://subastas.boe.es/reg/detalleSubasta.php?idSub=SUB-…&ver=3` (и ver=1): через javascript
-   собрать ссылки `verDocumento`, скачать каждую `fetch(..., {credentials:'include'})` в Blob.
+   собрать ссылки `verDocumento`, скачать каждую `fetch(..., {credentials:'include'})` в Blob — **с паузой ~2,5 с между файлами** (иначе BOE отвечает «too many access attempts per second», 42 байта). Брать ссылки из уже открытой страницы; «Condiciones generales…» пропускать.
 3. В той же вкладке собрать `<form method=POST enctype=multipart/form-data target=_self
    action=https://jkxvxdhmothlamhotecu.supabase.co/functions/v1/docs-ingest>` с полями id, ticket, names[]
    и `<input type=file name=files multiple>` (файлы через DataTransfer) и отправить — отправка формы CSP не мешает.
