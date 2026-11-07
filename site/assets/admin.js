@@ -132,6 +132,7 @@
       </div>
       <div class="adm-bar">
         <label class="btn soft file-btn">${n.pdf_path ? "Добавить файлы" : "Загрузить файлы"}<input type="file" accept="application/pdf,application/zip,image/jpeg,image/png" multiple data-pdf hidden></label>
+        <button class="btn ghost" data-attach-docs title="Скопировать в заказ файлы из карточки аукциона (BOE, Катастро, загруженные вручную)">Прикрепить файлы аукциона</button>
         ${n.pdf_path ? `<button class="btn ghost" data-open-pdf>Файлы заказа</button><button class="btn" data-mail>Отправить письмо клиенту</button>` : ""}
         <span class="nota-flist muted"></span>
       </div>
@@ -333,6 +334,24 @@
         } catch (err) { fail(err); }
       }
       if (e.target.closest("[data-mail]")) sendNotaMail(n);
+      if (e.target.closest("[data-attach-docs]")) {
+        try {
+          const { data: files, error } = await A.client.from("subasta_docs").select("*").eq("subasta_id", n.subasta_id).order("path");
+          if (error) throw error;
+          if (!files.length) return msg("В карточке аукциона нет файлов. Откройте аукцион и нажмите «Скачать документы с BOE» или загрузите их.", true);
+          const folder = `${n.user_id}/${n.id}/`;
+          if (n.pdf_path && !n.pdf_path.endsWith("/")) { const mv = await A.client.storage.from("notas").move(n.pdf_path, folder + "nota_simple.pdf"); if (mv.error) throw mv.error; }
+          for (const f of files) {
+            const dl = await A.client.storage.from("docs").download(f.path);
+            if (dl.error) throw dl.error;
+            const up = await A.client.storage.from("notas").upload(folder + f.path.split("/").pop(), dl.data, { upsert: true, contentType: f.mime || "application/pdf" });
+            if (up.error) throw up.error;
+          }
+          await rpc("admin_nota_update", { p_id: n.id, p_estado: n.estado, p_pdf_path: folder });
+          msg(`В заказ #${n.id} скопировано файлов: ${files.length}. Когда комплект готов, поставьте статус «Готово» и отправьте письмо.`);
+          await loadNotas();
+        } catch (err) { fail(err); }
+      }
     });
     $("#notas").addEventListener("change", async (e) => {
       const inp = e.target.closest("[data-pdf]"); if (!inp || !inp.files.length) return;

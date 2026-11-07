@@ -586,7 +586,64 @@
       ${s.anuncio_boe ? `<a class="btn ghost" href="https://www.boe.es/diario_boe/txt.php?id=${encodeURIComponent(s.anuncio_boe)}" target="_blank" rel="noopener">${esc(t("adm_docs_edict"))} ${ic("ext")}</a>` : ""}
       ${rc ? `<a class="btn ghost" href="https://www1.sedecatastro.gob.es/CYCBienInmueble/OVCListaBienes.aspx?rc1=${encodeURIComponent(rc.slice(0, 7))}&rc2=${encodeURIComponent(rc.slice(7, 14))}" target="_blank" rel="noopener">${esc(t("adm_docs_cat"))} ${ic("ext")}</a>` : ""}
       <a class="btn ghost" href="https://sede.registradores.org/site/home" target="_blank" rel="noopener">${esc(t("adm_docs_nota"))}${idufir ? " · IDUFIR " + esc(idufir) : rc ? " · " + esc(rc) : ""} ${ic("ext")}</a>
-    </div></div>`;
+    </div>${filesBlock(s)}</div>`;
+  }
+  // ---------- файлы аукциона (только админ): автоскачивание с BOE + Катастро, ручная загрузка
+  function filesBlock(s) {
+    if (!AUTH.client) return "";
+    setTimeout(filesFill, 0);
+    return `<div class="adm-files" data-files-sub="${esc(s.id)}">
+      <div class="af-head"><b>Файлы аукциона</b>
+        <button type="button" class="btn soft" data-docs-boe>${ic("file")} Скачать документы с BOE</button>
+        <label class="btn ghost af-up">Загрузить файлы<input type="file" multiple data-docs-up hidden></label></div>
+      <p class="fine af-msg" hidden></p><ul class="af-list"><li class="muted">…</li></ul></div>`;
+  }
+  const kb = (n) => n > 1048576 ? (n / 1048576).toFixed(1) + " МБ" : Math.max(1, Math.round(n / 1024)) + " КБ";
+  const ORIG = { boe: "BOE", catastro: "Катастро", manual: "вручную", chrome: "через Chrome" };
+  async function filesFill(force) {
+    for (const box of $$("[data-files-sub]" + (force ? "" : ":not([data-ok])"))) {
+      box.dataset.ok = "1";
+      const { data, error } = await AUTH.client.from("subasta_docs").select("*").eq("subasta_id", box.dataset.filesSub).order("path");
+      const ul = box.querySelector(".af-list");
+      if (error) { ul.innerHTML = `<li class="muted">Ошибка: ${esc(error.message)}</li>`; continue; }
+      ul.innerHTML = data.length ? data.map((f) => `<li data-path="${esc(f.path)}" data-fid="${f.id}">
+          <button type="button" class="link-btn" data-doc-open>${/^image\//.test(f.mime || "") ? "🖼️" : ic("file")} ${esc(f.nombre)}</button>
+          <span class="fine">${esc(ORIG[f.origen] || f.origen)} · ${kb(f.bytes || 0)}</span>
+          <button type="button" class="link-btn af-del" data-doc-del title="Удалить">✕</button></li>`).join("")
+        : `<li class="muted">Файлов пока нет.</li>`;
+    }
+  }
+  const afMsg = (box, text) => { const m = box.querySelector(".af-msg"); m.textContent = text; m.hidden = !text; };
+  async function docsBoe(btn) {
+    const box = btn.closest("[data-files-sub]"), id = box.dataset.filesSub;
+    const s = all.find((x) => x.id === id) || (hist || []).find((x) => x.id === id) || {};
+    btn.disabled = true; afMsg(box, "Скачиваю с BOE и Катастро… обычно 10–30 секунд.");
+    try {
+      const { data, error } = await AUTH.client.functions.invoke("docs-boe", { body: { id, rcs: (s.bienes || []).map((b) => b.ref_catastral).filter(Boolean) } });
+      if (error) throw error;
+      if (!data.ok) throw new Error(data.error);
+      afMsg(box, `Сохранено файлов: ${data.saved.length}.` + (data.needLogin ? " Документы этого аукциона на BOE видны только после входа на портал — загрузите их вручную или попросите Claude забрать через ваш Chrome." : "")
+        + (data.errors.length ? " Не удалось: " + data.errors.join("; ") : ""));
+      await filesFill(true);
+    } catch (e) { console.error(e); afMsg(box, "Ошибка: " + (e.message || e)); }
+    btn.disabled = false;
+  }
+  document.addEventListener("change", (e) => { const u = e.target.closest && e.target.closest("[data-docs-up]"); if (u && u.files.length) docsUpload(u); });
+  async function docsUpload(inp) {
+    const box = inp.closest("[data-files-sub]"), id = box.dataset.filesSub;
+    const safe = (n) => n.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\w.-]+/g, "_").slice(-80);
+    afMsg(box, "Загружаю…");
+    try {
+      for (const f of inp.files) {
+        const path = `${id}/manual-${Date.now()}-${safe(f.name)}`;
+        const up = await AUTH.client.storage.from("docs").upload(path, f, { contentType: f.type || "application/octet-stream" });
+        if (up.error) throw up.error;
+        const { error } = await AUTH.client.from("subasta_docs").insert({ subasta_id: id, nombre: f.name, path, origen: "manual", mime: f.type, bytes: f.size, subido_por: (AUTH.user() || {}).email });
+        if (error) throw error;
+      }
+      afMsg(box, `Загружено: ${inp.files.length}.`); inp.value = "";
+      await filesFill(true);
+    } catch (e) { console.error(e); afMsg(box, "Ошибка: " + (e.message || e)); }
   }
   // ---------- Nota simple: заказ выписки из Registro de la Propiedad (17 € + IVA)
   const NOTA = { precio: 17, iva: 21 };
@@ -1018,6 +1075,30 @@
     updateFavCount();
     $$(`[data-fav="${CSS.escape(id)}"]`).forEach((b) => { const on = favs.has(id); b.setAttribute("aria-pressed", on); b.setAttribute("aria-label", on ? t("fav_del") : t("fav_add")); });
     if (onlyFavs) render();
+    favSync(id, favs.has(id));
+  }
+  // Избранное хранится и на сервере (таблица favoritos) — видно на всех устройствах.
+  // У администратора добавление в избранное сразу скачивает документы аукциона с BOE.
+  function favSync(id, on) {
+    if (!AUTH.client || !(AUTH.user && AUTH.user())) return;
+    const q = on ? AUTH.client.from("favoritos").upsert({ subasta_id: id }, { onConflict: "user_id,subasta_id", ignoreDuplicates: true })
+      : AUTH.client.from("favoritos").delete().eq("subasta_id", id);
+    q.then(({ error }) => { if (error) console.warn("favoritos", error.message); });
+    if (on && isAdm()) {
+      const s = all.find((x) => x.id === id) || (hist || []).find((x) => x.id === id) || {};
+      AUTH.client.functions.invoke("docs-boe", { body: { id, rcs: (s.bienes || []).map((b) => b.ref_catastral).filter(Boolean) } })
+        .then(() => filesFill(true)).catch((e) => console.warn("docs-boe", e));
+    }
+  }
+  async function favPull() {
+    if (!AUTH.client || !(AUTH.user && AUTH.user())) return;
+    const { data, error } = await AUTH.client.from("favoritos").select("subasta_id");
+    if (error) return console.warn("favoritos", error.message);
+    const server = new Set(data.map((r) => r.subasta_id));
+    const missing = [...favs].filter((id) => !server.has(id));   // локальные — отправляем на сервер
+    if (missing.length) AUTH.client.from("favoritos").upsert(missing.map((subasta_id) => ({ subasta_id })), { onConflict: "user_id,subasta_id", ignoreDuplicates: true }).then(() => {});
+    server.forEach((id) => favs.add(id));
+    store.set("favs", [...favs]); updateFavCount();
   }
   function updateFavCount() {
     $("#favCount").textContent = favs.size;
@@ -1134,6 +1215,22 @@
       const nt = e.target.closest("[data-nota]"); if (nt) { openNota(nt.dataset.nota, "nota"); return; }
       const pk = e.target.closest("[data-pack]"); if (pk) { openNota(pk.dataset.pack, "pack"); return; }
       const sc = e.target.closest("[data-soc-k]"); if (sc) { socToggle(sc); return; }
+      const db = e.target.closest("[data-docs-boe]"); if (db) { docsBoe(db); return; }
+      const dop = e.target.closest("[data-doc-open]"); if (dop) {
+        const path = dop.closest("[data-path]").dataset.path;
+        AUTH.client.storage.from("docs").createSignedUrl(path, 600).then(({ data, error }) => { if (error) throw error; window.open(data.signedUrl, "_blank", "noopener"); }).catch((er) => alert(er.message || er));
+        return;
+      }
+      const dd = e.target.closest("[data-doc-del]"); if (dd) {
+        const li = dd.closest("[data-path]");
+        if (!confirm("Удалить файл?")) return;
+        (async () => {
+          await AUTH.client.storage.from("docs").remove([li.dataset.path]);
+          const { error } = await AUTH.client.from("subasta_docs").delete().eq("id", li.dataset.fid);
+          if (error) alert(error.message); else li.remove();
+        })();
+        return;
+      }
       const nm = e.target.closest("[data-my-notas]"); if (nm) { e.preventDefault(); $("#settingsDlg").open && $("#settingsDlg").close(); openMyNotas(); return; }
       const np = e.target.closest("[data-nota-pdf]"); if (np) { np.disabled = true; AUTH.notaUrl(np.dataset.notaPdf).then((u) => { window.open(u, "_blank", "noopener"); }).catch(console.error).finally(() => { np.disabled = false; }); return; }
       const nc = e.target.closest("[data-nota-cancel]"); if (nc) { AUTH.notaCancelar(+nc.dataset.notaCancel).then(openMyNotas).catch(console.error); return; }
@@ -1201,6 +1298,7 @@
       if (type === "recovery") return openAuth("recovery");
       if (goNext()) return;
       syncModeFromProfile();
+      favPull();
       await loadData();
       if (!statusTouched) state.status = defStatus();
       applyI18n(); checkSaved();
@@ -1277,7 +1375,7 @@
     if (CFG.rssUrl) $("#rssLink").href = CFG.rssUrl;
     if (CFG.telegramUrl) { $("#tgLink").href = CFG.telegramUrl; $("#tgLink").hidden = false; }
     updateFavCount();
-    if (AUTH.enabled) { try { await AUTH.init(); } catch (e) { console.error(e); } syncModeFromProfile(); }
+    if (AUTH.enabled) { try { await AUTH.init(); } catch (e) { console.error(e); } syncModeFromProfile(); favPull(); }
     readUrl(); bind(); bindAuth();
     if (!statusTouched) state.status = defStatus();
     await loadData();

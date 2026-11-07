@@ -1,0 +1,36 @@
+# Документы аукционов (только для администратора)
+
+Хранилище Supabase `docs/{id}/…` (закрытое), список — таблица `subasta_docs`
+(origen: boe, catastro, manual, chrome). В карточке аукциона блок «Файлы аукциона».
+
+## 1. Автоматически — кнопка «Скачать документы с BOE»
+Edge Function `docs-boe` (supabase/functions/docs-boe): берёт свежие ссылки с вкладок ver=1,2,3
+(идентификаторы документов на BOE со временем меняются), скачивает файлы, открытые без входа,
+и справку Катастро «consulta descriptiva y gráfica» по кадастровым номерам. Если документы
+доступны только зарегистрированным на портале — отвечает needLogin.
+
+## 2а. Вручную — «Загрузить файлы» в той же карточке.
+
+## 2б. Через Chrome пользователя (документы, закрытые входом на портал)
+Пользователь входит на subastas.boe.es в своём Chrome (Cl@ve / сертификат) и пишет
+«забери документы по SUB-…». Порядок для Claude (Claude in Chrome):
+1. Вкладка subasta-radar.es, где пользователь вошёл как администратор: прочитать сессию
+   Supabase из localStorage (ключ `sb-jkxvxdhmothlamhotecu-auth-token` → access_token). Не выводить токен в чат.
+2. Вкладка subastas.boe.es (с входом): открыть detalleSubasta.php?idSub=…&ver=1 (и ver=3),
+   через javascript собрать ссылки verDocumento.php, скачать их `fetch` (cookies портала) как Blob.
+3. Из той же вкладки отправить каждый Blob: `POST https://jkxvxdhmothlamhotecu.supabase.co/storage/v1/object/docs/{id}/chrome-{n}-{имя}.pdf`
+   (заголовки apikey = anon-ключ из site/config.js, Authorization: Bearer <access_token>, x-upsert: true),
+   затем строку в `/rest/v1/subasta_docs` с origen = "chrome".
+4. Сказать пользователю, сколько файлов сохранено.
+
+## 3. Автоархив избранного
+Аукционы, которые администратор добавил в избранное (таблица `favoritos`, представление
+`v_favoritos_admin`):
+- сразу при добавлении в избранное — вызов `docs-boe` из браузера;
+- workflow «Автоархив документов (избранное)» каждые 6 часов (`scraper/docs_fav.py`):
+  скачивает, если файлов ещё нет, и повторно за 48 часов до конца торгов.
+Лимит хранилища Supabase на бесплатном плане — 1 ГБ.
+
+## Фото объекта для рилс
+Если среди документов есть фотографии объекта (картинки или PDF-оценки с фото — pericial,
+valoración, tasación), их можно использовать в рилс: см. docs/SOCIAL.md.

@@ -1,0 +1,18 @@
+name: Автоархив документов (избранное)
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 */6 * * *"     # каждые 6 часов; за 48 ч до конца торгов документы обновляются
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Скачать документы
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL || 'https://jkxvxdhmothlamhotecu.supabase.co' }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python scraper/docs_fav.py
