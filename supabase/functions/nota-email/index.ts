@@ -27,14 +27,25 @@ Deno.serve(async (req) => {
     const { data: n, error } = await admin.from("notas_pedidos").select("*").eq("id", id).single();
     if (error || !n) return json({ ok: false, error: "not_found" }, 404);
     if (!n.pdf_path) return json({ ok: false, error: "no_pdf" }, 400);
-    const { data: signed } = await admin.storage.from("notas").createSignedUrl(n.pdf_path, 7 * 24 * 3600);
-    const link = signed?.signedUrl ?? "";
+    // файлы: старый формат — один PDF, новый — папка {user}/{id}/
+    let paths: string[] = [n.pdf_path];
+    if (n.pdf_path.endsWith("/")) {
+      const { data: list } = await admin.storage.from("notas").list(n.pdf_path.slice(0, -1), { limit: 50 });
+      paths = (list ?? []).filter((f) => f.id).map((f) => n.pdf_path + f.name);
+    }
+    if (!paths.length) return json({ ok: false, error: "no_files" }, 400);
+    const links: { name: string; url: string }[] = [];
+    for (const p of paths) {
+      const { data: signed } = await admin.storage.from("notas").createSignedUrl(p, 7 * 24 * 3600);
+      if (signed?.signedUrl) links.push({ name: p.split("/").pop()!, url: signed.signedUrl });
+    }
+    const pack = n.tipo === "pack";
     const finca = [n.registro, n.finca && "finca " + n.finca].filter(Boolean).join(", ");
     const html = `<div style="font-family:Arial,sans-serif;font-size:15px;color:#16201D;line-height:1.5">
       <p>Hola ${esc(n.nombre)}:</p>
-      <p>Ya tienes la nota simple que pediste (pedido #${n.id}${finca ? " — " + esc(finca) : ""}).</p>
-      <p><a href="${esc(link)}" style="display:inline-block;background:#0B6B66;color:#fff;padding:12px 18px;border-radius:10px;text-decoration:none">Descargar la nota simple (PDF)</a></p>
-      <p style="color:#56625D;font-size:13px">El enlace es válido 7 días. También la tienes en subasta-radar.es → Mis notas simples.</p>
+      <p>Ya tienes ${pack ? "los documentos que pediste" : "la nota simple que pediste"} (pedido #${n.id}${finca ? " — " + esc(finca) : ""}).</p>
+      ${links.map((l) => `<p><a href="${esc(l.url)}" style="display:inline-block;background:#0B6B66;color:#fff;padding:10px 16px;border-radius:10px;text-decoration:none">Descargar ${esc(links.length > 1 ? l.name : pack ? "los documentos" : "la nota simple")}</a></p>`).join("")}
+      <p style="color:#56625D;font-size:13px">Los enlaces son válidos 7 días. También los tienes en subasta-radar.es → Mis pedidos.</p>
       <p>Un saludo,<br>SubastaRadar</p></div>`;
     const r = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -42,7 +53,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         from: Deno.env.get("NOTA_FROM") ?? "SubastaRadar <no-reply@subasta-radar.es>",
         to: [n.email], reply_to: "subastaradar@gmail.com",
-        subject: `Tu nota simple #${n.id} — SubastaRadar`, html,
+        subject: `${pack ? "Tus documentos" : "Tu nota simple"} #${n.id} — SubastaRadar`, html,
       }),
     });
     if (!r.ok) return json({ ok: false, error: "resend_" + r.status, detail: await r.text() }, 502);

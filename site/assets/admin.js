@@ -115,7 +115,7 @@
   function notaCard(n, i) {
     const total = (n.precio_cents / 100 * (1 + n.iva_pct / 100)).toFixed(2).replace(".", ",");
     return `<article class="adm-card nota-card" data-i="${i}">
-      <header><b>#${n.id}</b> <span class="rp ${n.estado === "entregado" ? "ok" : ["error", "cancelado"].includes(n.estado) ? "bad" : "warn"}">${esc(NS[n.estado] || n.estado)}</span>
+      <header><b>#${n.id}</b> <span class="rp ${n.tipo === "pack" ? "ok" : ""}">${n.tipo === "pack" ? "Полный комплект" : "Nota simple"}</span> <span class="rp ${n.estado === "entregado" ? "ok" : ["error", "cancelado"].includes(n.estado) ? "bad" : "warn"}">${esc(NS[n.estado] || n.estado)}</span>
         <span class="muted">${when(n.created_at)} · ${(n.precio_cents / 100).toFixed(2).replace(".", ",")} € + IVA (${total} €)</span>
         <a class="btn ghost" href="./#/s/${encodeURIComponent(n.subasta_id)}" target="_blank" rel="noopener">Аукцион ${esc(n.subasta_id)} ↗</a></header>
       <div class="cp-grid">
@@ -131,8 +131,9 @@
         <button class="btn ghost" data-nsave>Сохранить</button>
       </div>
       <div class="adm-bar">
-        <label class="btn soft file-btn">${n.pdf_path ? "Заменить PDF" : "Загрузить PDF"}<input type="file" accept="application/pdf" data-pdf hidden></label>
-        ${n.pdf_path ? `<button class="btn ghost" data-open-pdf>Открыть PDF</button><button class="btn" data-mail>Отправить письмо клиенту</button>` : ""}
+        <label class="btn soft file-btn">${n.pdf_path ? "Добавить файлы" : "Загрузить файлы"}<input type="file" accept="application/pdf,application/zip,image/jpeg,image/png" multiple data-pdf hidden></label>
+        ${n.pdf_path ? `<button class="btn ghost" data-open-pdf>Файлы заказа</button><button class="btn" data-mail>Отправить письмо клиенту</button>` : ""}
+        <span class="nota-flist muted"></span>
       </div>
     </article>`;
   }
@@ -151,8 +152,8 @@
     } catch (e) { console.error(e); }
   }
   function mailtoNota(n, url) {
-    const subj = `Tu nota simple #${n.id} — SubastaRadar`;
-    const body = `Hola ${n.nombre}:\n\nYa tienes la nota simple que pediste (pedido #${n.id}${n.registro ? ", " + n.registro : ""}${n.finca ? ", finca " + n.finca : ""}).\n\nPuedes descargarla en SubastaRadar → Mis notas simples:\nhttps://subasta-radar.es/\n${url ? "\nEnlace directo (válido 7 días):\n" + url + "\n" : ""}\nUn saludo,\nSubastaRadar`;
+    const subj = `${n.tipo === "pack" ? "Tus documentos" : "Tu nota simple"} #${n.id} — SubastaRadar`;
+    const body = `Hola ${n.nombre}:\n\nYa tienes ${n.tipo === "pack" ? "los documentos que pediste" : "la nota simple que pediste"} (pedido #${n.id}${n.registro ? ", " + n.registro : ""}${n.finca ? ", finca " + n.finca : ""}).\n\nPuedes descargarlo en SubastaRadar → Mis pedidos:\nhttps://subasta-radar.es/\n${url ? "\nEnlace directo (válido 7 días):\n" + url + "\n" : ""}\nUn saludo,\nSubastaRadar`;
     location.href = `mailto:${encodeURIComponent(n.email)}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`;
   }
   async function sendNotaMail(n) {
@@ -164,7 +165,11 @@
       return;
     } catch (e) { console.warn("nota-email", e); }
     let url = "";
-    try { const r = await A.client.storage.from("notas").createSignedUrl(n.pdf_path, 7 * 24 * 3600); url = r.data && r.data.signedUrl; } catch (e) { /* */ }
+    try {
+      const files = await A.notaFiles(n.pdf_path);
+      const urls = await Promise.all(files.map(async (f) => { const r = await A.client.storage.from("notas").createSignedUrl(f.path, 7 * 24 * 3600); return r.data ? `${f.name}: ${r.data.signedUrl}` : ""; }));
+      url = urls.filter(Boolean).join("\n");
+    } catch (e) { /* */ }
     mailtoNota(n, url);
   }
 
@@ -266,21 +271,31 @@
         try { await rpc("admin_nota_update", { p_id: n.id, p_estado: card.querySelector('[data-f="estado"]').value, p_nota: card.querySelector('[data-f="nota"]').value }); msg(`Заказ #${n.id} сохранён.`); await loadNotas(); notasBadge(); } catch (err) { fail(err); }
       }
       if (e.target.closest("[data-open-pdf]")) {
-        try { const r = await A.client.storage.from("notas").createSignedUrl(n.pdf_path, 600); if (r.error) throw r.error; window.open(r.data.signedUrl, "_blank", "noopener"); } catch (err) { fail(err); }
+        try {
+          const files = await A.notaFiles(n.pdf_path);
+          const links = await Promise.all(files.map(async (f) => { const r = await A.client.storage.from("notas").createSignedUrl(f.path, 600); if (r.error) throw r.error; return `<a href="${esc(r.data.signedUrl)}" target="_blank" rel="noopener">${esc(f.name)}</a>`; }));
+          card.querySelector(".nota-flist").innerHTML = links.join(" · ") || "файлов нет";
+        } catch (err) { fail(err); }
       }
       if (e.target.closest("[data-mail]")) sendNotaMail(n);
     });
     $("#notas").addEventListener("change", async (e) => {
-      const inp = e.target.closest("[data-pdf]"); if (!inp || !inp.files[0]) return;
+      const inp = e.target.closest("[data-pdf]"); if (!inp || !inp.files.length) return;
       const n = notas[+inp.closest(".nota-card").dataset.i];
-      const file = inp.files[0];
-      if (file.type !== "application/pdf") return msg("Нужен файл PDF.", true);
-      const path = `${n.user_id}/${n.id}.pdf`;
+      const folder = `${n.user_id}/${n.id}/`;
+      const safe = (name) => name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\w.-]+/g, "_").slice(-80);
       try {
-        const up = await A.client.storage.from("notas").upload(path, file, { upsert: true, contentType: "application/pdf" });
-        if (up.error) throw up.error;
-        await rpc("admin_nota_update", { p_id: n.id, p_estado: "entregado", p_pdf_path: path });
-        msg(`PDF загружен, заказ #${n.id} — «Готово». Теперь отправьте письмо клиенту.`);
+        // старый заказ с одним PDF переносим в папку
+        if (n.pdf_path && !n.pdf_path.endsWith("/")) {
+          const mv = await A.client.storage.from("notas").move(n.pdf_path, folder + "nota_simple.pdf");
+          if (mv.error) throw mv.error;
+        }
+        for (const file of inp.files) {
+          const up = await A.client.storage.from("notas").upload(folder + safe(file.name), file, { upsert: true, contentType: file.type || "application/pdf" });
+          if (up.error) throw up.error;
+        }
+        await rpc("admin_nota_update", { p_id: n.id, p_estado: "entregado", p_pdf_path: folder });
+        msg(`Файлы загружены (${inp.files.length}), заказ #${n.id} — «Готово». Теперь отправьте письмо клиенту.`);
         await loadNotas(); notasBadge();
       } catch (err) { fail(err); }
     });

@@ -549,20 +549,16 @@
     };
   }
   const notaAssets = (s) => (s.bienes || []).filter((a) => !a.matricula && (a.idufir || String(a.ref_catastral || "").replace(/\s/g, "").length >= 14 || /registro\s+de\s+la\s+propiedad|finca/i.test(a.descripcion || "")));
-  function notaBlock(s) {
-    if (!AUTH.enabled || !NOTA_CATS.includes(s.categoria) || !notaAssets(s).length) return "";
-    const total = NOTA.precio * (1 + NOTA.iva / 100);
-    return `<div class="nota-box"><div><h3>${ic("file")} ${esc(t("nota_t"))}</h3><p>${esc(t("nota_d"))}</p>
-      <p class="fine">${esc(t("nota_price", { p: eur2(NOTA.precio), t: eur2(total) }))}</p></div>
-      <button type="button" class="btn" data-nota="${esc(s.id)}">${esc(t("nota_btn"))}</button></div>`;
-  }
-  // Сопровождение в аукционе — страница servicios.html с подставленным аукционом
-  function helpBlock(s) {
+  const PRICE = { nota: 17, pack: 120 };
+  const canNota = (s) => AUTH.enabled && NOTA_CATS.includes(s.categoria) && notaAssets(s).length > 0;
+  function actButtons(s) {
     if (!REAL_ESTATE_UI.includes(s.categoria)) return "";
     const r = [I18N.es["c_" + s.categoria] || "", place(s.localidad) || place(s._prov), s.valor_subasta ? eur(s.valor_subasta) : ""].filter(Boolean).join(" · ");
-    return `<div class="nota-box help-box"><div><h3>${ic("check")} ${esc(t("help_t"))}</h3><p>${esc(t("help_d"))}</p></div>
-      <a class="btn" href="servicios.html?sub=${encodeURIComponent(s.id)}&r=${encodeURIComponent(r)}#solicitud">${esc(t("help_btn"))}</a></div>`;
+    return (canNota(s) ? `<button type="button" class="btn soft" data-nota="${esc(s.id)}" title="${esc(t("nota_d"))}">${esc(t("act_nota", { p: eur2(PRICE.nota) }))}</button>
+      <button type="button" class="btn soft" data-pack="${esc(s.id)}" title="${esc(t("pack_d"))}">${esc(t("act_pack", { p: eur2(PRICE.pack) }))}</button>` : "")
+      + `<a class="btn ghost" href="servicios.html?sub=${encodeURIComponent(s.id)}&r=${encodeURIComponent(r)}#solicitud" title="${esc(t("help_d"))}">${esc(t("help_btn"))}</a>`;
   }
+  const actHint = (s) => REAL_ESTATE_UI.includes(s.categoria) && canNota(s) ? `<p class="fine dv-hint">${esc(t("acts_hint"))}</p>` : "";
   function notaDialog() {
     let d = $("#notaDlg");
     if (!d) {
@@ -574,7 +570,8 @@
     return d;
   }
   const closeBtn = () => `<button class="d-close" data-close aria-label="${esc(t("close"))}">${ic("x")}</button>`;
-  function openNota(id) {
+  function openNota(id, tipo) {
+    tipo = tipo === "pack" ? "pack" : "nota";
     const s = all.find((x) => x.id === id);
     if (!s) return;
     const u = AUTH.user && AUTH.user();
@@ -589,10 +586,11 @@
     const last = store.get("nota_me") || {};
     const f0 = fill(0);
     const inp = (name, label, val, attrs = "") => `<label><span>${esc(t(label))}</span><input name="${name}" value="${esc(val || "")}" ${attrs}></label>`;
-    const total = NOTA.precio * (1 + NOTA.iva / 100);
-    d.innerHTML = `<div class="d-head">${closeBtn()}<h2 id="notaTitle">${esc(t("nota_form_t"))}</h2>
+    const precio = PRICE[tipo], total = precio * (1 + NOTA.iva / 100);
+    d.innerHTML = `<div class="d-head">${closeBtn()}<h2 id="notaTitle">${esc(t(tipo === "pack" ? "pack_form_t" : "nota_form_t"))}</h2>
         <p class="muted" style="margin:6px 0 0">${esc(what(s))} · ${esc(place(s.localidad) || place(s._prov) || "")} · ${esc(s.id)}</p></div>
       <form class="d-body nota-form" id="notaForm" novalidate>
+        <p class="nf-what">${esc(t(tipo === "pack" ? "pack_d" : "nota_d"))}</p>
         <h3>${esc(t("nota_finca"))}</h3>
         ${assets.length > 1 ? `<label><span>${esc(t("nota_bien"))}</span><select name="bien_i">${assets.map((a, i) => `<option value="${i}">${i + 1}. ${esc(sentence(a.descripcion || a.titulo || "").slice(0, 80))}</option>`).join("")}</select></label>` : ""}
         <div class="nf-grid">
@@ -613,7 +611,7 @@
         </div>
         <label><span>${esc(t("nota_purpose"))}</span><select name="fin">${["subasta", "inversion", "juridica", "otra"].map((k) => `<option value="${k}">${esc(t("nota_p_" + k))}</option>`).join("")}</select></label>
         <label class="nf-check"><input type="checkbox" name="ok" required> <span>${esc(t("nota_consent"))}</span></label>
-        <div class="nf-total"><span>${esc(t("nota_price", { p: eur2(NOTA.precio), t: eur2(total) }))}</span></div>
+        <div class="nf-total"><span>${esc(t("nota_price", { p: eur2(precio), t: eur2(total) }))}</span></div>
         ${AUTH.notaPago ? "" : `<p class="nf-soon">${esc(t("nota_soon"))}</p>`}
         <p class="auth-msg" id="notaMsg" role="status" hidden></p>
         <button class="btn big" type="submit">${esc(t(AUTH.notaPago ? "nota_send_pay" : "nota_send_free"))}</button>
@@ -634,7 +632,7 @@
       try {
         const r = await AUTH.notaCrear({ p_subasta_id: s.id, p_bien: f.bien, p_idufir: v("idufir"), p_ref_catastral: v("rc"), p_registro: v("registro"),
           p_finca: v("finca"), p_datos_registrales: v("datos"), p_direccion: v("dir"), p_nombre: v("nombre"), p_dni: dni, p_email: v("email"),
-          p_telefono: v("tel"), p_finalidad: v("fin") });
+          p_telefono: v("tel"), p_finalidad: v("fin"), p_tipo: tipo });
         store.set("nota_me", { nombre: v("nombre"), email: v("email"), tel: v("tel") });
         msg(t("nota_ok", { n: r.id, e: r.email }), true);
         btn.hidden = true;
@@ -655,12 +653,19 @@
     let rows = [];
     try { rows = await AUTH.misNotas(); } catch (e) { console.error(e); $("#myNotas").innerHTML = `<p class="auth-msg err">${esc(t("nota_err"))}</p>`; return; }
     $("#myNotas").innerHTML = rows.length ? `<ul class="nota-list">${rows.map((r) => `<li>
-        <div><b>#${r.id} · ${esc(r.registro || r.direccion || r.subasta_id)}</b>
+        <div><b>#${r.id} · ${esc(t(r.tipo === "pack" ? "pack_short" : "nota_short"))} · ${esc(r.registro || r.direccion || r.subasta_id)}</b>
           <span class="fine">${esc(dateFmt(r.created_at))} · ${esc([r.idufir && "IDUFIR " + r.idufir, r.finca && "finca " + r.finca, r.ref_catastral].filter(Boolean).join(" · "))}</span></div>
         <span class="ns ns-${esc(r.estado)}">${esc(t("ns_" + r.estado))}</span>
-        ${r.estado === "entregado" && r.pdf_path ? `<button class="btn soft" data-nota-pdf="${esc(r.pdf_path)}">${ic("file")} ${esc(t("nota_dl"))}</button>` : ""}
+        ${r.estado === "entregado" && r.pdf_path ? `<div class="nota-files" data-files="${esc(r.pdf_path)}"><span class="muted">…</span></div>` : ""}
         ${["solicitado", "pendiente_pago"].includes(r.estado) ? `<button class="link-btn" data-nota-cancel="${r.id}">${esc(t("nota_cancel"))}</button>` : ""}
       </li>`).join("")}</ul>` : `<p class="muted">${esc(t("nota_none"))}</p>`;
+    // файлы заказа: старые — один PDF, новые — папка {user}/{id}/
+    $$("#myNotas [data-files]").forEach(async (box) => {
+      try {
+        const files = await AUTH.notaFiles(box.dataset.files);
+        box.innerHTML = files.map((f) => `<button class="btn soft" data-nota-pdf="${esc(f.path)}">${ic("file")} ${esc(files.length > 1 ? f.name : t("nota_dl"))}</button>`).join("");
+      } catch (e) { console.error(e); box.innerHTML = ""; }
+    });
   }
   function detailHTML(s, idp) {
     if (locked() && done(s)) return lockedDoneHTML(s, idp);
@@ -682,7 +687,8 @@
     const valBlock = !done(s) && s.categoria === "vivienda" && cat && cat.sup
       ? (val ? `<div class="mv"><div><small>${esc(t("mv_title"))}</small><b>≈ ${eur(val.estimado)}</b></div>
           <p>${esc(t(val.descuento > 0 ? "mv_below" : "mv_above", { p: Math.abs(val.descuento || 0) }))}</p>
-          <p class="fine">${esc(t("mv_how", { m2: eur(val.eur_m2), sup: num(val.sup), where: val.nivel === "municipio" ? city : place(s._prov), per: val.periodo || "" }))}</p></div>`
+          <p class="fine">${esc(t("mv_how", { m2: eur(val.eur_m2), sup: num(val.sup), where: val.nivel === "municipio" ? city : place(s._prov), per: val.periodo || "" }))}</p>
+          <p class="mv-warn">${ic("info")} ${esc(t(val.nivel === "municipio" ? "mv_check" : "mv_check_prov"))}</p></div>`
         : !atLeast("inversor") ? `<div class="mv locked"><div><small>${esc(t("mv_title"))}</small><b>${ic("lock")} ${esc(t("tier_inversor"))}</b></div><p>${esc(t("mv_locked"))}</p></div>` : "")
       : "";
     const bidsLine = !done(s) && s.estado === "activa" ? (pj ? `<span class="rp ${pj === "con_pujas" ? "warn" : "ok"}">${esc(t("bids_" + pj))}</span>` : (!atLeast("inversor") ? `<span class="rp">${ic("lock")} ${esc(t("bids_locked"))}</span>` : "")) : "";
@@ -711,14 +717,13 @@
       ${checks.length ? `<h3>${esc(t("before_bid"))}</h3><ul class="chk">${checks.join("")}</ul>` : ""}
       ${done(s) && result(s) && result(s).pct ? `<p class="muted" style="margin:0 0 14px">${esc(t("hist_explain", { p: result(s).pct, v: eur(s.valor_subasta) }))}</p>` : ""}
       <div class="dv-cta"><div><small>${esc(done(s) ? t("ended_on", { d: dateFmt(s.fecha_fin, true) }) : t("closes_on", { d: dateFmt(s.fecha_fin, true) }))}</small><b class="${l.hot ? "hot" : ""}">${esc(done(s) ? t("s_" + s.estado) : l.long)}</b></div>
-        <a class="btn" href="${esc(s.url)}" target="_blank" rel="noopener">${esc(t("open_boe"))} ${ic("ext")}</a></div>
+        <div class="dv-acts"><a class="btn" href="${esc(s.url)}" target="_blank" rel="noopener">${esc(t("open_boe"))} ${ic("ext")}</a>${done(s) ? "" : actButtons(s)}</div></div>
+      ${done(s) ? "" : actHint(s)}
       <div class="dv-more">${NO_MAP.includes(s.categoria) ? "" : `<a class="btn ghost" href="${esc(gmapLink(mq))}" target="_blank" rel="noopener">${esc(t(ex ? "open_map_exact" : "open_map"))} ${ic("ext")}</a>`}
         ${ex && ex.mapa ? `<a class="btn ghost" href="${esc(ex.mapa)}" target="_blank" rel="noopener">${esc(t("open_cat_map"))} ${ic("ext")}</a>` : ""}
         ${atLeast("pro") && REAL_ESTATE_UI.includes(s.categoria) ? priceLinks(s) : ""}
         ${(s.documentos || []).slice(0, 6).map((d, i) => { const u = typeof d === "string" ? d : d.url; const n = typeof d === "string" ? `${t("doc")} ${i + 1}` : sentence(d.nombre); return `<a class="btn ghost" href="${esc(u)}" target="_blank" rel="noopener">${ic("file")} ${esc(n.length > 42 ? n.slice(0, 40) + "…" : n)}</a>`; }).join("")}</div>
       ${s.docs_login ? `<p class="fine" style="margin:8px 0 0">${esc(t("docs_login"))}</p>` : ""}
-      ${done(s) ? "" : helpBlock(s)}
-      ${done(s) ? "" : notaBlock(s)}
       ${adminDocs(s)}
       <details><summary>${esc(t("d_all"))}</summary>
         <div class="asset"><dl>
@@ -1068,7 +1073,8 @@
       const rm = e.target.closest("[data-rm]"); if (rm) { removeFilter(rm.dataset.rm); return; }
       const f = e.target.closest("[data-fav]"); if (f) { e.preventDefault(); e.stopPropagation(); toggleFav(f.dataset.fav); return; }
       const lk = e.target.closest("[data-locked]"); if (lk) { lockAction(); return; }
-      const nt = e.target.closest("[data-nota]"); if (nt) { openNota(nt.dataset.nota); return; }
+      const nt = e.target.closest("[data-nota]"); if (nt) { openNota(nt.dataset.nota, "nota"); return; }
+      const pk = e.target.closest("[data-pack]"); if (pk) { openNota(pk.dataset.pack, "pack"); return; }
       const nm = e.target.closest("[data-my-notas]"); if (nm) { e.preventDefault(); $("#settingsDlg").open && $("#settingsDlg").close(); openMyNotas(); return; }
       const np = e.target.closest("[data-nota-pdf]"); if (np) { np.disabled = true; AUTH.notaUrl(np.dataset.notaPdf).then((u) => { window.open(u, "_blank", "noopener"); }).catch(console.error).finally(() => { np.disabled = false; }); return; }
       const nc = e.target.closest("[data-nota-cancel]"); if (nc) { AUTH.notaCancelar(+nc.dataset.notaCancel).then(openMyNotas).catch(console.error); return; }

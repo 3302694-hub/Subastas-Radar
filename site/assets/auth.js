@@ -168,12 +168,18 @@
   A.misNotas = async () => {
     if (!enabled || !A.session) return [];
     const { data, error } = await client.from("notas_pedidos")
-      .select("id,created_at,subasta_id,bien,direccion,idufir,ref_catastral,registro,finca,estado,pdf_path,precio_cents,iva_pct")
+      .select("id,created_at,tipo,subasta_id,bien,direccion,idufir,ref_catastral,registro,finca,estado,pdf_path,precio_cents,iva_pct")
       .eq("user_id", A.user().id).order("created_at", { ascending: false }).limit(100);
     if (error) throw error;
     return data;
   };
   A.notaCancelar = async (id) => { const { error } = await client.rpc("nota_cancelar", { p_id: id }); if (error) throw error; };
+  A.notaFiles = async (path) => {
+    if (!path.endsWith("/")) return [{ path, name: path.split("/").pop() }];
+    const { data, error } = await client.storage.from("notas").list(path.slice(0, -1), { limit: 50, sortBy: { column: "name", order: "asc" } });
+    if (error) throw error;
+    return data.filter((f) => f.id).map((f) => ({ path: path + f.name, name: f.name }));
+  };
   A.notaUrl = async (path) => {
     const { data, error } = await client.storage.from("notas").createSignedUrl(path, 600);
     if (error) throw error;
