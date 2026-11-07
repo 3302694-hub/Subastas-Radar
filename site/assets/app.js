@@ -521,14 +521,22 @@
   }
   // Только для администраторов: где взять все документы по аукциону
   // ---------- соцсети: админ отмечает аукцион для сценария рилс/сторис/Telegram
-  const SOC = [["r1", "Рилс 1 · Цена-крючок"], ["r2", "Рилс 2 · Разбор цифр"], ["r3", "Рилс 3 · Топ-10 недели"], ["r4", "Рилс 4 · Чем закончилось"], ["r6", "Рилс 6 · Дом с бассейном по цене квартиры"],
+  const SOC = [["r1", "Рилс 1 · Цена-крючок"], ["r2", "Рилс 2 · Разбор цифр"], ["r3", "Рилс 3 · Топ-10 недели"], ["r4", "Рилс 4 · Чем закончилось"], ["r6", "Рилс 6 · Дом с бассейном по цене квартиры"], ["r7", "Рилс 7 · Авто дешевле телефона (топ-5)"], ["r8", "Рилс 8 · Авто недели"],
     ["s1", "Сторис · Закрывается сегодня"], ["s2", "Сторис · Объект дня"], ["tg", "Telegram · подборка"]];
   const isAdm = () => !!(AUTH.status && AUTH.status.is_admin);
   function socBlock(s) {
     if (!isAdm() || !AUTH.client) return "";
     setTimeout(socFill, 0);
     // r4 — только завершённые, r6 и Telegram — любые, остальные — только идущие
-    const list = SOC.filter(([k]) => k === "tg" || k === "r6" || (k === "r4") === !!done(s));
+    const car = s.categoria === "vehiculo";
+    const list = SOC.filter(([k]) => {
+      if (k === "tg") return true;
+      if (k === "r7") return car && !!done(s);          // авто из архива: подборка «дешевле телефона»
+      if (k === "r8") return car && !done(s);           // авто, которое можно купить сейчас
+      if (car) return false;                            // остальные сценарии — про недвижимость
+      if (k === "r6") return true;
+      return (k === "r4") === !!done(s);
+    });
     return `<div class="soc" data-soc="${esc(s.id)}"><h3>В соцсети <a class="fine" href="admin.html#soc">очередь →</a></h3>
       <div class="soc-chips">${list.map(([k, l]) => `<button type="button" class="soc-chip" data-soc-k="${k}" aria-pressed="false" disabled>${esc(l)}</button>`).join("")}</div></div>`;
   }
