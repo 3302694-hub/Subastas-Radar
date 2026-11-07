@@ -1,6 +1,11 @@
 name: Автоархив документов (избранное)
 on:
   workflow_dispatch:
+    inputs:
+      ids:
+        description: "Номера аукционов через пробел (пусто — избранное администраторов)"
+        required: false
+        default: ""
   schedule:
     - cron: "17 */6 * * *"     # каждые 6 часов; за 48 ч до конца торгов документы обновляются
 jobs:
@@ -15,4 +20,5 @@ jobs:
         env:
           SUPABASE_URL: ${{ vars.SUPABASE_URL || 'https://jkxvxdhmothlamhotecu.supabase.co' }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-        run: python scraper/docs_fav.py
+          IDS: ${{ inputs.ids }}
+        run: python scraper/docs_fav.py $IDS

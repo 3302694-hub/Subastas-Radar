@@ -88,7 +88,8 @@ def main():
     if not KEY:
         print("автоархив: нет ключа Supabase, пропуск"); return 0
     now = datetime.now(timezone.utc)
-    favs = rest("v_favoritos_admin?select=subasta_id")
+    ids = [a for a in sys.argv[1:] if re.fullmatch(r"SUB-[A-Z]{2}-\d{4}-[0-9A-Z]+", a)]
+    favs = [{"subasta_id": i, "_forzar": True} for i in ids] or rest("v_favoritos_admin?select=subasta_id")
     done = 0
     for f in favs or []:
         sid = f["subasta_id"]
@@ -101,10 +102,11 @@ def main():
         have = rest(f"subasta_docs?select=created_at&subasta_id=eq.{urllib.parse.quote(sid)}&origen=in.(boe,catastro)&order=created_at.desc&limit=1") or []
         last = datetime.fromisoformat(have[0]["created_at"].replace("Z", "+00:00")) if have else None
         soon = fin_dt and now < fin_dt <= now + timedelta(hours=48)
-        if last and not (soon and now - last > timedelta(hours=24)):
-            continue
-        if fin_dt and fin_dt < now - timedelta(days=2) and last:
-            continue
+        if not f.get("_forzar"):
+            if last and not (soon and now - last > timedelta(hours=24)):
+                continue
+            if fin_dt and fin_dt < now - timedelta(days=2) and last:
+                continue
         rcs = []
         for b in data.get("bienes") or []:
             rc = re.sub(r"[^0-9A-Z]", "", str(b.get("ref_catastral") or "").upper().split(" ")[0])[:20]
