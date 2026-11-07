@@ -1,16 +1,16 @@
 {
-  "actualizado": "2026-11-07T09:03:50.344221+00:00",
-  "total": 1231,
-  "actuales": 1230,
-  "nuevas_ultima_ejecucion": 251,
+  "actualizado": "2026-11-07T11:53:23.907674+00:00",
+  "total": 1232,
+  "actuales": 1231,
+  "nuevas_ultima_ejecucion": 1,
   "por_estado": {
+    "activa": 918,
     "proxima": 313,
-    "activa": 917,
     "finalizada": 1
   },
   "por_categoria": {
+    "vivienda": 744,
     "solar": 69,
-    "vivienda": 743,
     "rustica": 89,
     "local": 84,
     "garaje": 129,
