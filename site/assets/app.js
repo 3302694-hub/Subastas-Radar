@@ -220,7 +220,7 @@
     const rc = cadastreRef(s);
     const where = place(s.localidad) || place(s._prov);
     const fb = m ? ` data-map="${esc(gmapEmbed(m))}" data-title="${esc(t("map_of", { place: where }))}"` : "";
-    if (photo) return `<div class="${cls}"><img src="${esc(photo)}" loading="lazy" alt="${esc(t("photo_boe"))}"${fb}><span class="m-tag">BOE</span></div>`;
+    if (photo) { const air = /aereo-pnoa/.test(photo); return `<div class="${cls}"><img src="${esc(photo)}" loading="lazy" alt="${esc(air ? t("map_of", { place: where }) : t("photo_boe"))}"${fb}><span class="m-tag">${air ? "© IGN-PNOA · Catastro" : "BOE"}</span></div>`; }
     if (rc && !NO_MAP.includes(s.categoria)) return `<div class="${cls}"><img src="${facadeUrl(rc)}" loading="lazy" alt="${esc(t("photo_cadastre") + " · " + where)}"${fb}><span class="m-tag">${esc(t("src_cadastre"))}</span></div>`;
     if (m) return `<div class="${cls}"><iframe src="${esc(gmapEmbed(m))}" loading="lazy" title="${esc(t("map_of", { place: where }))}" tabindex="-1" referrerpolicy="no-referrer-when-downgrade"></iframe><span class="m-tag">Google Maps</span></div>`;
     return `<div class="${cls} m-empty">${ic(s.categoria)}</div>`;

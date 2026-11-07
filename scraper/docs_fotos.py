@@ -161,6 +161,52 @@ def preview(sid: str):
     print("превью:", len(ims), "фото")
 
 
+def aereo(sid: str) -> bool:
+    """Аэрофото участка (© IGN-PNOA, CC BY 4.0) с границей по Катастро — фото для лотов без своих фото."""
+    import math
+    import re
+    from PIL import ImageDraw
+    rows = rest(f"subastas?select=data&id=eq.{urllib.parse.quote(sid)}") or []
+    bienes = ((rows[0].get("data") or {}).get("bienes") or []) if rows else []
+    rc = next((re.sub(r"[^0-9A-Z]", "", str(b.get("ref_catastral") or "").upper().split(" ")[0])[:14]
+               for b in bienes if len(re.sub(r"[^0-9A-Z]", "", str(b.get("ref_catastral") or "").upper().split(" ")[0])) >= 14), None)
+    if not rc:
+        print("аэрофото: нет кадастрового номера"); return False
+    ua = {"User-Agent": "Mozilla/5.0 (SubastaRadar; +https://subasta-radar.es)"}
+    gml = urllib.request.urlopen(urllib.request.Request(
+        "https://ovc.catastro.meh.es/INSPIRE/wfsCP.aspx?service=wfs&version=2&request=getfeature"
+        f"&STOREDQUERIE_ID=GetParcel&refcat={rc}&srsname=EPSG::4326", headers=ua), timeout=60).read().decode("latin-1")
+    m = re.search(r"<gml:posList[^>]*>([^<]+)</gml:posList>", gml)
+    if not m:
+        print("аэрофото: нет контура участка"); return False
+    v = [float(x) for x in m.group(1).split()]
+    pts = [(v[i], v[i + 1]) for i in range(0, len(v), 2)]                 # (широта, долгота)
+    lat0 = sum(p[0] for p in pts) / len(pts)
+    k = 111320 * math.cos(math.radians(lat0))
+    la1, la2 = min(p[0] for p in pts), max(p[0] for p in pts)
+    lo1, lo2 = min(p[1] for p in pts), max(p[1] for p in pts)
+    w_m, h_m = (lo2 - lo1) * k * 1.6 + 30, (la2 - la1) * 111320 * 1.6 + 30   # поля вокруг участка
+    w_m, h_m = max(w_m, h_m * 4 / 3), max(h_m, w_m * 3 / 4)                  # формат 4:3
+    cla, clo = (la1 + la2) / 2, (lo1 + lo2) / 2
+    dla, dlo = h_m / 111320 / 2, w_m / k / 2
+    W, Hh = 1200, 900
+    url = ("https://www.ign.es/wms-inspire/pnoa-ma?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=OI.OrthoimageCoverage&STYLES="
+           f"&CRS=EPSG:4326&BBOX={cla - dla},{clo - dlo},{cla + dla},{clo + dlo}&WIDTH={W}&HEIGHT={Hh}&FORMAT=image/jpeg")
+    im = Image.open(io.BytesIO(urllib.request.urlopen(urllib.request.Request(url, headers=ua), timeout=90).read())).convert("RGB")
+    xy = [((lo - (clo - dlo)) / (2 * dlo) * W, ((cla + dla) - la) / (2 * dla) * Hh) for la, lo in pts]
+    ImageDraw.Draw(im).line(xy + [xy[0]], fill=(255, 214, 0), width=5, joint="curve")
+    buf = io.BytesIO(); im.save(buf, "JPEG", quality=86)
+    path = f"{sid}/aereo-pnoa.jpg"
+    http(f"{URL}/storage/v1/object/fotos/{urllib.parse.quote(path)}", buf.getvalue(),
+         {"Content-Type": "image/jpeg", "x-upsert": "true", "Cache-Control": "max-age=86400"}, "POST")
+    have = rest(f"subasta_fotos?select=id&subasta_id=eq.{urllib.parse.quote(sid)}&portada=eq.true") or []
+    rest("subasta_fotos?on_conflict=path", "POST",
+         {"subasta_id": sid, "path": path, "doc_path": None, "w": W, "h": Hh, "score": 1, "portada": not have},
+         prefer="resolution=merge-duplicates,return=minimal")
+    print(f"аэрофото {sid}: готово ({rc}){'' if have else ', на плашке'}")
+    return True
+
+
 def debug(sid: str):
     """Разбор PDF аукциона: сколько страниц и картинок (только в лог)."""
     for d in rest(f"subasta_docs?select=path,mime&subasta_id=eq.{urllib.parse.quote(sid)}&mime=eq.application/pdf") or []:
@@ -174,6 +220,13 @@ def debug(sid: str):
 
 
 if __name__ == "__main__":
+    if len(sys.argv) > 2 and sys.argv[1] == "--aereo":
+        for sid in sys.argv[2:]:
+            try:
+                aereo(sid)
+            except Exception as e:  # noqa: BLE001
+                print(f"аэрофото {sid}: ошибка {e!r}")
+        sys.exit(0)
     if len(sys.argv) > 2 and sys.argv[1] == "--debug":
         debug(sys.argv[2]); sys.exit(0)
     if len(sys.argv) > 2 and sys.argv[1] == "--preview":

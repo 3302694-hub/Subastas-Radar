@@ -6,6 +6,10 @@ on:
         description: "Номер аукциона для листа-превью фото (необязательно)"
         required: false
         default: ""
+      aereo:
+        description: "Аэрофото с границей участка для аукционов (номера через пробел, необязательно)"
+        required: false
+        default: ""
   schedule:
     - cron: "*/15 * * * *"   # быстро выходит, если новых документов нет
 permissions:
@@ -27,6 +31,15 @@ jobs:
           SUPABASE_URL: ${{ vars.SUPABASE_URL || 'https://jkxvxdhmothlamhotecu.supabase.co' }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: python scraper/docs_fotos.py
+      - name: Аэрофото участков
+        if: ${{ inputs.aereo != '' }}
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL || 'https://jkxvxdhmothlamhotecu.supabase.co' }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          IDS: ${{ inputs.aereo }}
+        run: |
+          ARGS=(); for i in $IDS; do [[ "$i" =~ ^SUB-[A-Z]{2}-[0-9]{4}-[0-9A-Z]+$ ]] && ARGS+=("$i"); done
+          [ ${#ARGS[@]} -gt 0 ] && python scraper/docs_fotos.py --aereo "${ARGS[@]}"
       - name: Превью фото
         if: ${{ inputs.preview != '' }}
         env:
