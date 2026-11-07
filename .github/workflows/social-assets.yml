@@ -1,0 +1,30 @@
+name: Соцсети — фото фасада из Катастро
+on:
+  workflow_dispatch:
+    inputs:
+      rc:
+        description: "Кадастровый номер (14+ символов)"
+        required: true
+      name:
+        description: "Имя файла без расширения"
+        required: true
+permissions:
+  contents: write
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Скачать фото фасада
+        env:
+          RC: ${{ inputs.rc }}
+          NAME: ${{ inputs.name }}
+        run: |
+          set -e
+          [[ "$RC" =~ ^[0-9A-Z]{14,20}$ ]] || { echo "плохой номер"; exit 1; }
+          [[ "$NAME" =~ ^[a-z0-9_-]{1,60}$ ]] || { echo "плохое имя"; exit 1; }
+          mkdir -p site/social/src
+          curl -fsSL -A "Mozilla/5.0" "https://ovc.catastro.meh.es/OVCServWeb/OVCWcfLibres/OVCFotoFachada.svc/RecuperarFotoFachadaGet?ReferenciaCatastral=${RC:0:14}" -o "site/social/src/$NAME.jpg"
+          file "site/social/src/$NAME.jpg"
+          git config user.name "subastaradar-bot"; git config user.email "bot@subasta-radar.es"
+          git add site/social/src && git commit -m "Фото фасада для соцсетей: $NAME" && git push
