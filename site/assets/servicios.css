@@ -1,0 +1,54 @@
+/* Страница услуг сопровождения */
+.sv{padding-top:28px;padding-bottom:72px;max-width:1180px}
+.sv h1{font-size:clamp(28px,4vw,40px);margin:0 0 12px;letter-spacing:-.01em}
+.sv h2{font-size:21px;margin:36px 0 14px}
+.sv-lead{font-size:18px;line-height:1.6;color:var(--ink-2);max-width:68ch;margin:0 0 16px}
+.sv-hero .nf-soon{max-width:68ch}
+.nf-soon{margin:0;padding:10px 12px;border-radius:10px;background:var(--accent-soft);font-size:14px}
+.sv-lang{margin-left:auto}
+.sv-packs{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+@media (max-width:1100px){.sv-packs{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:620px){.sv-packs{grid-template-columns:1fr}}
+.sv-pack{display:flex;flex-direction:column;gap:6px;padding:18px;border:1.5px solid var(--line);border-radius:16px;background:#fff;position:relative}
+.sv-pack.on{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.sv-num{position:absolute;top:14px;right:16px;font-weight:700;color:var(--muted);font-size:13px}
+.sv-pack h3{margin:0;font-size:17px;padding-right:20px}
+.sv-pack p{margin:0}
+.sv-price{margin:8px 0 0}
+.sv-price b{font-size:26px}
+.sv-price span{color:var(--muted);font-size:14px}
+.sv-pack ul{margin:8px 0;padding-left:18px;flex:1}
+.sv-pack li{font-size:14px;line-height:1.45;margin-bottom:4px;color:var(--ink-2)}
+.sv-term{font-size:14px}
+.sv-term small{display:block;color:var(--muted)}
+.sv-pack .btn{margin-top:6px}
+.sv-cols{display:grid;grid-template-columns:1fr 1fr;gap:32px}
+@media (max-width:820px){.sv-cols{grid-template-columns:1fr}}
+.sv-steps{list-style:none;counter-reset:s;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.sv-steps li{counter-increment:s;display:grid;grid-template-columns:34px 1fr;gap:2px 10px}
+.sv-steps li::before{content:counter(s);grid-row:span 2;width:30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center}
+.sv-steps span{color:var(--ink-2);font-size:15px}
+.sv-list{margin:0;padding-left:20px}
+.sv-list li{line-height:1.55;margin-bottom:8px;color:var(--ink-2)}
+.sv-formbox{margin-top:16px;max-width:760px}
+.sv-login{padding:18px;border:1px solid var(--line);border-radius:14px;background:var(--surf)}
+.sv-login h3{margin:0 0 6px}
+.sv-login p{margin:0 0 12px}
+.sv-form{display:flex;flex-direction:column;gap:14px}
+.sv-form label{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:500;color:var(--ink-2)}
+.sv-form input:not([type=checkbox]):not([type=radio]),.sv-form select,.sv-form textarea{padding:10px 12px;border:1px solid var(--line-2);border-radius:10px;min-height:44px;font:inherit;background:#fff;color:var(--ink)}
+.sv-form :focus-visible{outline:3px solid var(--focus);outline-offset:1px}
+.sv-form fieldset{border:0;margin:0;padding:0}
+.sv-form legend{font-size:13px;font-weight:500;color:var(--ink-2);margin-bottom:6px}
+.nf-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:560px){.nf-grid{grid-template-columns:1fr}}
+.sv-chips{display:flex;flex-wrap:wrap;gap:8px}
+.sv-chips.col{flex-direction:column}
+.sv-form .sv-chip{flex-direction:row;align-items:center;gap:8px;padding:9px 12px;border:1px solid var(--line-2);border-radius:10px;cursor:pointer;font-weight:500;min-height:44px}
+.sv-chip:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.sv-chip input{width:18px;height:18px;margin:0}
+.sv-sub{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:10px;background:var(--surf)}
+.sv-sub div{display:flex;flex-direction:column}
+.sv-sub small{color:var(--muted)}
+.sv-form .nf-check{flex-direction:row;align-items:flex-start;gap:10px;font-weight:400;line-height:1.4}
+.nf-check input{width:20px;height:20px;margin-top:1px;flex:none}

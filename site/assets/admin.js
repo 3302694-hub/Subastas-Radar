@@ -168,6 +168,45 @@
     mailtoNota(n, url);
   }
 
+  // ---------- заявки на сопровождение
+  const AS = { nueva: "Новая", contactada: "Связались", contrato: "Договор подписан", en_curso: "В работе", cerrada: "Закрыта", descartada: "Отказ" };
+  const PK = { p1: "1 · Юр. анализ лота — 1 000 €", p2: "2 · Сопровождение на аукционе — 5 %", p3: "3 · Покупка под ключ — 10 %", p4: "4 · Полный цикл — 50 % прибыли", consulta: "Не знает, нужен совет" };
+  const RU = { propios: "свои средства", hipoteca: "ипотека", mixta: "смешанное", pendiente: "не решил", si: "есть", tramite: "оформляется", no: "нет",
+    certificado: "цифр. сертификат", clave: "Cl@ve", ninguno: "нет", vivir: "жить", alquilar: "сдавать", revender: "перепродать", otro: "другое" };
+  let ayuda = [];
+  function ayudaCard(a, i) {
+    const tel = String(a.telefono || "").replace(/[^\d+]/g, "");
+    return `<article class="adm-card nota-card" data-i="${i}">
+      <header><b>#${a.id}</b> <span class="rp ${a.estado === "nueva" ? "warn" : a.estado === "descartada" ? "bad" : "ok"}">${esc(AS[a.estado] || a.estado)}</span>
+        <span class="muted">${when(a.created_at)} · язык: ${esc(a.idioma)}</span>
+        ${a.subasta_id ? `<a class="btn ghost" href="./#/s/${encodeURIComponent(a.subasta_id)}" target="_blank" rel="noopener">Аукцион ${esc(a.subasta_id)} ↗</a>` : ""}</header>
+      <p style="margin:0 0 10px"><b>${esc(PK[a.paquete] || a.paquete)}</b>${a.subasta_resumen ? ` <span class="muted">· ${esc(a.subasta_resumen)}</span>` : ""}</p>
+      <div class="cp-grid">
+        ${cp("Имя", a.nombre)}${cp("Email", a.email)}${cp("Телефон", a.telefono)}
+        ${cp("Бюджет", a.presupuesto ? Number(a.presupuesto).toLocaleString("ru-RU") + " €" : "")}${cp("Финансирование", RU[a.financiacion] || a.financiacion)}
+        ${cp("NIE / DNI", RU[a.nie] || a.nie)}${cp("Эл. подпись", RU[a.firma] || a.firma)}${cp("Цель", RU[a.objetivo] || a.objetivo)}
+      </div>
+      ${a.comentario ? `<p class="nota-bien" style="white-space:pre-wrap">${esc(a.comentario)}</p>` : ""}
+      <div class="adm-bar">
+        ${tel ? `<a class="btn soft" href="https://wa.me/${esc(tel.replace(/^\+/, ""))}" target="_blank" rel="noopener">WhatsApp</a><a class="btn ghost" href="tel:${esc(tel)}">Позвонить</a>` : ""}
+        <a class="btn ghost" href="mailto:${esc(a.email)}?subject=${encodeURIComponent("SubastaRadar — solicitud #" + a.id)}">Написать</a>
+      </div>
+      <div class="adm-bar">
+        <label class="fld"><span>Статус</span><select data-f="estado">${Object.entries(AS).map(([k, l]) => `<option value="${k}"${k === a.estado ? " selected" : ""}>${l}</option>`).join("")}</select></label>
+        <label class="fld grow"><span>Заметка</span><input type="text" data-f="nota" value="${esc(a.nota_admin || "")}" maxlength="500"></label>
+        <button class="btn ghost" data-asave>Сохранить</button>
+      </div>
+    </article>`;
+  }
+  async function loadAyuda() {
+    ayuda = await rpc("admin_ayuda_list", { p_estado: $("#aFilter").value || null, p_limit: 300 });
+    $("#ayuda").innerHTML = ayuda.length ? ayuda.map(ayudaCard).join("") : `<p class="muted">Заявок нет.</p>`;
+    $("#aCount").textContent = `найдено: ${ayuda.length}`;
+  }
+  async function ayudaBadge() {
+    try { const n = await rpc("admin_ayuda_list", { p_estado: "nueva", p_limit: 1000 }); $("#ayudaBadge").textContent = n.length; $("#ayudaBadge").hidden = !n.length; } catch (e) { console.error(e); }
+  }
+
   // ---------- события
   function bind() {
     $$(".adm-tabs [data-tab]").forEach((b) => b.addEventListener("click", () => {
@@ -175,6 +214,7 @@
       $$(".adm-tab").forEach((s) => (s.hidden = s.id !== "tab-" + b.dataset.tab));
       if (b.dataset.tab === "trusted") loadTrusted().catch(fail);
       if (b.dataset.tab === "notas") loadNotas().catch(fail);
+      if (b.dataset.tab === "ayuda") loadAyuda().catch(fail);
     }));
     let t; $("#q").addEventListener("input", () => { clearTimeout(t); t = setTimeout(() => { page = 0; loadUsers().catch(fail); }, 300); });
     $("#filter").addEventListener("change", () => { page = 0; loadUsers().catch(fail); });
@@ -207,6 +247,14 @@
       const from = $("#bFrom").value, to = $("#bTo").value, exp = $("#bExp").checked;
       if (!confirm(`Продлить до ${day(to)} всем, у кого доступ до ${day(from)}${exp ? " или уже истёк" : ""}?`)) return;
       try { const r = await rpc("admin_bulk_extend", { p_from: from, p_to: to, p_include_expired: exp }); msg(`Продлено: ${r.updated}`); await Promise.all([loadStats(), loadUsers()]); } catch (err) { fail(err); }
+    });
+    $("#aFilter").addEventListener("change", () => loadAyuda().catch(fail));
+    $("#ayuda").addEventListener("click", async (e) => {
+      const c = e.target.closest("[data-copy]");
+      if (c) { try { await navigator.clipboard.writeText(c.dataset.copy); c.classList.add("copied"); setTimeout(() => c.classList.remove("copied"), 900); } catch (err) { fail(err); } return; }
+      if (!e.target.closest("[data-asave]")) return;
+      const card = e.target.closest(".nota-card"); const a = ayuda[+card.dataset.i];
+      try { await rpc("admin_ayuda_update", { p_id: a.id, p_estado: card.querySelector('[data-f="estado"]').value, p_nota: card.querySelector('[data-f="nota"]').value }); msg(`Заявка #${a.id} сохранена.`); await loadAyuda(); ayudaBadge(); } catch (err) { fail(err); }
     });
     $("#nFilter").addEventListener("change", () => loadNotas().catch(fail));
     $("#notas").addEventListener("click", async (e) => {
@@ -259,7 +307,7 @@
     if (!(A.status && A.status.is_admin)) { $("#denied").hidden = false; $("#app").hidden = true; return; }
     $("#denied").hidden = true; $("#app").hidden = false;
     try { await loadStats(); await loadUsers(); } catch (e) { fail(e); }
-    notasBadge();
+    notasBadge(); ayudaBadge();
   }
 
   (async () => {

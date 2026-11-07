@@ -10,8 +10,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20261107a">
-<link rel="stylesheet" href="assets/admin.css?v=20261107a">
+<link rel="stylesheet" href="assets/style.css?v=20261107b">
+<link rel="stylesheet" href="assets/admin.css?v=20261107b">
 </head>
 <body class="adm">
 <header class="top">
@@ -49,6 +49,7 @@
     <nav class="adm-tabs" role="tablist">
       <button role="tab" data-tab="users" aria-selected="true">Пользователи</button>
       <button role="tab" data-tab="trusted" aria-selected="false">Доверенные адреса</button>
+      <button role="tab" data-tab="ayuda" aria-selected="false">Сопровождение <span class="adm-badge" id="ayudaBadge" hidden></span></button>
       <button role="tab" data-tab="notas" aria-selected="false">Заказы nota simple <span class="adm-badge" id="notasBadge" hidden></span></button>
       <button role="tab" data-tab="settings" aria-selected="false">Сроки доступа</button>
     </nav>
@@ -96,6 +97,25 @@
       <ul class="adm-list" id="trusted"></ul>
     </section>
 
+    <!-- заявки на сопровождение -->
+    <section id="tab-ayuda" class="adm-tab" hidden>
+      <p class="muted adm-lead">Заявки со страницы «Услуги». Свяжитесь с клиентом, отметьте статус и оставьте заметку о разговоре.</p>
+      <div class="adm-bar">
+        <label class="fld"><span class="sr">Статус</span>
+          <select id="aFilter">
+            <option value="">Все</option>
+            <option value="nueva" selected>Новые</option>
+            <option value="contactada">Связались</option>
+            <option value="contrato">Договор подписан</option>
+            <option value="en_curso">В работе</option>
+            <option value="cerrada">Закрыта</option>
+            <option value="descartada">Отказ</option>
+          </select></label>
+        <span class="muted" id="aCount"></span>
+      </div>
+      <div id="ayuda" class="nota-cards"></div>
+    </section>
+
     <!-- заказы nota simple -->
     <section id="tab-notas" class="adm-tab" hidden>
       <p class="muted adm-lead">Порядок: откройте сайт Колегии регистраторов, закажите nota simple по данным заказа (нажатие на поле копирует его), загрузите полученный PDF — заказ станет «Готово», клиент увидит файл в «Мои nota simple». Затем отправьте ему письмо.</p>
@@ -141,9 +161,9 @@
   </div>
 </main>
 
-<script src="config.js?v=20261107a"></script>
+<script src="config.js?v=20261107b"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/auth.js?v=20261107a"></script>
-<script src="assets/admin.js?v=20261107a"></script>
+<script src="assets/auth.js?v=20261107b"></script>
+<script src="assets/admin.js?v=20261107b"></script>
 </body>
 </html>

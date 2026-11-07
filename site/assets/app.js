@@ -556,6 +556,13 @@
       <p class="fine">${esc(t("nota_price", { p: eur2(NOTA.precio), t: eur2(total) }))}</p></div>
       <button type="button" class="btn" data-nota="${esc(s.id)}">${esc(t("nota_btn"))}</button></div>`;
   }
+  // Сопровождение в аукционе — страница servicios.html с подставленным аукционом
+  function helpBlock(s) {
+    if (!REAL_ESTATE_UI.includes(s.categoria)) return "";
+    const r = [I18N.es["c_" + s.categoria] || "", place(s.localidad) || place(s._prov), s.valor_subasta ? eur(s.valor_subasta) : ""].filter(Boolean).join(" · ");
+    return `<div class="nota-box help-box"><div><h3>${ic("check")} ${esc(t("help_t"))}</h3><p>${esc(t("help_d"))}</p></div>
+      <a class="btn" href="servicios.html?sub=${encodeURIComponent(s.id)}&r=${encodeURIComponent(r)}#solicitud">${esc(t("help_btn"))}</a></div>`;
+  }
   function notaDialog() {
     let d = $("#notaDlg");
     if (!d) {
@@ -710,6 +717,7 @@
         ${atLeast("pro") && REAL_ESTATE_UI.includes(s.categoria) ? priceLinks(s) : ""}
         ${(s.documentos || []).slice(0, 6).map((d, i) => { const u = typeof d === "string" ? d : d.url; const n = typeof d === "string" ? `${t("doc")} ${i + 1}` : sentence(d.nombre); return `<a class="btn ghost" href="${esc(u)}" target="_blank" rel="noopener">${ic("file")} ${esc(n.length > 42 ? n.slice(0, 40) + "…" : n)}</a>`; }).join("")}</div>
       ${s.docs_login ? `<p class="fine" style="margin:8px 0 0">${esc(t("docs_login"))}</p>` : ""}
+      ${done(s) ? "" : helpBlock(s)}
       ${done(s) ? "" : notaBlock(s)}
       ${adminDocs(s)}
       <details><summary>${esc(t("d_all"))}</summary>
@@ -1126,11 +1134,21 @@
     $("#logoutBtn").onclick = async () => { $("#userMenu").hidden = true; await AUTH.signOut(); };
     AUTH.on(async (type) => {
       if (type === "recovery") return openAuth("recovery");
+      if (goNext()) return;
       syncModeFromProfile();
       await loadData();
       if (!statusTouched) state.status = defStatus();
       applyI18n(); checkSaved();
     });
+  }
+  // после входа возвращаем туда, откуда пришли (не дольше 30 минут)
+  function goNext() {
+    const n = store.get("next");
+    if (!n || !(AUTH.user && AUTH.user())) return false;
+    store.set("next", null);
+    if (Date.now() - n.ts > 30 * 60 * 1000 || !/^[a-z0-9_-]+\.html/i.test(n.u)) return false;
+    location.href = n.u;
+    return true;
   }
   function syncModeFromProfile() {
     const st = AUTH.status || {};
@@ -1201,6 +1219,10 @@
     $("#demoBanner").hidden = !isDemo;
     applyI18n(); checkSaved();
     const m = location.hash.match(/^#\/s\/(.+)$/); if (m) openDetail(decodeURIComponent(m[1]));
+    // переход с других страниц: ./?auth=login&next=servicios.html…
+    const qa = new URLSearchParams(location.search);
+    if (qa.get("next")) { const nx = qa.get("next"); if (/^[a-z0-9_-]+\.html/i.test(nx)) store.set("next", { u: nx, ts: Date.now() }); }
+    if (!goNext() && ["login", "signup"].includes(qa.get("auth")) && !(AUTH.user && AUTH.user())) openAuth(qa.get("auth"));
     setInterval(() => { if (!document.hidden && !$("dialog[open]")) render(); }, 60000);
   }
   boot();
