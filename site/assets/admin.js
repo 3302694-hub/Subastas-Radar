@@ -235,7 +235,7 @@
             <span class="muted">${esc([x.localidad, x.provincia].filter(Boolean).join(", "))} · ${esc(r.subasta_id)} · стартовая ${eurf(x.valor_subasta)}${v.estimado ? " · рынок ≈ " + eurf(v.estimado) : ""}${x.fecha_fin ? " · до " + esc(String(x.fecha_fin).slice(0, 10)) : ""}</span>
             ${r.resultado ? `<span class="soc-res">${Object.entries(r.resultado).map(([l, o]) => `${esc(l.toUpperCase())}: ${o && o.url ? `<a href="${esc(o.url)}" target="_blank" rel="noopener">файл</a>` : ""}${o && o.permalink ? ` · <a href="${esc(o.permalink)}" target="_blank" rel="noopener">пост</a>` : ""}`).join(" · ")}</span>` : ""}
           </div>
-          <div class="soc-langs">${["es", "en", "ru"].map((l) => `<label><input type="checkbox" data-lang="${l}"${(r.idiomas || []).includes(l) ? " checked" : ""}> ${l.toUpperCase()}</label>`).join("")}</div>
+
           <span class="rp ${r.estado === "publicado" ? "ok" : r.estado === "descartado" ? "bad" : "warn"}">${esc(SOCS[r.estado] || r.estado)}</span>
           <a class="btn ghost" href="./#/s/${encodeURIComponent(r.subasta_id)}" target="_blank" rel="noopener">↗</a>
           <button class="btn ghost" data-sdel title="Убрать из очереди">✕</button>
@@ -300,12 +300,6 @@
         await loadSoc(); socBadge();
       } catch (err) { fail(err); }
     };
-    $("#soc").addEventListener("change", async (e) => {
-      const l = e.target.closest("[data-lang]"); if (!l) return;
-      const row = l.closest(".soc-row"), r = soc[+row.dataset.i];
-      const idiomas = [...row.querySelectorAll("[data-lang]")].filter((x) => x.checked).map((x) => x.dataset.lang);
-      try { const { error } = await A.client.from("social_cola").update({ idiomas, updated_at: new Date().toISOString() }).eq("id", r.id); if (error) throw error; r.idiomas = idiomas; } catch (err) { fail(err); }
-    });
     $("#soc").addEventListener("click", async (e) => {
       if (!e.target.closest("[data-sdel]")) return;
       const r = soc[+e.target.closest(".soc-row").dataset.i];
