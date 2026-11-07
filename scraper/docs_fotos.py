@@ -56,8 +56,10 @@ def photo_score(im: Image.Image, manual: bool) -> float | None:
     texture = float(np.abs(np.diff(gray, axis=1)).mean())
     if manual:                       # загружено администратором вручную — верим, кроме совсем пустых
         return colorful + 10 if white < 0.9 else None
-    if white > 0.45 or dark > 0.6 or colorful < 14 or texture < 4:
-        return None                  # скан страницы, печать, схема, логотип
+    flat = float((np.abs(np.diff(gray, axis=1)) < 2).mean())          # доля ровных участков
+    colors = len({tuple(x) for x in (a // 32).astype(int).reshape(-1, 3)})  # число цветов после огрубления
+    if white > 0.45 or dark > 0.6 or colorful < 14 or texture < 4 or flat > 0.45 or colors < 60:
+        return None                  # скан страницы, подпись, печать, схема, логотип
     return colorful * (w * h) ** 0.25
 
 
