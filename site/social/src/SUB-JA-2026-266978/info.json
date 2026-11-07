@@ -1,0 +1,31 @@
+{
+ "id": "SUB-JA-2026-266978",
+ "bienes": [
+  {
+   "titulo": "Bien 1 - Inmueble (Solar)",
+   "tipo_bien": "Solar",
+   "descripcion": "URBANA.- Parcela de terreno número 367, Fase primera del Plan Parcial 1 Pde la Urbanización Los Balcones, sita en término de Torrevieja, Campo de Salinas y partido de la Rambla, con superficie de 800 metros cuadrados, que linda: Norte, parcela 368, Sur, Avenida del Mediterráneo de la Urbanización; Este, parcela 369, y Oeste, parcela 365; y en la que en su interior existe vivienda unifamiliar en planta baja y alta, comunicadasa mediante escalera interior. Ocupa superficie apnproximada de setenta y ocho metros dieciocho decimetros cuadrados, con una superficie total construida de ciento treinta y tres metros, una treinta y un decímetros cuadrados, y útil de ciento trece metros, treinta y dos treinta vun decimetros cuadrados. v útil de ciento trece metros, treinta v dos ries dos cuartos de baño decímetros cuadrados, distribuida en tres dormitorios, dos cuartos de baño, salón con cocina incorporada, tendedero y dos porches. Linda por todos sus vientos, con resto de la parcela sobre la que se ubica y que se destina a zona ajardinada y de recreo.",
+   "direccion": "Campo de Salinas, Partida de la Rambla,",
+   "cp": "03183",
+   "localidad": "TORREVIEJA",
+   "provincia": "Alicante/Alacant",
+   "ref_catastral": "9643306XH9094S0001GP",
+   "situacion_posesoria": "No consta",
+   "visitable": "No",
+   "vivienda_habitual": "No",
+   "idufir": "03051000060270"
+  }
+ ],
+ "catastro": [
+  {
+   "rc": "9643306XH9094S0001GP",
+   "sup": 173.0,
+   "anio": 1997,
+   "uso": "Residencial",
+   "dir": "AV MEDITERRANEO-BAL 14(A) 03186 TORREVIEJA (ALICANTE)",
+   "mapa": "https://www1.sedecatastro.gob.es/Cartografia/mapa.aspx?del=3&mun=133&refcat=9643306XH9094S",
+   "lat": 37.9629970178463,
+   "lon": -0.728829815863208
+  }
+ ]
+}

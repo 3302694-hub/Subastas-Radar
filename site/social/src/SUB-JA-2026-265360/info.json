@@ -1,0 +1,30 @@
+{
+ "id": "SUB-JA-2026-265360",
+ "bienes": [
+  {
+   "titulo": "Bien 1 - Inmueble (Vivienda)",
+   "tipo_bien": "Vivienda",
+   "descripcion": "URBANA.- En la ampliación de la Urbanización Los Balcones, término de Torrevieja, Campo de Salinas, partido de La Rambla, parcela número QUINIENTOS SETENTA Y CINCO, que mide ochocientos metros cuadrados, dentro de la cual hay construida y terminada una vivienda unifamiliar de solo planta baja, que ocupa y tiene una superficie construida de doscientos ochenta y seis metros cuadrados, distribuida en varias dependencias y servicios, estando el resto de la parcela no ocupada por la edificación destinada a ensanches de la edificación y zona ajardinada. Linda todo: Este ¿ frente, calle Covadonga; Oeste o fondo, resto de finca matriz de donde ésta se segrega, ¿ más concretamente la parcela quinientos cincuenta y cinco; Norte o derecha entrando, dicho resto o parcela quinientos setenta y seis; y Sur o izquierda, parcela quinientos setenta y cuatro, propiedad de Morsi El Soda.",
+   "direccion": "Calle Covadonga, nº 66",
+   "cp": "03186",
+   "localidad": "TORREVIEJA",
+   "provincia": "Alicante/Alacant",
+   "ref_catastral": "9737911XH9093N0001AI",
+   "situacion_posesoria": "No consta",
+   "visitable": "No",
+   "idufir": "03051000072488"
+  }
+ ],
+ "catastro": [
+  {
+   "rc": "9737911XH9093N0001AI",
+   "sup": 320.0,
+   "anio": 1988,
+   "uso": "Residencial",
+   "dir": "CL COVADONGA 66 03186 TORREVIEJA (ALICANTE)",
+   "mapa": "https://www1.sedecatastro.gob.es/Cartografia/mapa.aspx?del=3&mun=133&refcat=9737911XH9093N",
+   "lat": 37.9571593519944,
+   "lon": -0.727284425026257
+  }
+ ]
+}

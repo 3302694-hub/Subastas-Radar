@@ -1,0 +1,30 @@
+{
+ "id": "SUB-JA-2025-254149",
+ "bienes": [
+  {
+   "titulo": "Bien 1 - Inmueble (Vivienda)",
+   "tipo_bien": "Vivienda",
+   "descripcion": "Vivienda unifamiliar en Torrevieja, Urbanización Los Balcones, fase 2, en calle Emilio Castelar, 34. Esta compuesta de planta semisótano destinada a garaje, y planta baja y planta alta destinada a vivienda. Tiene una superficie total construida de 241,10 metros cuadrados, de los cuales 32,67 corresponden a la planta semisótano, 126,83 metros cuadrados corresponden a la planta baja y 81,60 corresponden a la primera planta",
+   "direccion": "C/ ANTONIO MACHADO, 99 ATICO A",
+   "cp": "03181",
+   "localidad": "TORREVIEJA",
+   "provincia": "Alicante/Alacant",
+   "ref_catastral": "0242821YH0004S0001EJ",
+   "situacion_posesoria": "No consta",
+   "visitable": "No consta",
+   "idufir": "03051000182743"
+  }
+ ],
+ "catastro": [
+  {
+   "rc": "0242821YH0004S0001EJ",
+   "sup": 247.0,
+   "anio": 2006,
+   "uso": "Residencial",
+   "dir": "CL EMILIO CASTELAR-BAL 34 03180 TORREVIEJA (ALICANTE)",
+   "mapa": "https://www1.sedecatastro.gob.es/Cartografia/mapa.aspx?del=3&mun=133&refcat=0242821YH0004S",
+   "lat": 37.9607075631577,
+   "lon": -0.72184799160484
+  }
+ ]
+}
