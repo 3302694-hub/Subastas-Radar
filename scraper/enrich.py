@@ -45,8 +45,14 @@ def norm(s: str) -> str:
 # ------------------------------------------------------------- Катастро
 
 def _num(v):
+    """Число из ячейки: xlrd отдаёт float как есть; текст вида «2.824,2» — по-испански."""
+    if isinstance(v, (int, float)):
+        return float(v)
+    s = str(v or "").strip()
+    if not s:
+        return None
     try:
-        return float(str(v).replace(".", "").replace(",", ".")) if v not in (None, "") else None
+        return float(s.replace(".", "").replace(",", ".")) if "," in s else float(s)
     except ValueError:
         return None
 
@@ -111,35 +117,47 @@ def load_prices(path: Path, max_age_days: int = 7) -> dict:
     try:
         import xlrd  # noqa: PLC0415 — нужен только здесь
         mun_sheet = xlrd.open_workbook(file_contents=_download(MIVAU_MUN)).sheets()[-1]
-        municipios, prov = {}, ""
-        title = ""
+        municipios, title = {}, ""
+        c_prov = c_mun = c_tot = c_n = None
+        prov = ""
         for r in range(mun_sheet.nrows):
-            row = [str(c).strip() for c in mun_sheet.row_values(r)]
-            if not title and re.search(r"trimestre", " ".join(row), re.I):
-                title = next((c for c in row if re.search(r"trimestre", c, re.I)), "")
-            if len(row) < 6 or not row[1] or row[1] in ("Municipio",):
+            row = mun_sheet.row_values(r)
+            txt = [str(c).strip() for c in row]
+            if not title and any(re.search(r"trimestre de \d{4}", c, re.I) for c in txt):
+                title = next(c for c in txt if re.search(r"trimestre de \d{4}", c, re.I)).replace("(*)", "").strip()
+            if c_mun is None:
+                if "Municipio" in txt:
+                    c_prov, c_mun = txt.index("Provincia") if "Provincia" in txt else txt.index("Municipio") - 1, txt.index("Municipio")
                 continue
-            prov = row[0] or prov
-            total = _num(row[5]) if row[5] not in ("n.r", "") else None
-            if total and total > 100:
-                municipios[norm(row[1])] = {"eur_m2": round(total, 1), "prov": norm(prov), "n": _num(row[8]) if len(row) > 8 else None}
+            if c_tot is None:
+                if "Total" in txt:   # первое «Total» — стоимость, второе — число оценок
+                    tots = [i for i, c in enumerate(txt) if c == "Total"]
+                    c_tot, c_n = tots[0], (tots[1] if len(tots) > 1 else None)
+                continue
+            prov = txt[c_prov] or prov
+            name, total = txt[c_mun], _num(row[c_tot])
+            if name and total and total > 100:
+                municipios[norm(name)] = {"eur_m2": round(total, 1), "prov": norm(prov),
+                                          "n": _num(row[c_n]) if c_n is not None else None}
         prov_sheet = xlrd.open_workbook(file_contents=_download(MIVAU_PROV)).sheets()[-1]
-        header, provincias = None, {}
+        q_cols, provincias = None, {}
         for r in range(prov_sheet.nrows):
-            row = [str(c).strip() for c in prov_sheet.row_values(r)]
-            if row[1:2] and row[1].startswith("1º"):
-                header = row
+            row = prov_sheet.row_values(r)
+            txt = [str(c).strip() for c in row]
+            if q_cols is None:
+                if any(re.match(r"^[1-4]º", c) for c in txt):
+                    q_cols = [i for i, c in enumerate(txt) if re.match(r"^[1-4]º", c)]
                 continue
-            if header and row[0] and _num(row[1]):
-                # последний заполненный квартал — перед колонками «Variación»
-                vals = [_num(c) for c in row[1:-2]]
-                last = next((v for v in reversed(vals) if v), None)
-                if last:
-                    provincias[norm(row[0])] = round(last, 1)
+            label = next((c for i, c in enumerate(txt) if c and i < q_cols[0]), "")
+            vals = [_num(row[i]) for i in q_cols if i < len(row)]
+            last = next((v for v in reversed(vals) if v), None)
+            if label and last:
+                provincias[norm(label)] = round(last, 1)
         data = {"fuente": "MIVAU, Estadística de Valor Tasado de Vivienda", "periodo": title,
                 "descargado": datetime.now(timezone.utc).isoformat(),
                 "municipios": municipios, "provincias": provincias}
-        if municipios and provincias:
+        print(f"цены MIVAU: {title or '?'} — муниципалитетов {len(municipios)}, провинций {len(provincias)}")
+        if municipios or provincias:
             path.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")), "utf-8")
             return data
     except Exception as e:  # noqa: BLE001
