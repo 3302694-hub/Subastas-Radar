@@ -36,5 +36,6 @@ jobs:
         run: |
           [[ "$SID" =~ ^SUB-[A-Z]{2}-[0-9]{4}-[0-9A-Z]+$ ]] || exit 1
           python scraper/docs_fotos.py --preview "$SID"
+          python scraper/docs_fotos.py --debug "$SID"
           git config user.name "subastaradar-bot"; git config user.email "bot@subasta-radar.es"
           git add site/social/src/preview && git commit -m "Превью фото $SID" && git pull --rebase && git push || true
