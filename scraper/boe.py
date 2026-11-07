@@ -40,13 +40,15 @@ CATEGORY_RULES = [
     ("local", r"local comercial|\blocal\b|oficina"),
     ("nave", r"nave|industrial|almac[eé]n"),
     ("solar", r"solar|parcela|terreno urbano|suelo"),
-    ("rustica", r"r[uú]stic|finca|olivar|vi[nñ]edo|cultivo|labor|monte|regad[ií]o|secano"),
-    ("vivienda", r"vivienda|piso|casa|chalet|apartamento|d[uú]plex|[aá]tico|unifamiliar|adosad"),
+    ("rustica", r"r[uú]stic|huerto|olivar|vi[nñ]edo|cultivo|tierra de labor|\bmonte\b|regad[ií]o|secano"),
+    ("vivienda", r"vivienda|\bpiso\b|(?<!de )\bcasa\b|chalet|apartamento|d[uú]plex|[aá]tico|unifamiliar|adosad"),
     ("vehiculo", r"veh[ií]culo|turismo|furgoneta|cami[oó]n|motocicleta|coche|matr[ií]cula|remolque"),
     ("embarcacion", r"embarcaci[oó]n|barco|velero|yate"),
     ("joyas_arte", r"joya|oro|reloj|cuadro|obra de arte|pintura"),
     ("maquinaria", r"maquinaria|m[aá]quina|herramient|equipo|mobiliario"),
     ("derechos", r"derecho|participaci[oó]n|acciones|marca|patente|cr[eé]dito"),
+    # недвижимость без указания типа: только реестровые данные («finca nº…, tomo, libro, folio»)
+    ("inmueble", r"\bfinca\b|registro de la propiedad|\burbana\b|inmueble|\bedificio\b|propiedad horizontal"),
 ]
 
 # Тип имущества, который BOE указывает в заголовке «Bien 1 - Inmueble (Vivienda)»
@@ -137,8 +139,19 @@ def origin_from_id(sub_id: str, tipo: str = "") -> str:
     return "administracion"
 
 
+# Жильё, описанное как «участок, на котором построен/строится дом»: если в тексте есть признаки
+# постройки, это вивьенда, а не solar/rústica. («finca» сама по себе — это «объект в реестре», не «ферма».)
+HOUSING = r"vivienda|chalet|apartamento|d[uú]plex|[aá]tico|unifamiliar|adosad|\bpiso\b|(?<!de )\bcasa\b"
+BUILT = r"construid|edificaci|planta (baja|alta|primera|segunda)|dormitorio|\bba[ñn]os?\b|\bhabitaci[oó]n|\bsal[oó]n\b|\bcocina\b"
+
+
 def categorize(*texts: str) -> str:
     blob = " ".join(t for t in texts if t).lower()
+    for cat, pattern in CATEGORY_RULES[:4]:          # гараж, трастеро, локаль, нава — как раньше
+        if re.search(pattern, blob):
+            return cat
+    if re.search(HOUSING, blob) and re.search(BUILT, blob):
+        return "vivienda"
     for cat, pattern in CATEGORY_RULES:
         if re.search(pattern, blob):
             return cat

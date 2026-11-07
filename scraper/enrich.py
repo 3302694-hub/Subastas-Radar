@@ -29,7 +29,7 @@ CAT_DNPRC = "https://ovc.catastro.meh.es/OVCServWeb/OVCWcfCallejero/COVCCallejer
 CAT_CPMRC = "https://ovc.catastro.meh.es/OVCServWeb/OVCWcfCallejero/COVCCoordenadas.svc/json/Consulta_CPMRC?SRS=EPSG:4326&RefCat={rc}"
 MIVAU_MUN = "https://apps.fomento.gob.es/BoletinOnline2/sedal/35103500.XLS"
 MIVAU_PROV = "https://apps.fomento.gob.es/BoletinOnline2/sedal/35101000.XLS"
-REAL_ESTATE = {"vivienda", "garaje", "trastero", "local", "nave", "solar", "rustica"}
+REAL_ESTATE = {"vivienda", "garaje", "trastero", "local", "nave", "solar", "rustica", "inmueble"}
 ENRICH_VERSION = 1
 
 

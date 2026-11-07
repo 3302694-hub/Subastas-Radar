@@ -9,10 +9,10 @@
   };
 
   const ORIGINS = ["judicial", "notarial", "hacienda", "seguridad_social", "administracion"];
-  const CATS = ["vivienda", "garaje", "trastero", "local", "nave", "solar", "rustica", "vehiculo", "embarcacion", "joyas_arte", "maquinaria", "derechos", "otros"];
+  const CATS = ["vivienda", "garaje", "trastero", "local", "nave", "solar", "rustica", "inmueble", "vehiculo", "embarcacion", "joyas_arte", "maquinaria", "derechos", "otros"];
   // Группы для режима «Новичок»
   const GROUPS = [
-    { id: "vivienda", cats: ["vivienda"], icon: "vivienda" },
+    { id: "vivienda", cats: ["vivienda", "inmueble"], icon: "vivienda" },
     { id: "g_garaje", cats: ["garaje", "trastero"], icon: "garaje" },
     { id: "g_local", cats: ["local", "nave"], icon: "local" },
     { id: "g_terreno", cats: ["solar", "rustica"], icon: "rustica" },
@@ -118,6 +118,7 @@
     ext: '<path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M19 14v6H4V5h6"/>',
     info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.5"/>'
   };
+  ICONS.inmueble = ICONS.inmueble || ICONS.vivienda;
   const ic = (k) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[k] || ICONS.otros}</svg>`;
 
   // ---------- риски: разбор полей BOE
@@ -511,7 +512,7 @@
     </div>`;
   }
   // Цены объявлений в районе — открываем сами порталы (мы их данные не копируем)
-  const REAL_ESTATE_UI = ["vivienda", "garaje", "trastero", "local", "nave", "solar", "rustica"];
+  const REAL_ESTATE_UI = ["vivienda", "garaje", "trastero", "local", "nave", "solar", "rustica", "inmueble"];
   function priceLinks(s) {
     const town = place(s.localidad) || place(s._prov);
     if (!town) return "";
@@ -671,7 +672,7 @@
   }
   // ---------- Nota simple: заказ выписки из Registro de la Propiedad (17 € + IVA)
   const NOTA = { precio: 17, iva: 21 };
-  const NOTA_CATS = ["vivienda", "garaje", "trastero", "local", "nave", "solar", "rustica"];
+  const NOTA_CATS = ["vivienda", "garaje", "trastero", "local", "nave", "solar", "rustica", "inmueble"];
   const eur2 = (v) => new Intl.NumberFormat(locale(), { style: "currency", currency: "EUR" }).format(v);
   // Регистрационные данные из описания лота в BOE
   function regData(a) {

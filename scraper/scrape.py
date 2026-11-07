@@ -57,7 +57,7 @@ STORE = (SupabaseStore(os.environ["SUPABASE_URL"], os.environ["SUPABASE_SERVICE_
 
 CAT_ES = {
     "vivienda": "Vivienda", "garaje": "Garaje", "trastero": "Trastero", "local": "Local",
-    "nave": "Nave industrial", "solar": "Solar", "rustica": "Finca rústica", "vehiculo": "Vehículo",
+    "nave": "Nave industrial", "solar": "Solar", "rustica": "Finca rústica", "inmueble": "Inmueble", "vehiculo": "Vehículo",
     "embarcacion": "Embarcación", "joyas_arte": "Joyas y arte", "maquinaria": "Maquinaria",
     "derechos": "Derechos", "otros": "Otros",
 }
