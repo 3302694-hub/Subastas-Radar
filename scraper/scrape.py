@@ -128,7 +128,11 @@ def _load_local() -> dict[str, dict]:
 def _migrate(db: dict[str, dict]) -> None:
     """Пересчитывает поля, логика которых менялась (категория, нулевая оценка)."""
     for s in db.values():
-        s["categoria"] = boe.category_of(s.get("bienes") or [], s.get("titulo", ""))
+        if s.get("fuente") == "tgss":
+            b = (s.get("bienes") or [{}])[0]
+            s["categoria"] = tgss.category(b.get("tipo_bien", ""), b.get("descripcion", ""))
+        else:
+            s["categoria"] = boe.category_of(s.get("bienes") or [], s.get("titulo", ""))
         if not s.get("tasacion"):
             s["tasacion"] = None
 

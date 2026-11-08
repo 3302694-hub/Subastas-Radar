@@ -147,6 +147,16 @@ def _get(d: dict, *names: str) -> str:
     return ""
 
 
+def category(tipo_bien: str, desc: str) -> str:
+    """Категория объекта TGSS: в каталоге только недвижимость (finca urbana / rústica)."""
+    text = (desc or "").lower()
+    if "urbana" in (tipo_bien or "").lower():
+        cat = boe.categorize(desc)
+        return cat if cat in ("vivienda", "garaje", "trastero", "local", "nave", "solar") else "inmueble"
+    built = re.search(boe.HOUSING, text) and re.search(boe.BUILT, text)
+    return "vivienda" if built else "rustica"
+
+
 def build_record(row: dict, det: dict, now_iso: str) -> dict:
     desc = _get(det, "Descripcion Detallada", "Descripcion") or row["razon"]
     loc = _get(det, "Localizacion")
@@ -175,13 +185,7 @@ def build_record(row: dict, det: dict, now_iso: str) -> dict:
         "ubicacion": loc,
     }
     asset = {k: v for k, v in asset.items() if v or k == "descripcion"}
-    if urbana:
-        cat = boe.categorize(desc)
-        if cat in ("otros", "rustica"):
-            cat = "inmueble"
-    else:  # finca rústica: вивьенда, только если на участке построен дом
-        built = re.search(boe.HOUSING, desc.lower()) and re.search(boe.BUILT, desc.lower())
-        cat = "vivienda" if built else "rustica"
+    cat = category(row["tipo_bien"], desc)
     lugar = _get(det, "Lugar")
     dp = province(prov).split("/")[0].title()
     return {
