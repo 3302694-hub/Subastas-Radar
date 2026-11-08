@@ -214,47 +214,68 @@ def build_record(row: dict, det: dict, now_iso: str) -> dict:
     }
 
 
+def region_links(html: str) -> list[tuple[str, int, str]]:
+    """Ссылки шага «Ámbito geográfico»: (название, количество, адрес). Без «Todo el territorio»."""
+    soup = BeautifulSoup(html, "html.parser")
+    out = []
+    for a in soup.find_all("a", href=True):
+        txt = boe.clean(a.get_text(" "))
+        m = re.search(r"^(.*?)\s*\((\d+)\)\s*$", txt)
+        if not m or "todo el territorio" in txt.lower():
+            continue
+        out.append((m.group(1), int(m.group(2)), urljoin(BASE, a["href"])))
+    return out
+
+
 def collect(fetcher, known: set[str], max_details: int = 400, log=print) -> tuple[list[dict], set[str], bool]:
     """Проходит каталог TGSS и возвращает записи для объектов, которых ещё нет в базе.
+    Каталог отдаёт не больше 200 строк на поиск, поэтому идём по каждой провинции/сообществу
+    (сообщества и их провинции пересекаются — дубли отсекаются по ID).
     Карточку качаем только для новых строк — ID считается по строке списка."""
-    fetcher.get(BASE)  # открыть сессию
-    html = fetcher.get(STEP_TYPES)
-    soup = BeautifulSoup(html, "html.parser")
-    link = next((a for a in soup.find_all("a", href=True) if "todo el territorio" in a.get_text(" ").lower()), None)
-    if not link:
-        log("TGSS: не нашли «Todo el territorio» — разметка изменилась?")
-        return [], set(), False
-    url = urljoin(BASE, link["href"])
-    html = fetcher.get(url)
-    out, seen, pages, rows_total, total = [], set(), 0, 0, None
     from datetime import datetime, timezone
     now_iso = datetime.now(timezone.utc).isoformat()
-    while html and pages < 60:
-        pages += 1
-        rows, nxt, tot = parse_results(html, url)
-        if pages == 1:
-            total = tot
-            log(f"TGSS: всего объектов недвижимости {total}")
-        rows_total += len(rows)
-        for r in rows:
-            sid = make_id(r["provincia"], r["razon"], r["tasacion"], r["lote"], r["fecha"])
-            if sid in seen:
-                continue
-            seen.add(sid)
-            if sid in known or len(out) >= max_details:
-                continue
-            try:
-                det = parse_detail(fetcher.get(r["href"]))
-                rec = build_record(r, det, now_iso)
-                rec["detectada"] = now_iso
-                out.append(rec)
-            except Exception as e:  # noqa: BLE001
-                log(f"TGSS: карточка {r['razon']!r}: {e!r}")
-        if not nxt or not rows:
-            break
-        # вернуться к списку и перейти на следующую страницу (сессия помнит выборку)
-        url = nxt
+    fetcher.get(BASE)  # открыть сессию
+    step2 = fetcher.get(STEP_TYPES)
+    soup = BeautifulSoup(step2, "html.parser")
+    total = None
+    todo = next((a for a in soup.find_all("a", href=True) if "todo el territorio" in a.get_text(" ").lower()), None)
+    if todo:
+        m = re.search(r"\((\d+)\)", todo.get_text(" "))
+        total = int(m.group(1)) if m else None
+    regions = region_links(step2)
+    if not regions:
+        log("TGSS: не нашли ссылки провинций — разметка изменилась?")
+        return [], set(), False
+    log(f"TGSS: всего объектов недвижимости {total}, регионов {len(regions)}")
+    out, seen, pages, rows_total = [], set(), 0, 0
+    for name, cnt, link in regions:
+        if cnt > 200:
+            log(f"TGSS: в регионе {name} {cnt} > 200 — часть может не показаться")
+        fetcher.get(STEP_TYPES)  # вернуть выбор типов в сессии перед новым регионом
+        url = link
         html = fetcher.get(url)
-    complete = bool(total) and rows_total >= total
+        for _ in range(12):
+            pages += 1
+            rows, nxt, _tot = parse_results(html, url)
+            rows_total += len(rows)
+            for r in rows:
+                sid = make_id(r["provincia"], r["razon"], r["tasacion"], r["lote"], r["fecha"])
+                if sid in seen:
+                    continue
+                seen.add(sid)
+                if sid in known or len(out) >= max_details:
+                    continue
+                try:
+                    det = parse_detail(fetcher.get(r["href"]))
+                    rec = build_record(r, det, now_iso)
+                    rec["detectada"] = now_iso
+                    out.append(rec)
+                except Exception as e:  # noqa: BLE001
+                    log(f"TGSS: карточка {r['razon']!r}: {e!r}")
+            if not nxt or not rows:
+                break
+            url = nxt
+            html = fetcher.get(url)
+    complete = bool(total) and len(seen) >= total
     log(f"TGSS: страниц {pages}, строк {rows_total}, уникальных {len(seen)}, новых {len(out)}, полный обход {complete}")
     return out, seen, complete
