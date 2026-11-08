@@ -5,3 +5,8 @@
 .legal p,.legal li{line-height:1.65;color:var(--ink-2)}
 .legal ul{padding-left:20px}
 .legal li{margin-bottom:8px}
+.legal .tbl{width:100%;border-collapse:collapse;font-size:14px;margin:12px 0 16px}
+.legal .tbl th,.legal .tbl td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+.legal .tbl th{font-weight:600}
+.legal .tbl code{font-family:"IBM Plex Mono",monospace;font-size:12.5px}
+@media (max-width:640px){.legal .tbl{display:block;overflow-x:auto}}

@@ -41,8 +41,8 @@ window.I18N = {
     alerts_saved: "Búsqueda guardada", alerts_saved_d: "Guarda tus filtros y te avisamos aquí de las coincidencias nuevas.",
     saved_empty: "Aún no has guardado subastas. Pulsa la estrella en cualquier subasta.",
     demo: "Datos de demostración. Ejecuta el recopilador (scraper/scrape.py) o activa GitHub Actions para cargar subastas reales.",
-    footer_src: "Fuente de datos: Agencia Estatal Boletín Oficial del Estado (subastas.boe.es). Verifica siempre las condiciones en el anuncio oficial antes de pujar.",
-    footer_ind: "Subástica es un servicio independiente, sin relación con el BOE.",
+    footer_src: "Datos del Portal de Subastas del BOE (subastas.boe.es) y del catálogo de subastas de la Seguridad Social (seg-social.es); Catastro e IGN-PNOA. Verifica siempre las condiciones en el anuncio oficial antes de pujar.",
+    footer_ind: "Subástica es un servicio independiente, sin relación con el BOE ni con la Seguridad Social.",
     email: "Correo electrónico", password: "Contraseña (mín. 8 caracteres)",
     new_password: "Nueva contraseña", save: "Guardar", forgot: "¿Has olvidado la contraseña?", send_link: "Enviar enlace",
     with_google: "Continuar con Google", with_apple: "Continuar con Apple", or: "o con tu correo",
@@ -102,8 +102,8 @@ window.I18N = {
     alerts_saved: "Saved search", alerts_saved_d: "Save your filters and we'll show new matches here.",
     saved_empty: "No saved auctions yet. Tap the star on any auction.",
     demo: "Demo data. Run the collector (scraper/scrape.py) or enable GitHub Actions to load real auctions.",
-    footer_src: "Data source: Agencia Estatal Boletín Oficial del Estado (subastas.boe.es). Always check the conditions in the official notice before bidding.",
-    footer_ind: "Subástica is an independent service, not affiliated with the BOE.",
+    footer_src: "Data from the BOE auction portal (subastas.boe.es) and the Social Security auction catalogue (seg-social.es); Cadastre and IGN-PNOA. Always check the conditions in the official notice before bidding.",
+    footer_ind: "Subástica is an independent service, not affiliated with the BOE or Social Security.",
     email: "Email", password: "Password (at least 8 characters)",
     new_password: "New password", save: "Save", forgot: "Forgot your password?", send_link: "Send link",
     with_google: "Continue with Google", with_apple: "Continue with Apple", or: "or with your email",
@@ -163,8 +163,8 @@ window.I18N = {
     alerts_saved: "Сохранённый поиск", alerts_saved_d: "Сохраните фильтры — сайт покажет новые совпадения при следующем визите.",
     saved_empty: "В избранном пока пусто. Нажмите звёздочку у любого аукциона.",
     demo: "Это демо-данные. Запустите сборщик (scraper/scrape.py) или включите GitHub Actions, чтобы загрузить реальные аукционы.",
-    footer_src: "Источник данных: Agencia Estatal Boletín Oficial del Estado (subastas.boe.es). Перед ставкой всегда проверяйте условия в официальном объявлении.",
-    footer_ind: "Subástica — независимый сервис, не связан с BOE.",
+    footer_src: "Данные портала аукционов BOE (subastas.boe.es) и каталога аукционов Seguridad Social (seg-social.es); Catastro и IGN-PNOA. Перед ставкой всегда проверяйте условия в официальном объявлении.",
+    footer_ind: "Subástica — независимый сервис, не связан с BOE и Seguridad Social.",
     email: "Электронная почта", password: "Пароль (не меньше 8 символов)",
     new_password: "Новый пароль", save: "Сохранить", forgot: "Забыли пароль?", send_link: "Отправить ссылку",
     with_google: "Войти через Google", with_apple: "Войти через Apple", or: "или по почте",
@@ -331,4 +331,42 @@ Object.assign(window.I18N.ru, {
   kbd_inline: "<kbd>j</kbd> <kbd>k</kbd> перемещение · <kbd>Enter</kbd> открыть · <kbd>s</kbd> сохранить",
   tab_search: "Поиск", tab_me: "Настройки",
   saved_dup: "Этот поиск уже сохранён.", saved_none: "Сохранённых поисков пока нет.", n_new: "{n} новых", prices_on: "Цены в районе: {site}", adm_docs_t: "Документы (только для администраторов)", adm_docs_d: "Если вы вошли на портал аукционов BOE (сертификат или Cl@ve), BOE покажет и документы, закрытые для всех, кроме участников.", adm_docs_boe: "Документы на BOE", adm_docs_edict: "Объявление в BOE", adm_docs_cat: "Карточка Катастро", adm_docs_nota: "Заказать nota simple", cat_sup: "{v} м²", cat_year: "построено в {v}", mv_title: "Оценка рынка", mv_below: "Стартовая цена на {p} % ниже.", mv_above: "Стартовая цена на {p} % выше.", mv_how: "{m2}/м² × {sup} м² · средняя оценка жилья: {where}, MIVAU {per}. Ориентировочно.", mv_locked: "Площадь из Катастро × средняя цена м² в районе.", tier_inversor: "тариф Инвестор", bids_con_pujas: "Есть ставки", bids_sin_pujas: "Ставок пока нет", bids_locked: "Ставки: тариф Инвестор", mk_short: "{p} % к рынку", mk_pill: "−{p} % к рынку", open_map_exact: "Точное место", open_cat_map: "Карта Катастро", docs_login: "Орган показывает документы только тем, кто вошёл на портал BOE (с электронной подписью или Cl@ve).", done_locked_t: "Полные данные — с полным доступом", done_locked_d: "Адрес, кадастровый номер, обременения, документы и ссылка на BOE доступны пользователям с полным доступом.", nav_hist: "Архив", hist_loading: "Загружаем архив завершённых аукционов…", hist_no_bids: "Без ставок", hist_pct: "{p} % от цены", hist_explain: "Максимальная ставка составила {p} % от стартовой цены ({v}).", col_bid: "Макс. ставка", col_ended: "Завершён", ended_on: "Завершён {d}", res_count_hist: "{n} завершённых аукционов", hist_since: "архив: {m} — сейчас", title_finalizada: "завершённые", title_cancelada: "отменённые", sort_bid_ratio: "Минимальная ставка к цене", pill_unknown_n: "нет данных: {n}", day_left_1: "остался 1 день", nota_t: "Nota simple из Реестра", nota_d: "Текущий владелец, обременения, ипотеки и аресты по объекту из Registro de la Propiedad. Официальный PDF Коллегии регистраторов, обычно за 24–48 рабочих часов.", nota_price: "{p} + IVA · всего {t}", nota_btn: "Заказать nota simple", nota_soon: "Оплата откроется в январе 2027. Заявку можно оставить уже сейчас: деньги не списываются, мы пришлём ссылку на оплату письмом.", nota_form_t: "Заказ nota simple", nota_finca: "Объект", nota_bien: "Лот", nota_idufir: "IDUFIR / CRU", nota_rc: "Кадастровый номер", nota_registro: "Реестр (Registro de la Propiedad)", nota_num_finca: "Номер finca в реестре", nota_datos: "Том, книга, лист", nota_dir: "Адрес", nota_hint: "Данные взяты из объявления BOE — проверьте их. Реестр находит объект по IDUFIR или по реестру + номеру finca.", nota_you: "Заявитель", nota_name: "Имя и фамилия или название компании", nota_dni: "DNI / NIE / CIF", nota_email: "Email для получения выписки", nota_phone: "Телефон (необязательно)", nota_purpose: "Законный интерес", nota_p_subasta: "Участие в аукционе", nota_p_inversion: "Покупка или инвестиция в недвижимость", nota_p_juridica: "Юридическая или имущественная проверка", nota_p_otra: "Другая законная цель", nota_consent: "Я поручаю Subástica запросить nota simple от моего имени в Коллегии регистраторов и использовать мои данные только для этого заказа.", nota_send_free: "Оставить заявку (без оплаты)", nota_send_pay: "Оплатить и заказать", nota_ok: "Заявка № {n} принята. Напишем на {e}.", nota_err_fields: "Заполните имя и email и отметьте согласие.", nota_err_dni: "Проверьте DNI / NIE / CIF.", nota_err_finca: "Укажите IDUFIR, кадастровый номер или номер finca.", nota_err_many: "Слишком много незавершённых заявок за сегодня.", nota_err: "Не удалось отправить. Попробуйте ещё раз.", nota_mine: "Мои заказы", nota_none: "Заказов пока нет.", nota_dl: "Скачать PDF", nota_cancel: "Отменить", ns_solicitado: "Заявка", ns_pendiente_pago: "Ждёт оплаты", ns_pagado: "Оплачено", ns_en_tramite: "В работе", ns_entregado: "Готово", ns_cancelado: "Отменено", ns_error: "Проблема", help_t: "Поможем участвовать в этом аукционе", help_d: "Юридический анализ лота от 1 000 €, ставки от вашего имени или покупка «под ключ».", help_btn: "Помощь в участии", nav_services: "Услуги", mv_check: "Рассчитано по открытым данным и требует более детальной проверки.", mv_check_prov: "Рассчитано по открытым данным в среднем по провинции (по городу данных нет) — ориентировочно, требует более детальной проверки.", act_nota: "Nota simple · {p}", act_pack: "Полный комплект документов · {p}", acts_hint: "Цены без IVA. Nota simple — владелец и обременения по данным Реестра. Полный комплект — все документы аукциона, nota simple и подборка объектов рядом, которые сейчас продаются.", pack_form_t: "Заказ полного комплекта документов", pack_d: "Все документы по аукциону, актуальная nota simple из Реестра и подборка похожих объектов рядом, которые сейчас в продаже. Присылаем в PDF.", pack_short: "Полный комплект", nota_short: "Nota simple"
+});
+
+// Блок «Сколько всего заплатить», калькулятор ставки, полнота данных, календарь
+Object.assign(window.I18N.es, {
+  cost_t: "Cuánto pagarías en total", cost_bid: "Tu puja", cost_pct: "{p} % del valor de subasta",
+  cost_itp: "Impuesto de transmisiones (ITP ≈ {r} %)", cost_reg: "Registro de la Propiedad (≈ arancel)", cost_total: "Total aproximado",
+  cost_dep: "Depósito para pujar: {v}. Se descuenta del precio si ganas y se devuelve si no.",
+  cost_note: "Estimación orientativa. El ITP es el tipo general de {c}; puede subir por tramos o bajar con bonificaciones, y Hacienda puede usar el valor de referencia del Catastro si es mayor que tu puja. Fuera: deudas de comunidad e IBI, gestoría, reformas y desalojo.",
+  thr_t: "Umbrales en una subasta judicial", thr_70: "70 % · {v}: con una puja igual o mayor, el juzgado aprueba el remate.",
+  thr_50: "50 % · {v}: entre 50 % y 70 %, el deudor tiene 10 días para mejorar la oferta; después decide el juzgado.",
+  thr_low: "Menos de 50 %: el juzgado solo lo aprueba en casos concretos (art. 670 LEC, resumido).",
+  kn_t: "Lo que sabemos y lo que no", kn_yes: "Sabemos", kn_no: "No consta", kn_hint: "Lo que no consta se aclara con la nota simple y los documentos de la subasta.",
+  kn_occ: "Ocupación", kn_visit: "Visitas", kn_charges: "Cargas", kn_rc: "Referencia catastral", kn_sup: "Superficie", kn_photos: "Fotos", kn_appr: "Tasación", kn_docs: "Documentos",
+  cal_google: "Añadir a Google Calendar", cal_ics: "Recordatorio (.ics)", cal_title: "Fin de la subasta {id}", cal_desc: "Subasta en {c}. Ficha: {u}"
+});
+Object.assign(window.I18N.en, {
+  cost_t: "What you would pay in total", cost_bid: "Your bid", cost_pct: "{p}% of the auction value",
+  cost_itp: "Transfer tax (ITP ≈ {r}%)", cost_reg: "Land Registry (≈ official fee)", cost_total: "Approximate total",
+  cost_dep: "Deposit to bid: {v}. Deducted from the price if you win, refunded if you don't.",
+  cost_note: "Rough estimate. ITP uses the general rate of {c}; it can be higher by brackets or lower with allowances, and the tax office may use the Cadastre reference value if it is above your bid. Not included: community fees and IBI owed, agency fees, works and eviction.",
+  thr_t: "Thresholds in a court auction", thr_70: "70% · {v}: a bid at or above this is approved by the court.",
+  thr_50: "50% · {v}: between 50% and 70%, the debtor has 10 days to improve the offer; then the court decides.",
+  thr_low: "Below 50%: the court approves only in specific cases (art. 670 LEC, simplified).",
+  kn_t: "What we know and what we don't", kn_yes: "Known", kn_no: "Not stated", kn_hint: "What is not stated is clarified by the nota simple and the auction documents.",
+  kn_occ: "Occupancy", kn_visit: "Viewings", kn_charges: "Charges", kn_rc: "Cadastral ref.", kn_sup: "Floor area", kn_photos: "Photos", kn_appr: "Appraisal", kn_docs: "Documents",
+  cal_google: "Add to Google Calendar", cal_ics: "Reminder (.ics)", cal_title: "Auction {id} ends", cal_desc: "Auction in {c}. Listing: {u}"
+});
+Object.assign(window.I18N.ru, {
+  cost_t: "Сколько всего заплатить", cost_bid: "Ваша ставка", cost_pct: "{p} % от стоимости на аукционе",
+  cost_itp: "Налог на передачу (ITP ≈ {r} %)", cost_reg: "Регистрация в Реестре (≈ по тарифу)", cost_total: "Итого примерно",
+  cost_dep: "Депозит для ставки: {v}. Засчитывается в цену при выигрыше и возвращается, если не выиграли.",
+  cost_note: "Ориентировочный расчёт. ITP — общая ставка региона {c}; по шкале может быть выше, со льготами ниже, а налоговая может взять кадастровую стоимость, если она больше ставки. Не входят: долги по общине и IBI, услуги гестора, ремонт и выселение.",
+  thr_t: "Пороги в судебном аукционе", thr_70: "70 % · {v}: ставку не ниже этой суд утверждает.",
+  thr_50: "50 % · {v}: от 50 до 70 % у должника 10 дней, чтобы найти предложение лучше; потом решает суд.",
+  thr_low: "Ниже 50 %: суд утверждает только в отдельных случаях (ст. 670 LEC, упрощённо).",
+  kn_t: "Что известно и чего нет", kn_yes: "Известно", kn_no: "Не указано", kn_hint: "Неизвестное проясняют nota simple и документы аукциона.",
+  kn_occ: "Кто живёт", kn_visit: "Осмотр", kn_charges: "Обременения", kn_rc: "Кадастровый номер", kn_sup: "Площадь", kn_photos: "Фото", kn_appr: "Оценка", kn_docs: "Документы",
+  cal_google: "В Google Календарь", cal_ics: "Напоминание (.ics)", cal_title: "Конец аукциона {id}", cal_desc: "Аукцион: {c}. Карточка: {u}"
 });

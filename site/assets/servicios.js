@@ -20,6 +20,7 @@
       lead: "Acceso legal, seguro y controlado a las subastas públicas de inmuebles en España, con lotes que suelen salir muy por debajo del valor de mercado. Te acompañamos en toda la operación: del análisis del lote a la entrega del inmueble o su venta.",
       soon: "Contratación a partir de enero de 2027. Ya puedes enviar tu solicitud: te contactamos, resolvemos dudas y preparamos el presupuesto sin compromiso.",
       packs: "Paquetes de servicio", term: "Plazo", price: "Precio", vat: "+ IVA", choose: "Solicitar este paquete",
+      p0: { n: "Consulta por videollamada", s: "Resuelve tus dudas antes de pujar", i: ["Videollamada de hasta 45 minutos en español, inglés o ruso", "Revisamos juntos el lote y sus documentos", "Riesgos principales: cargas, ocupantes y costes", "Si conviene pujar y cuáles son los siguientes pasos", "Resumen por escrito después de la llamada"], t: "En 2–3 días hábiles", p: "75 €", pay: "Pago único antes de la llamada" },
       p1: { n: "Análisis jurídico del lote", s: "Para decidir si pujar", i: ["Análisis jurídico completo del inmueble", "Verificación de todos los documentos en fuentes oficiales", "Nota simple actualizada del Registro", "Deudas, embargos, cargas y procedimientos judiciales", "Riesgo de ocupación", "Valoración y precio máximo de puja seguro"], t: "3–7 días hábiles", p: "1.000 €", pay: "Precio fijo, pago único" },
       p2: { n: "Acompañamiento en la subasta", s: "Puja y pago, sin inscripción de la propiedad", i: ["Todo el paquete 1", "Alta en el Portal de Subastas del BOE", "Constitución y control del depósito", "Puja en tu nombre (con poder notarial)", "Control del pago del precio al juzgado", "Acompañamiento en la verificación del origen de los fondos", "Obtención y entrega de toda la documentación judicial"], t: "3–8 meses, según el juzgado", p: "5 %", pu: "del precio de adjudicación", pay: "3 % al ganar la subasta · 2 % al recibir los documentos del juzgado" },
       p3: { n: "Compra llave en mano", s: "Hasta la inscripción a tu nombre y la entrega", i: ["Todo el paquete 1", "Alta en subastas.boe.es, depósito y puja en tu nombre", "Control del pago y del origen de los fondos", "Documentación judicial completa", "Inscripción de la propiedad en el Registro", "Desalojo de ocupantes por vía judicial", "Entrega del inmueble llave en mano"], t: "8–18 meses", p: "10 %", pu: "del precio de compra", pay: "3 % al ganar · 4 % tras la inscripción · 3 % a la entrega" },
@@ -43,6 +44,7 @@
       lead: "Legal, safe and controlled access to Spain's public property auctions, where lots often start well below market value. We support you through the whole deal: from analysing the lot to handing over the property or selling it.",
       soon: "Contracts start in January 2027. You can already send your request: we'll contact you, answer questions and prepare a no-obligation quote.",
       packs: "Service packages", term: "Timeline", price: "Price", vat: "+ VAT", choose: "Request this package",
+      p0: { n: "Video consultation", s: "Clear up your doubts before bidding", i: ["Video call of up to 45 minutes in Spanish, English or Russian", "We go through the lot and its documents together", "Main risks: charges, occupants and costs", "Whether to bid and what the next steps are", "Written summary after the call"], t: "Within 2–3 working days", p: "€75", pay: "One payment before the call" },
       p1: { n: "Legal analysis of the lot", s: "To decide whether to bid", i: ["Full legal analysis of the property", "All documents checked against official sources", "Up-to-date land registry extract (nota simple)", "Debts, liens, charges and court cases", "Squatting risk", "Valuation and safe maximum bid"], t: "3–7 working days", p: "€1,000", pay: "Fixed price, one payment" },
       p2: { n: "Auction support", s: "Bidding and payment, without registering ownership", i: ["Everything in package 1", "Registration on the BOE auction portal", "Deposit set-up and control", "Bidding on your behalf (with a notarial power of attorney)", "Control of the price payment to the court", "Support with source-of-funds checks", "Obtaining and handing over all court documents"], t: "3–8 months, depending on the court", p: "5%", pu: "of the winning price", pay: "3% on winning · 2% on receiving the court documents" },
       p3: { n: "Turnkey purchase", s: "Up to registration in your name and handover", i: ["Everything in package 1", "Portal registration, deposit and bidding for you", "Control of payment and source of funds", "Full set of court documents", "Registration of ownership at the Land Registry", "Eviction of occupants through the courts", "Turnkey handover of the property"], t: "8–18 months", p: "10%", pu: "of the purchase price", pay: "3% on winning · 4% after registration · 3% on handover" },
@@ -66,6 +68,7 @@
       lead: "Законный, безопасный и контролируемый доступ к государственным аукционам недвижимости в Испании, где лоты часто выставляются значительно ниже рыночной цены. Ведём сделку целиком: от анализа лота до передачи объекта или его продажи.",
       soon: "Договоры заключаем с января 2027 года. Заявку можно отправить уже сейчас: мы свяжемся, ответим на вопросы и подготовим расчёт без обязательств.",
       packs: "Пакеты услуг", term: "Срок", price: "Стоимость", vat: "+ IVA", choose: "Выбрать этот пакет",
+      p0: { n: "Консультация по видеосвязи", s: "Разобраться в лоте до ставки", i: ["Видеозвонок до 45 минут на русском, испанском или английском", "Вместе смотрим лот и его документы", "Главные риски: обременения, жильцы и расходы", "Стоит ли участвовать и что делать дальше", "Письменное резюме после звонка"], t: "В течение 2–3 рабочих дней", p: "75 €", pay: "Один платёж до звонка" },
       p1: { n: "Юридический анализ лота", s: "Чтобы решить, участвовать ли", i: ["Полный юридический анализ объекта", "Проверка всех документов по официальным источникам", "Актуальная nota simple из Реестра", "Долги, аресты, обременения и судебные процессы", "Риск окупации", "Оценка и безопасная максимальная ставка"], t: "3–7 рабочих дней", p: "1 000 €", pay: "Фиксированная цена, один платёж" },
       p2: { n: "Сопровождение на аукционе", s: "Торги и оплата, без регистрации права собственности", i: ["Всё из пакета 1", "Регистрация на портале аукционов BOE", "Внесение депозита и контроль", "Ставки от вашего имени (по нотариальной доверенности)", "Контроль оплаты цены в суд", "Сопровождение проверки происхождения средств", "Получение и передача всех судебных документов"], t: "3–8 месяцев, зависит от суда", p: "5 %", pu: "от цены победы на аукционе", pay: "3 % после победы · 2 % после получения документов из суда" },
       p3: { n: "Покупка «под ключ»", s: "До регистрации собственности на вас и передачи объекта", i: ["Всё из пакета 1", "Регистрация на subastas.boe.es, депозит и ставки от вашего имени", "Контроль оплаты и происхождения средств", "Полный пакет судебных документов", "Регистрация права собственности в Реестре", "Выселение жильцов через суд", "Передача объекта «под ключ»"], t: "8–18 месяцев", p: "10 %", pu: "от цены покупки", pay: "3 % после победы · 4 % после регистрации · 3 % при передаче" },
@@ -86,7 +89,7 @@
     }
   };
   const t = (k) => T[lang][k] != null ? T[lang][k] : T.es[k];
-  const PACKS = ["p1", "p2", "p3", "p4"];
+  const PACKS = ["p0", "p1", "p2", "p3", "p4"];
   let pack = PACKS.includes(qs.get("p")) ? qs.get("p") : "";
   let keepSub = !!sub;
 
@@ -140,7 +143,7 @@
       <section class="sv-hero"><h1>${esc(t("title"))}</h1><p class="sv-lead">${esc(t("lead"))}</p>
         <p class="nf-soon">${esc(t("soon"))}</p></section>
       <h2>${esc(t("packs"))}</h2>
-      <div class="sv-packs">${PACKS.map(packCard).join("")}</div>
+      <div class="sv-packs" id="precios">${PACKS.map(packCard).join("")}</div>
       <div class="sv-cols">
         <section><h2>${esc(t("how"))}</h2><ol class="sv-steps">${t("steps").map(([a, b]) => `<li><b>${esc(a)}</b><span>${esc(b)}</span></li>`).join("")}</ol></section>
         <section><h2>${esc(t("crit"))}</h2><ul class="sv-list">${t("crits").map((x) => `<li>${esc(x)}</li>`).join("")}</ul>

@@ -526,3 +526,22 @@ h1,h2,h3{font-family:var(--serif);font-weight:600;letter-spacing:0}
 .n-head h3 a::after{border-radius:var(--r)}
 .rp.sm,.tag,.m-tag{border-radius:3px}
 code,.mono,.n-id{font-family:var(--mono)}
+
+/* ---------- Карточка: расходы, полнота данных */
+.cost{border:1px solid var(--line-2);border-radius:var(--r);padding:14px 16px;margin:0 0 16px;background:#fff}
+.cost h3,.known h3{margin:0 0 10px;font-size:17px}
+.cost-bid{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+.cost-bid small{color:var(--muted)}
+.cost-bid input[type=range]{width:100%;accent-color:var(--accent);min-height:28px}
+.cost-rows{display:grid;grid-template-columns:1fr auto;gap:6px 16px;margin:0 0 8px}
+.cost-rows dt{color:var(--ink-2)}.cost-rows dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+.cost-rows .tot{font-weight:600;border-top:1px solid var(--line);padding-top:6px}
+.thr{background:var(--surf);border-radius:var(--r-s);padding:10px 12px;margin:8px 0;font-size:14px}
+.thr ul{margin:6px 0 0;padding-left:18px}.thr li{margin:2px 0}
+.known{margin:0 0 16px}.known h3 small{color:var(--muted);font:500 13px var(--font)}
+.known p{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 6px}
+.kn{display:inline-flex;align-items:center;gap:4px;font-size:13px;padding:4px 8px;border-radius:var(--r-s)}
+.kn svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.kn.ok{background:var(--ok-bg);color:var(--ok)}.kn.no{background:var(--warn-bg);color:var(--warn)}
+.foot-links a{color:inherit}
+.foot-links a:hover{color:var(--ink)}

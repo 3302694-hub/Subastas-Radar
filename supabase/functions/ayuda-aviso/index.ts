@@ -9,7 +9,7 @@ const CORS = {
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...CORS, "Content-Type": "application/json" } });
 const esc = (s: unknown) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 const ADMIN = "subastaradar@gmail.com";
-const PK: Record<string, string> = { p1: "1 · Юр. анализ лота (1 000 €)", p2: "2 · Сопровождение на аукционе (5 %)", p3: "3 · Покупка под ключ (10 %)", p4: "4 · Полный цикл (50 % прибыли)", consulta: "Нужен совет" };
+const PK: Record<string, string> = { p0: "0 · Консультация по видеосвязи (75 €)", p1: "1 · Юр. анализ лота (1 000 €)", p2: "2 · Сопровождение на аукционе (5 %)", p3: "3 · Покупка под ключ (10 %)", p4: "4 · Полный цикл (50 % прибыли)", consulta: "Нужен совет" };
 const CONF: Record<string, { s: string; b: string }> = {
   es: { s: "Hemos recibido tu solicitud", b: "Gracias. Hemos recibido tu solicitud n.º {n} y te contactaremos en 24 horas laborables para hablar de tu caso." },
   en: { s: "We've received your request", b: "Thank you. We've received your request #{n} and will contact you within 24 working hours to discuss your case." },

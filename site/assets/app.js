@@ -806,6 +806,85 @@
       } catch (e) { console.error(e); box.innerHTML = ""; }
     });
   }
+  // ---------- Сколько всего заплатить: ITP по регионам (общая ставка 2026, guiafiscal.es) и тариф Реестра (RD 1427/1989)
+  const CCAA = { "ANDALUCÍA": 7, "ARAGÓN": 8, "ASTURIAS": 8, "ILLES BALEARS": 8, "CANARIAS": 6.5, "CANTABRIA": 9, "CASTILLA Y LEÓN": 8,
+    "CASTILLA-LA MANCHA": 9, "CATALUÑA": 10, "C. VALENCIANA": 9, "EXTREMADURA": 8, "GALICIA": 8, "LA RIOJA": 7, "MADRID": 6, "MURCIA": 7.75,
+    "NAVARRA": 6, "PAÍS VASCO": 4, "CEUTA": 6, "MELILLA": 6 };
+  const PROV_CCAA = { "ALMERÍA": "ANDALUCÍA", "CÁDIZ": "ANDALUCÍA", "CÓRDOBA": "ANDALUCÍA", "GRANADA": "ANDALUCÍA", "HUELVA": "ANDALUCÍA", "JAÉN": "ANDALUCÍA", "MÁLAGA": "ANDALUCÍA", "SEVILLA": "ANDALUCÍA",
+    "HUESCA": "ARAGÓN", "TERUEL": "ARAGÓN", "ZARAGOZA": "ARAGÓN", "ASTURIAS": "ASTURIAS", "ILLES BALEARS": "ILLES BALEARS", "LAS PALMAS": "CANARIAS", "SANTA CRUZ DE TENERIFE": "CANARIAS",
+    "CANTABRIA": "CANTABRIA", "ÁVILA": "CASTILLA Y LEÓN", "BURGOS": "CASTILLA Y LEÓN", "LEÓN": "CASTILLA Y LEÓN", "PALENCIA": "CASTILLA Y LEÓN", "SALAMANCA": "CASTILLA Y LEÓN", "SEGOVIA": "CASTILLA Y LEÓN", "SORIA": "CASTILLA Y LEÓN", "VALLADOLID": "CASTILLA Y LEÓN", "ZAMORA": "CASTILLA Y LEÓN",
+    "ALBACETE": "CASTILLA-LA MANCHA", "CIUDAD REAL": "CASTILLA-LA MANCHA", "CUENCA": "CASTILLA-LA MANCHA", "GUADALAJARA": "CASTILLA-LA MANCHA", "TOLEDO": "CASTILLA-LA MANCHA",
+    "BARCELONA": "CATALUÑA", "GIRONA": "CATALUÑA", "LLEIDA": "CATALUÑA", "TARRAGONA": "CATALUÑA", "ALICANTE/ALACANT": "C. VALENCIANA", "CASTELLÓN/CASTELLÓ": "C. VALENCIANA", "VALENCIA/VALÈNCIA": "C. VALENCIANA",
+    "BADAJOZ": "EXTREMADURA", "CÁCERES": "EXTREMADURA", "A CORUÑA": "GALICIA", "LUGO": "GALICIA", "OURENSE": "GALICIA", "PONTEVEDRA": "GALICIA", "LA RIOJA": "LA RIOJA", "MADRID": "MADRID",
+    "MURCIA": "MURCIA", "NAVARRA": "NAVARRA", "ARABA/ÁLAVA": "PAÍS VASCO", "BIZKAIA": "PAÍS VASCO", "GIPUZKOA": "PAÍS VASCO", "CEUTA": "CEUTA", "MELILLA": "MELILLA" };
+  const regFee = (v) => { // Arancel registral, número 2 (RD 1427/1989), con la rebaja del 5 %
+    const steps = [[6010.12, 0], [30050.61, 1.75], [60101.21, 1.25], [150253.03, 0.75], [601012.10, 0.30], [Infinity, 0.20]];
+    let fee = 24.04, prev = 6010.12;
+    for (const [top, perMil] of steps.slice(1)) { if (v <= prev) break; fee += (Math.min(v, top) - prev) * perMil / 1000; prev = top; }
+    return Math.min(fee, 2181.67) * 0.95;
+  };
+  const byIdAll = (id) => all.find((x) => x.id === id);
+  const ccaaOf = (s) => PROV_CCAA[String(s.provincia || "").toUpperCase()] || "";
+  function costCalc(bid, s) {
+    const r = CCAA[ccaaOf(s)] || 0, itp = bid * r / 100, reg = regFee(bid);
+    return { r, itp, reg, total: bid + itp + reg };
+  }
+  function costBlock(s) {
+    if (done(s) || !REAL_ESTATE_UI.includes(s.categoria) || !s.valor_subasta || !ccaaOf(s)) return "";
+    const v = +s.valor_subasta, start = s.origen === "judicial" ? 0.7 : 1, bid = Math.round(v * start), c = costCalc(bid, s);
+    const thr = s.origen === "judicial" ? `<div class="thr"><b>${esc(t("thr_t"))}</b><ul>
+        <li>${esc(t("thr_70", { v: eur(v * 0.7) }))}</li><li>${esc(t("thr_50", { v: eur(v * 0.5) }))}</li><li>${esc(t("thr_low"))}</li></ul></div>` : "";
+    return `<section class="cost" data-cost="${esc(s.id)}"><h3>${esc(t("cost_t"))}</h3>
+      <label class="cost-bid"><span>${esc(t("cost_bid"))}: <b data-c="bid">${eur(bid)}</b> <small data-c="pct">${esc(t("cost_pct", { p: Math.round(start * 100) }))}</small></span>
+        <input type="range" min="10" max="150" step="1" value="${Math.round(start * 100)}" data-cost-range="${esc(s.id)}" aria-label="${esc(t("cost_bid"))}"></label>
+      <dl class="cost-rows"><dt>${esc(t("cost_itp", { r: String(c.r).replace(".", locale().startsWith("en") ? "." : ",") }))}</dt><dd data-c="itp">${eur(c.itp)}</dd>
+        <dt>${esc(t("cost_reg"))}</dt><dd data-c="reg">${eur(c.reg)}</dd>
+        <dt class="tot">${esc(t("cost_total"))}</dt><dd class="tot" data-c="total">${eur(c.total)}</dd></dl>
+      ${s.deposito ? `<p class="fine">${esc(t("cost_dep", { v: eur(s.deposito) }))}</p>` : ""}
+      ${thr}<p class="fine">${esc(t("cost_note", { c: ccaaOf(s).charAt(0) + ccaaOf(s).slice(1).toLowerCase() }))}</p></section>`;
+  }
+  function costUpdate(input) {
+    const s = byIdAll(input.dataset.costRange); if (!s) return;
+    const box = input.closest("[data-cost]"), pct = +input.value, bid = Math.round(s.valor_subasta * pct / 100), c = costCalc(bid, s);
+    const set = (k, v) => { const el = box.querySelector(`[data-c="${k}"]`); if (el) el.textContent = v; };
+    set("bid", eur(bid)); set("pct", t("cost_pct", { p: pct })); set("itp", eur(c.itp)); set("reg", eur(c.reg)); set("total", eur(c.total));
+  }
+  // ---------- Что известно о лоте
+  function knownBlock(s) {
+    if (!REAL_ESTATE_UI.includes(s.categoria)) return "";
+    const a = asset0(s), has = (v) => !!(v && !/no consta|desconoc|sin datos/i.test(String(v)));
+    const items = [["kn_occ", has(a.situacion_posesoria)], ["kn_visit", has(a.visitable)], ["kn_charges", has(a.cargas)],
+      ["kn_rc", String(a.ref_catastral || "").replace(/\s/g, "").length >= 14], ["kn_sup", !!(s.catastro && s.catastro.sup)],
+      ["kn_photos", !!(s.fotos && s.fotos.length)], ["kn_appr", !!s.tasacion], ["kn_docs", !!((s.documentos || []).length)]];
+    const yes = items.filter((x) => x[1]), no = items.filter((x) => !x[1]);
+    return `<section class="known"><h3>${esc(t("kn_t"))} <small>${yes.length}/${items.length}</small></h3>
+      <p>${yes.map((x) => `<span class="kn ok">${ic("check")} ${esc(t(x[0]))}</span>`).join("")}${no.map((x) => `<span class="kn no">? ${esc(t(x[0]))}</span>`).join("")}</p>
+      ${no.length ? `<p class="fine">${esc(t("kn_hint"))}</p>` : ""}</section>`;
+  }
+  // ---------- Напоминание в календарь
+  function calLinks(s) {
+    if (done(s) || !s.fecha_fin) return "";
+    const end = new Date(s.fecha_fin); if (isNaN(end)) return "";
+    const f = (d) => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+    const start = new Date(end.getTime() - 60 * 60 * 1000);
+    const u = location.origin + location.pathname + "#/s/" + encodeURIComponent(s.id);
+    const city = place(s.localidad) || place(s._prov) || "";
+    const g = "https://calendar.google.com/calendar/render?action=TEMPLATE&text=" + encodeURIComponent(t("cal_title", { id: s.id })) +
+      "&dates=" + f(start) + "/" + f(end) + "&details=" + encodeURIComponent(t("cal_desc", { c: city, u }));
+    return `<a class="btn ghost" href="${esc(g)}" target="_blank" rel="noopener">${ic("clock")} ${esc(t("cal_google"))}</a>
+      <button type="button" class="btn ghost" data-ics="${esc(s.id)}">${ic("clock")} ${esc(t("cal_ics"))}</button>`;
+  }
+  function downloadIcs(id) {
+    const s = byIdAll(id); if (!s || !s.fecha_fin) return;
+    const end = new Date(s.fecha_fin), start = new Date(end.getTime() - 60 * 60 * 1000), alarm = "-PT24H";
+    const f = (d) => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+    const u = location.origin + location.pathname + "#/s/" + encodeURIComponent(s.id);
+    const ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Subastica//ES", "BEGIN:VEVENT", "UID:" + s.id + "@subastica.es", "DTSTAMP:" + f(new Date()),
+      "DTSTART:" + f(start), "DTEND:" + f(end), "SUMMARY:" + t("cal_title", { id: s.id }), "DESCRIPTION:" + t("cal_desc", { c: place(s.localidad) || "", u }),
+      "URL:" + u, "BEGIN:VALARM", "TRIGGER:" + alarm, "ACTION:DISPLAY", "DESCRIPTION:" + t("cal_title", { id: s.id }), "END:VALARM", "END:VEVENT", "END:VCALENDAR"].join("\r\n");
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([ics], { type: "text/calendar" })); a.download = s.id + ".ics";
+    document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  }
   function detailHTML(s, idp) {
     if (locked() && done(s)) return lockedDoneHTML(s, idp);
     const r = s._risk, l = left(s), d = disc(s), b = asset0(s);
@@ -853,6 +932,8 @@
       ${facts || bidsLine ? `<p class="cat-facts">${facts ? `<span>${esc(facts)}</span>` : ""}${bidsLine}</p>` : ""}
       ${ex && ex.dir ? `<p class="fine ex-dir">${ic("door")} ${esc(ex.dir)}</p>` : ""}
       ${valBlock}
+      ${costBlock(s)}
+      ${knownBlock(s)}
       ${checks.length ? `<h3>${esc(t("before_bid"))}</h3><ul class="chk">${checks.join("")}</ul>` : ""}
       ${done(s) && result(s) && result(s).pct ? `<p class="muted" style="margin:0 0 14px">${esc(t("hist_explain", { p: result(s).pct, v: eur(s.valor_subasta) }))}</p>` : ""}
       <div class="dv-cta"><div><small>${esc(done(s) ? t("ended_on", { d: dateFmt(s.fecha_fin, true) }) : t("closes_on", { d: dateFmt(s.fecha_fin, true) }))}</small><b class="${l.hot ? "hot" : ""}">${esc(done(s) ? t("s_" + s.estado) : l.long)}</b></div>
@@ -861,6 +942,7 @@
       ${done(s) ? "" : actHint(s)}
       <div class="dv-more">${NO_MAP.includes(s.categoria) ? "" : `<a class="btn ghost" href="${esc(gmapLink(mq))}" target="_blank" rel="noopener">${esc(t(ex ? "open_map_exact" : "open_map"))} ${ic("ext")}</a>`}
         ${ex && ex.mapa ? `<a class="btn ghost" href="${esc(ex.mapa)}" target="_blank" rel="noopener">${esc(t("open_cat_map"))} ${ic("ext")}</a>` : ""}
+        ${calLinks(s)}
         ${atLeast("pro") && REAL_ESTATE_UI.includes(s.categoria) ? priceLinks(s) : ""}
         ${(s.documentos || []).slice(0, 6).map((d, i) => { const u = typeof d === "string" ? d : d.url; const n = typeof d === "string" ? `${t("doc")} ${i + 1}` : sentence(d.nombre); return `<a class="btn ghost" href="${esc(u)}" target="_blank" rel="noopener">${ic("file")} ${esc(n.length > 42 ? n.slice(0, 40) + "…" : n)}</a>`; }).join("")}</div>
       ${s.docs_login ? `<p class="fine" style="margin:8px 0 0">${esc(t("docs_login"))}</p>` : ""}
@@ -1234,6 +1316,7 @@
     $("#moreFilters").onclick = () => { const a = $("#adv"); a.hidden = !a.hidden; $("#moreFilters").setAttribute("aria-expanded", !a.hidden); };
     $("#saveSearch").onclick = saveSearch;
     $("#more").onclick = () => { shown += CFG.pageSize || 24; render(); };
+    document.addEventListener("input", (e) => { if (e.target.matches && e.target.matches("[data-cost-range]")) costUpdate(e.target); });
     document.addEventListener("click", (e) => {
       const rm = e.target.closest("[data-rm]"); if (rm) { removeFilter(rm.dataset.rm); return; }
       const f = e.target.closest("[data-fav]"); if (f) { e.preventDefault(); e.stopPropagation(); toggleFav(f.dataset.fav); return; }
@@ -1243,6 +1326,7 @@
       const sc = e.target.closest("[data-soc-k]"); if (sc) { socToggle(sc); return; }
       const db = e.target.closest("[data-docs-boe]"); if (db) { docsBoe(db); return; }
       const fa = e.target.closest("[data-foto-main],[data-foto-vis]"); if (fa) { fotoAction(fa); return; }
+      const ics = e.target.closest("[data-ics]"); if (ics) { downloadIcs(ics.dataset.ics); return; }
       const dop = e.target.closest("[data-doc-open]"); if (dop) {
         const path = dop.closest("[data-path]").dataset.path;
         AUTH.client.storage.from("docs").createSignedUrl(path, 600).then(({ data, error }) => { if (error) throw error; window.open(data.signedUrl, "_blank", "noopener"); }).catch((er) => alert(er.message || er));
