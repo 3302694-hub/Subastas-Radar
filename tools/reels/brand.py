@@ -78,3 +78,26 @@ def mark(size=200):
 
 def page(body_html, paper=False, css=None):
     return f'<html><head><meta charset="utf-8"><style>{css or CSS}</style></head><body class="{"paper" if paper else ""}">{body_html}</body></html>'
+
+
+def photo(src, pos='50% 50%', shade='both', blur=0, scale=1.0):
+    """Фотография на весь кадр + затемнение, чтобы текст читался.
+    shade: both (сверху и снизу), hero (текст сверху, фото открыто в середине), bottom, top, full (ровно по всему кадру)."""
+    g = {'both': 'linear-gradient(180deg,rgba(20,51,38,.94) 0%,rgba(20,51,38,.7) 28%,rgba(20,51,38,.12) 48%,rgba(20,51,38,.3) 62%,rgba(20,51,38,.95) 100%)',
+         'bottom': 'linear-gradient(180deg,rgba(20,51,38,.25) 0%,rgba(20,51,38,.1) 35%,rgba(20,51,38,.9) 68%,rgba(20,51,38,.97) 100%)',
+         'top': 'linear-gradient(180deg,rgba(20,51,38,.95) 0%,rgba(20,51,38,.6) 35%,rgba(20,51,38,0) 60%)',
+         'hero': 'linear-gradient(180deg,rgba(20,51,38,.95) 0%,rgba(20,51,38,.8) 30%,rgba(20,51,38,0) 46%,rgba(20,51,38,0) 76%,rgba(20,51,38,.92) 92%)',
+         'full': 'rgba(20,51,38,.62)'}[shade]
+    f = f'filter:blur({blur}px);' if blur else ''
+    t = f'transform:scale({scale});' if scale != 1.0 else ''
+    return (f'<img src="{src}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:{pos};{f}{t}">'
+            f'<div style="position:absolute;inset:0;background:{g}"></div>')
+
+
+def blur_boxes(src, dst, boxes, radius=18):
+    """Размыть номера машин и прочее лишнее: boxes — [(x0,y0,x1,y1), …] в пикселях исходника."""
+    from PIL import Image, ImageFilter
+    im = Image.open(src).convert('RGB')
+    for b in boxes:
+        reg = im.crop(b).filter(ImageFilter.GaussianBlur(radius)); im.paste(reg, b[:2])
+    im.save(dst, quality=92)
