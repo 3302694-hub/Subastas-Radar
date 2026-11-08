@@ -1,28 +1,28 @@
 {
-  "actualizado": "2026-11-08T14:54:54.658334+00:00",
-  "total": 1232,
-  "actuales": 1231,
+  "actualizado": "2026-11-08T16:17:47.526870+00:00",
+  "total": 1432,
+  "actuales": 1430,
   "nuevas_ultima_ejecucion": 0,
   "por_estado": {
-    "activa": 918,
+    "activa": 1117,
     "proxima": 313,
-    "finalizada": 1
+    "finalizada": 2
   },
   "por_categoria": {
-    "vivienda": 749,
-    "solar": 68,
-    "rustica": 82,
-    "local": 84,
-    "garaje": 129,
-    "nave": 35,
-    "vehiculo": 39,
-    "trastero": 21,
+    "rustica": 99,
+    "local": 115,
+    "garaje": 170,
+    "vivienda": 804,
+    "nave": 48,
+    "inmueble": 16,
+    "trastero": 29,
+    "solar": 84,
+    "vehiculo": 41,
+    "derechos": 11,
     "otros": 3,
-    "derechos": 9,
     "maquinaria": 6,
     "joyas_arte": 3,
-    "embarcacion": 1,
-    "inmueble": 2
+    "embarcacion": 1
   },
   "fuente": "Agencia Estatal Boletín Oficial del Estado — https://subastas.boe.es"
 }
