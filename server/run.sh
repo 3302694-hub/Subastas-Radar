@@ -21,6 +21,8 @@ deploy() {
   rm -rf /tmp/subastica-site && cp -r site /tmp/subastica-site
   V=$(git rev-parse --short=8 HEAD)
   sed -i -E "s/\?v=[0-9A-Za-z]+/?v=$V/g" /tmp/subastica-site/index.html
+  npx --yes wrangler@3 pages project list 2>/dev/null | grep -qw "$CF_PAGES_PROJECT" \
+    || npx --yes wrangler@3 pages project create "$CF_PAGES_PROJECT" --production-branch main
   npx --yes wrangler@3 pages deploy /tmp/subastica-site --project-name "$CF_PAGES_PROJECT" --branch main --commit-dirty=true
 }
 
