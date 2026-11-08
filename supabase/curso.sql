@@ -1,5 +1,5 @@
 -- Платный курс «Обучение» (curso): уроки, доступ по метке, оплата через Telegram-бота (Stars).
--- Применяется в Supabase миграцией «curso». Здесь — копия для истории.
+-- Применено в Supabase миграциями «curso» и «curso_grants» (8.11.2026). Здесь — копия для истории.
 --
 -- Как работает доступ:
 --   * Оплата в боте (Edge Function tg-curso) вызывает curso_pago_registrar(): пишет платёж в curso_pagos
@@ -395,3 +395,22 @@ insert into public.curso_lecciones(id, modulo, orden, dia, titulo) values
  ('6.5',6,32,107,'{"es":"No ganaste o no pudiste pagar","en":"You didn''t win or couldn''t pay","ru":"Вы не выиграли или не смогли заплатить"}'),
  ('6.6',6,33,112,'{"es":"Un lote de principio a fin + test final","en":"One lot from start to finish + final test","ru":"Разбор одного лота от начала до конца + итоговый тест"}')
 on conflict (id) do nothing;
+
+-- ---------- права (миграция «curso_grants»): вспомогательные функции не вызываются напрямую через API,
+-- иначе по ним можно узнать, есть ли доступ у чужого аккаунта
+revoke all on function public.curso_setting(text) from public, anon, authenticated;
+revoke all on function public.curso_acceso_activo(uuid) from public, anon, authenticated;
+revoke all on function public.curso_abre_en(text, uuid) from public, anon, authenticated;
+revoke all on function public.curso_leccion_abierta(text) from public, anon;
+grant execute on function public.curso_leccion_abierta(text) to authenticated;   -- нужна политике RLS
+revoke all on function public.admin_curso_list(text) from public, anon;
+revoke all on function public.admin_curso_set(text, text, timestamptz, timestamptz, boolean, boolean, text, text) from public, anon;
+revoke all on function public.admin_curso_pagos(int) from public, anon;
+revoke all on function public.admin_curso_pago_asignar(bigint, text) from public, anon;
+revoke all on function public.admin_curso_config(boolean, int, boolean, int, boolean) from public, anon;
+revoke all on function public.admin_curso_leccion(text) from public, anon;
+revoke all on function public.admin_curso_leccion_save(text, boolean, int, jsonb, text, text, text) from public, anon;
+grant execute on function public.admin_curso_list(text), public.admin_curso_set(text, text, timestamptz, timestamptz, boolean, boolean, text, text),
+  public.admin_curso_pagos(int), public.admin_curso_pago_asignar(bigint, text), public.admin_curso_config(boolean, int, boolean, int, boolean),
+  public.admin_curso_leccion(text), public.admin_curso_leccion_save(text, boolean, int, jsonb, text, text, text) to authenticated;
+grant execute on function public.curso_estado() to anon, authenticated;
