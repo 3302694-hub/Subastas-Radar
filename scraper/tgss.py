@@ -260,9 +260,15 @@ def collect(fetcher, known: set[str], max_details: int = 400, log=print) -> tupl
         url, got = link, 0
         try:
             html = fetcher.get(url)
-            for _ in range(12):
+            for page in range(12):
                 pages += 1
                 rows, nxt, _tot = parse_results(html, url)
+                if not rows and cnt and "perdido la sesi" in html.lower() or (not rows and cnt and page == 0):
+                    # сайт потерял сессию (бывает после отказа соединения) — открыть заново и повторить
+                    fetcher.get(BASE)
+                    fetcher.get(STEP_TYPES)
+                    html = fetcher.get(url)
+                    rows, nxt, _tot = parse_results(html, url)
                 rows_total += len(rows)
                 got += len(rows)
                 for r in rows:
@@ -272,8 +278,11 @@ def collect(fetcher, known: set[str], max_details: int = 400, log=print) -> tupl
                     seen.add(sid)
                     if sid in known or len(out) >= max_details:
                         continue
-                    det = parse_detail(fetcher.get(r["href"]))
-                    rec = build_record(r, det, now_iso)
+                    dh = fetcher.get(r["href"])
+                    if "perdido la sesi" in dh.lower():
+                        seen.discard(sid)  # карточку возьмём в следующий запуск
+                        continue
+                    rec = build_record(r, parse_detail(dh), now_iso)
                     rec["detectada"] = now_iso
                     out.append(rec)
                 if not nxt or not rows:
