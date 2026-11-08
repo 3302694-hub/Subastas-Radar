@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          "site/curso.html"
+        ],
+        "createdAt": "2026-11-08T19:14:41.580Z",
+        "reason": "brand: docs/SOCIAL.md defines Sello paper #F4F1EA as the site-wide background; curso.html reuses style.css tokens"
+      }
+    ]
+  }
+}
