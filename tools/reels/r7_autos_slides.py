@@ -41,7 +41,7 @@ def car(rank, model, chips, old, new, pct, extra='', bg=None):
     p = f'<span class="pct">{pct}</span>' if pct else ''
     if bg:   # фото машины: текст внизу на затемнении
         return f'''{photo(P(bg), pos="28% 50%", shade="bottom")}<div class="cap">фото: документы аукциона BOE</div>
-<div class="s" style="justify-content:flex-end;padding-bottom:300px">
+<div class="s" style="justify-content:flex-end;padding-bottom:380px">
 <div class="rank">#{rank}</div><div class="model">{model}</div><div class="chips">{ch}</div>
 <div class="lbl">оценка для торгов → максимальная ставка</div><div class="old">{old}</div>
 <div class="price">{price(new)}</div>{p}{extra}</div>{brand()}{DISC}'''
@@ -73,7 +73,7 @@ S['chk'] = f'''{photo(P("bmw_damage.jpg"), pos="40% 50%", shade="full")}<div cla
 <div class="pill">Добавьте расходы<small>налог ITP, перерегистрация, эвакуатор, ITV</small></div>
 <div class="pill">Ставка ≠ покупка<small>часть аукционов закрывается без продажи</small></div>
 </div></div>{brand()}'''
-S['cta'] = f'''{photo(P("bmw_side.jpg"), pos="50% 40%", shade="full")}<div class="s" style="align-items:center;text-align:center;justify-content:center;padding-bottom:300px">
+S['cta'] = f'''{photo(P("bmw_side.jpg"), pos="50% 40%", shade="full")}<div class="s" style="align-items:center;text-align:center;justify-content:center;padding-bottom:380px">
 {mark(200)}
 <h1 style="margin-top:60px;font-size:92px">Машины, квартиры, дома —<br><span class="hl">аукционы каждую неделю</span></h1>
 <div class="mid muted" style="margin-top:30px">Сохрани, чтобы не потерять</div>

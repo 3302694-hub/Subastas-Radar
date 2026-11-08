@@ -39,7 +39,7 @@ def house(rank, idf, ttl, chips, old, new, pct):
     ch = ''.join(f'<span class="chip{" y" if c.startswith("🏊") else ""}">{c}</span>' for c in chips)
     pc = f'<span class="pct" style="margin:0;font-size:46px">{pct}</span>' if pct else ''
     return f'''{photo(P(idf + "_cerca.jpg"), shade="both")}
-<div class="s" style="justify-content:space-between;padding-top:160px;padding-bottom:280px">
+<div class="s" style="justify-content:space-between;padding-top:160px;padding-bottom:380px">
 <div><div class="rank">{rank}</div><div class="ttl">{ttl}</div></div>
 <div><div class="chips">{ch}</div><div class="lbl">оценка для торгов → максимальная ставка</div>
 <div class="price"><s>{old}</s><b>{new}</b>{pc}</div></div></div>
@@ -62,7 +62,7 @@ S['cmp'] = f'''{photo(P("bg1.jpg"), shade="full")}<div class="s"><div class="tag
 <div class="big hl" style="font-size:130px;margin-left:6px">1 258–2 414 €</div>
 <div class="mid muted" style="font-size:40px;margin-top:30px">Мадрид — средняя оценка жилья MIVAU, II кв. 2026.<br>Дома — максимальная ставка ÷ площадь из BOE.</div></div></div>{brand()}
 <div class="disc">Аэрофото © IGN-PNOA</div>'''
-S['cta'] = f'''{photo(P("bg2.jpg"), shade="full")}<div class="s" style="align-items:center;text-align:center;justify-content:center;padding-bottom:300px">
+S['cta'] = f'''{photo(P("bg2.jpg"), shade="full")}<div class="s" style="align-items:center;text-align:center;justify-content:center;padding-bottom:380px">
 {mark(200)}
 <h1 style="margin-top:60px">Такие аукционы<br><span class="hl">каждую неделю</span></h1>
 <div class="mid muted" style="margin-top:30px">Сохрани, чтобы не потерять</div>

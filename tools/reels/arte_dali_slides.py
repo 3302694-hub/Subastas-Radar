@@ -17,7 +17,7 @@ CSS += '''.cap{position:absolute;right:80px;top:120px;font-size:24px;opacity:.75
 SRC = '<div class="disc">Данные: BOE, аукцион SUB-AT-2026-26R3386002007 (AEAT, Астурия).</div>'
 
 S = {}
-S['h0'] = f'''{F(1, '50% 45%', 'bottom')}<div class="s" style="justify-content:flex-end;padding-bottom:290px">
+S['h0'] = f'''{F(1, '50% 45%', 'bottom')}<div class="s" style="justify-content:flex-end;padding-bottom:380px">
 <div class="tag" style="position:absolute;top:170px;left:80px;background:rgba(20,51,38,.7)">● Аукцион BOE · идут торги</div>
 <h1 style="font-size:112px">Налоговая Испании<br>продаёт <span class="gold">Дали</span></h1>
 <div class="mid" style="margin-top:30px;font-size:46px">Бронзовая скульптура — на том же<br>аукционе, где продают квартиры</div></div>{brand()}{SRC}'''
@@ -51,7 +51,7 @@ S['cond'] = f'''{F(1, '50% 45%', 'full')}<div class="s"><div class="tag">УСЛ�
 <div class="pill">Пока без ставок*<small>торги открыты с 3 ноября · Агентство по налогам, Астурия</small></div>
 <div class="pill" style="font-size:44px">⚠️ Осмотр в BOE не указан<small>подлинность и состояние проверяйте сами, до ставки</small></div>
 </div></div>{brand()}<div class="disc">*по данным BOE на 7 ноября 2026. Итоговую цену определят ставки.</div>'''
-S['cta'] = f'''{F(1, '50% 45%', 'full')}<div class="s" style="align-items:center;text-align:center;justify-content:center;padding-bottom:300px">
+S['cta'] = f'''{F(1, '50% 45%', 'full')}<div class="s" style="align-items:center;text-align:center;justify-content:center;padding-bottom:380px">
 {mark(200)}
 <h1 style="margin-top:60px;font-size:96px">Квартиры, машины…<br><span class="gold">и Дали</span></h1>
 <div class="mid muted" style="margin-top:30px">Сохрани, чтобы не потерять</div>

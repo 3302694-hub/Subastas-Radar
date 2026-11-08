@@ -31,7 +31,7 @@ ICON = '<span class="mk-s">S</span>'
 CSS = FONTS + f'''*{{box-sizing:border-box;margin:0}}
 body{{width:1080px;height:1920px;overflow:hidden;font-family:'IBM Plex Sans',sans-serif;color:{PAPER};background:{GREEN};font-variant-numeric:tabular-nums}}
 body.paper{{background:{PAPER};color:{INK}}}
-.s{{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:170px 80px 260px}}
+.s{{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:170px 80px 380px}}
 .s>.tag{{position:absolute;top:170px;left:80px}}
 .bg{{position:absolute;inset:0;background:radial-gradient(120% 75% at 50% 0%,#2C6A51 0%,{GREEN} 50%,{GREEN_INK} 100%)}}
 .bg::after{{content:"";position:absolute;inset:40px;border:2px solid rgba(244,241,234,.12);border-radius:10px}}
@@ -39,7 +39,7 @@ body.paper .bg{{background:{PAPER}}}
 body.paper .bg::after{{border-color:rgba(26,31,28,.12)}}
 .tag{{display:inline-flex;align-self:flex-start;gap:14px;align-items:center;border:2px solid rgba(244,241,234,.35);border-radius:8px;padding:12px 24px;font-size:32px;font-weight:600;letter-spacing:.12em;text-transform:uppercase}}
 body.paper .tag{{border-color:rgba(26,31,28,.3)}}
-.brand{{position:absolute;left:64px;bottom:64px;display:flex;gap:20px;align-items:center}}
+.brand{{position:absolute;right:64px;bottom:260px;flex-direction:row-reverse;display:flex;gap:20px;align-items:center}}
 .mark{{width:84px;height:84px;border-radius:50%;background:{PAPER};color:{GREEN};position:relative;display:flex;align-items:center;justify-content:center;flex:none}}
 .mark::after{{content:"";position:absolute;right:7%;top:7%;width:18%;height:18%;background:{SEAL};transform:rotate(45deg)}}
 body.paper .mark{{background:{GREEN};color:{PAPER}}}
@@ -48,7 +48,7 @@ body.paper .mark{{background:{GREEN};color:{PAPER}}}
 .wm{{font:600 40px/1 'IBM Plex Serif',serif;letter-spacing:.1em}}
 .wm i{{font-style:normal;position:relative;display:inline-block}}
 .wm i::after{{content:"";position:absolute;left:.29em;top:-.22em;width:.2em;height:.2em;background:{SEAL};transform:rotate(45deg)}}
-.disc{{position:absolute;left:64px;right:64px;bottom:168px;font-size:24px;opacity:.65}}
+.disc{{position:absolute;left:64px;right:64px;bottom:60px;font-size:24px;opacity:.65}}
 h1{{font-family:'IBM Plex Serif',serif;font-size:104px;line-height:1.02;font-weight:600;letter-spacing:-.01em}}
 .serif{{font-family:'IBM Plex Serif',serif}}
 .big{{white-space:nowrap;font-size:200px;font-weight:700;letter-spacing:-.03em;line-height:1}}
@@ -69,7 +69,7 @@ body.paper .pill{{background:rgba(31,77,58,.06);border-color:rgba(31,77,58,.18)}
 '''
 
 def brand(extra_style=''):
-    """Знак + словесный знак SUBÁSTICA внизу кадра."""
+    """Знак + словесный знак SUBÁSTICA: правый нижний угол, приподнят (над подписью Instagram)."""
     return f'<div class="brand" style="{extra_style}"><div class="mark">{ICON}</div><span class="wm">SUB<i>A</i>STICA</span></div>'
 
 def mark(size=200):
