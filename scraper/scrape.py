@@ -35,6 +35,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import boe  # noqa: E402
 from store import SupabaseStore  # noqa: E402
 import enrich as enrich_mod  # noqa: E402
+import tgss  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 SITE = ROOT / "site"
@@ -472,6 +473,22 @@ def main() -> int:
         new_ids.append(rec["id"])
         if n % 20 == 0:
             log(f"  загружено {n}/{len(new)}")
+
+    # Seguridad Social: отдельный каталог TGSS (на портале BOE этих аукционов нет)
+    if os.environ.get("TGSS", "1") == "1":
+        had_tgss = any(s.get("fuente") == "tgss" for s in db.values())
+        try:
+            recs, seen, complete = tgss.collect(fetcher, set(db), int(os.environ.get("TGSS_MAX", "400")), log)
+            for r in recs:
+                db[r["id"]] = r
+                if had_tgss:  # первый сбор не считаем «новинками», чтобы не засыпать ленту и Telegram
+                    new_ids.append(r["id"])
+            if complete:  # объект пропал из каталога до даты торгов — сняли с аукциона
+                for s in db.values():
+                    if s.get("fuente") == "tgss" and s.get("estado") in ("activa", "proxima") and s["id"] not in seen:
+                        s["estado"] = "cancelada"
+        except Exception as e:  # noqa: BLE001 — TGSS не должен ломать основной сбор
+            log(f"TGSS: ошибка {e!r}")
 
     backfill(fetcher, db, int(os.environ.get("BACKFILL", "300")), 20 * 60)
     try:

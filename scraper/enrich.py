@@ -247,7 +247,7 @@ def enrich(fetcher, db: dict[str, dict], prices: dict, budget_s: float, log=prin
         age = now - datetime.fromisoformat(last)
         return age > timedelta(hours=2) if (end and end < soon) else age > timedelta(hours=22)
 
-    for s in sorted((s for s in current if s.get("estado") == "activa" and due(s)), key=lambda s: s.get("fecha_fin") or "9"):
+    for s in sorted((s for s in current if s.get("estado") == "activa" and s.get("fuente") != "tgss" and due(s)), key=lambda s: s.get("fecha_fin") or "9"):
         if time.monotonic() - t0 > budget_s:
             break
         try:

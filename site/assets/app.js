@@ -856,7 +856,8 @@
       ${checks.length ? `<h3>${esc(t("before_bid"))}</h3><ul class="chk">${checks.join("")}</ul>` : ""}
       ${done(s) && result(s) && result(s).pct ? `<p class="muted" style="margin:0 0 14px">${esc(t("hist_explain", { p: result(s).pct, v: eur(s.valor_subasta) }))}</p>` : ""}
       <div class="dv-cta"><div><small>${esc(done(s) ? t("ended_on", { d: dateFmt(s.fecha_fin, true) }) : t("closes_on", { d: dateFmt(s.fecha_fin, true) }))}</small><b class="${l.hot ? "hot" : ""}">${esc(done(s) ? t("s_" + s.estado) : l.long)}</b></div>
-        <div class="dv-acts"><a class="btn" href="${esc(s.url)}" target="_blank" rel="noopener">${esc(t("open_boe"))} ${ic("ext")}</a>${done(s) ? "" : actButtons(s)}</div></div>
+        <div class="dv-acts"><a class="btn" href="${esc(s.url)}" target="_blank" rel="noopener">${esc(t(s.fuente === "tgss" ? "open_tgss" : "open_boe"))} ${ic("ext")}</a>${done(s) ? "" : actButtons(s)}</div></div>
+      ${s.fuente === "tgss" && !done(s) ? `<p class="fine">${esc(t("tgss_note", { l: s.lugar_subasta || s.autoridad || "" }))}</p>` : ""}
       ${done(s) ? "" : actHint(s)}
       <div class="dv-more">${NO_MAP.includes(s.categoria) ? "" : `<a class="btn ghost" href="${esc(gmapLink(mq))}" target="_blank" rel="noopener">${esc(t(ex ? "open_map_exact" : "open_map"))} ${ic("ext")}</a>`}
         ${ex && ex.mapa ? `<a class="btn ghost" href="${esc(ex.mapa)}" target="_blank" rel="noopener">${esc(t("open_cat_map"))} ${ic("ext")}</a>` : ""}
