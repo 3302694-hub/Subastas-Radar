@@ -478,7 +478,7 @@ def main() -> int:
     if os.environ.get("TGSS", "1") == "1":
         had_tgss = any(s.get("fuente") == "tgss" for s in db.values())
         try:
-            recs, seen, complete = tgss.collect(fetcher, set(db), int(os.environ.get("TGSS_MAX", "400")), log)
+            recs, seen, complete = tgss.collect(Fetcher(delay=1.0), set(db), int(os.environ.get("TGSS_MAX", "400")), log)
             for r in recs:
                 db[r["id"]] = r
                 if had_tgss:  # первый сбор не считаем «новинками», чтобы не засыпать ленту и Telegram

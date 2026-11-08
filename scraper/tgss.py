@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+import urllib.request
 import unicodedata
 from urllib.parse import urljoin
 
@@ -251,13 +252,19 @@ def collect(fetcher, known: set[str], max_details: int = 400, log=print) -> tupl
     for name, cnt, link in regions:
         if cnt > 200:
             log(f"TGSS: в регионе {name} {cnt} > 200 — часть может не показаться")
-        fetcher.get(STEP_TYPES)  # вернуть выбор типов в сессии перед новым регионом
+        # свежая сессия на каждый регион: в одной сессии каталог после нескольких поисков отдаёт пустые страницы
+        fetcher.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor())
+        fetcher.get(BASE)
+        fresh = region_links(fetcher.get(STEP_TYPES))
+        link = next((u for n, c, u in fresh if n == name), link)
         url = link
         html = fetcher.get(url)
+        got = 0
         for _ in range(12):
             pages += 1
             rows, nxt, _tot = parse_results(html, url)
             rows_total += len(rows)
+            got += len(rows)
             for r in rows:
                 sid = make_id(r["provincia"], r["razon"], r["tasacion"], r["lote"], r["fecha"])
                 if sid in seen:
@@ -276,6 +283,9 @@ def collect(fetcher, known: set[str], max_details: int = 400, log=print) -> tupl
                 break
             url = nxt
             html = fetcher.get(url)
+        if got < min(cnt, 200):
+            title = re.search(r"<title>(.*?)</title>", html or "", re.S)
+            log(f"TGSS: {name}: получено {got} из {cnt} ({boe.clean(title.group(1)) if title else '?'})")
     complete = bool(total) and len(seen) >= total
     log(f"TGSS: страниц {pages}, строк {rows_total}, уникальных {len(seen)}, новых {len(out)}, полный обход {complete}")
     return out, seen, complete
