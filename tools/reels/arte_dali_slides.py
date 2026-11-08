@@ -36,7 +36,7 @@ S['size'] = f'''{F(5, '50% 35%', 'full')}<div class="s"><div class="tag">РАЗ�
 S['traj'] = f'''{F(2, '50% 50%', 'full')}<div class="s"><div class="tag">КСТАТИ</div>
 <div class="mid" style="font-size:72px;margin-top:20px">Траян — первый римский император, родившийся<br><span class="lime">не в Италии</span></div>
 <div class="mid muted" style="font-size:52px;margin-top:50px">а в Италике —<br>под нынешней Севильей 🇪🇸</div></div>{brand()}'''
-S['cmp'] = f'''{F(3, '50% 50%', 'full')}<div class="s"><div class="tag">ПОЧЕМУ ТАК ДОРОГО</div>
+S['cmp'] = f'''{F(1, '50% 45%', 'full')}<div class="s"><div class="tag">ПОЧЕМУ ТАК ДОРОГО</div>
 <div class="row" style="margin-top:40px">
 <div class="pill">Маленькие отливки, ~20 см<small>тираж 375 экземпляров · продаются примерно за 2&nbsp;000&nbsp;€</small></div>
 <div class="pill" style="background:rgba(232,196,138,.18)">Эта — 147 см<small>тираж 8 + 2 авторских, и это один из авторских</small></div>
@@ -44,14 +44,14 @@ S['cmp'] = f'''{F(3, '50% 50%', 'full')}<div class="s"><div class="tag">ПОЧЕ
 <div class="mid muted" style="font-size:42px;margin-top:60px">оценка для торгов</div>
 <div class="big gold">600 000 €</div></div>{brand()}
 <div class="disc">Цена малых отливок — предложения галерей (1stDibs). Оценка — сумма, назначенная AEAT для торгов.</div>'''
-S['cond'] = f'''{F(7, '50% 50%', 'full')}<div class="s"><div class="tag">УСЛОВИЯ</div>
+S['cond'] = f'''{F(1, '50% 45%', 'full')}<div class="s"><div class="tag">УСЛОВИЯ</div>
 <div class="row" style="margin-top:40px">
 <div class="pill">до 23 ноября, 18:00<small>приём ставок на portal de subastas BOE</small></div>
 <div class="pill">60 000 €<small>депозит — 10 % от оценки</small></div>
 <div class="pill">Пока без ставок*<small>торги открыты с 3 ноября · Агентство по налогам, Астурия</small></div>
 <div class="pill" style="font-size:44px">⚠️ Осмотр в BOE не указан<small>подлинность и состояние проверяйте сами, до ставки</small></div>
 </div></div>{brand()}<div class="disc">*по данным BOE на 7 ноября 2026. Итоговую цену определят ставки.</div>'''
-S['cta'] = f'''{F(4, '50% 50%', 'full')}<div class="s" style="align-items:center;text-align:center;justify-content:center;padding-bottom:300px">
+S['cta'] = f'''{F(1, '50% 45%', 'full')}<div class="s" style="align-items:center;text-align:center;justify-content:center;padding-bottom:300px">
 {mark(200)}
 <h1 style="margin-top:60px;font-size:96px">Квартиры, машины…<br><span class="gold">и Дали</span></h1>
 <div class="mid muted" style="margin-top:30px">Сохрани, чтобы не потерять</div>

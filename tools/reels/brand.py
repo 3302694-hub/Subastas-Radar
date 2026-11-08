@@ -39,7 +39,7 @@ body.paper .bg{{background:{PAPER}}}
 body.paper .bg::after{{border-color:rgba(26,31,28,.12)}}
 .tag{{display:inline-flex;align-self:flex-start;gap:14px;align-items:center;border:2px solid rgba(244,241,234,.35);border-radius:8px;padding:12px 24px;font-size:32px;font-weight:600;letter-spacing:.12em;text-transform:uppercase}}
 body.paper .tag{{border-color:rgba(26,31,28,.3)}}
-.brand{{position:absolute;left:80px;bottom:110px;display:flex;gap:20px;align-items:center}}
+.brand{{position:absolute;left:64px;bottom:64px;display:flex;gap:20px;align-items:center}}
 .mark{{width:84px;height:84px;border-radius:50%;background:{PAPER};color:{GREEN};position:relative;display:flex;align-items:center;justify-content:center;flex:none}}
 .mark::after{{content:"";position:absolute;right:7%;top:7%;width:18%;height:18%;background:{SEAL};transform:rotate(45deg)}}
 body.paper .mark{{background:{GREEN};color:{PAPER}}}
@@ -48,7 +48,7 @@ body.paper .mark{{background:{GREEN};color:{PAPER}}}
 .wm{{font:600 40px/1 'IBM Plex Serif',serif;letter-spacing:.1em}}
 .wm i{{font-style:normal;position:relative;display:inline-block}}
 .wm i::after{{content:"";position:absolute;left:.29em;top:-.22em;width:.2em;height:.2em;background:{SEAL};transform:rotate(45deg)}}
-.disc{{position:absolute;left:80px;right:80px;bottom:50px;font-size:24px;opacity:.65}}
+.disc{{position:absolute;left:64px;right:64px;bottom:168px;font-size:24px;opacity:.65}}
 h1{{font-family:'IBM Plex Serif',serif;font-size:104px;line-height:1.02;font-weight:600;letter-spacing:-.01em}}
 .serif{{font-family:'IBM Plex Serif',serif}}
 .big{{white-space:nowrap;font-size:200px;font-weight:700;letter-spacing:-.03em;line-height:1}}
