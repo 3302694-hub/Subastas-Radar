@@ -147,8 +147,26 @@ def _get(d: dict, *names: str) -> str:
     return ""
 
 
+CP_PROV = dict(zip(
+    [f"{i:02d}" for i in range(1, 53)],
+    ["ARABA/ÁLAVA", "ALBACETE", "ALICANTE/ALACANT", "ALMERÍA", "ÁVILA", "BADAJOZ", "ILLES BALEARS", "BARCELONA",
+     "BURGOS", "CÁCERES", "CÁDIZ", "CASTELLÓN/CASTELLÓ", "CIUDAD REAL", "CÓRDOBA", "A CORUÑA", "CUENCA", "GIRONA",
+     "GRANADA", "GUADALAJARA", "GIPUZKOA", "HUELVA", "HUESCA", "JAÉN", "LEÓN", "LLEIDA", "LA RIOJA", "LUGO", "MADRID",
+     "MÁLAGA", "MURCIA", "NAVARRA", "OURENSE", "ASTURIAS", "PALENCIA", "LAS PALMAS", "PONTEVEDRA", "SALAMANCA",
+     "SANTA CRUZ DE TENERIFE", "CANTABRIA", "SEGOVIA", "SEVILLA", "SORIA", "TARRAGONA", "TERUEL", "TOLEDO",
+     "VALENCIA/VALÈNCIA", "VALLADOLID", "BIZKAIA", "ZAMORA", "ZARAGOZA", "CEUTA", "MELILLA"]))
+
+
+def cp_of(loc: str) -> str:
+    m = re.search(r"\((\d{5})\)", loc or "")
+    return m.group(1) if m else ""
+
+
 def province_from_location(loc: str) -> str:
-    """«Término de X · VEDRA (A CORUÑA)» → «A CORUÑA» (как у BOE)."""
+    """Провинция объекта: «… VEDRA (A CORUÑA)» у сельских, «… (34820) BARRUELO…» у городских (по индексу)."""
+    cp = cp_of(loc)
+    if cp and cp[:2] in CP_PROV:
+        return CP_PROV[cp[:2]]
     m = re.search(r"\(([^()]+)\)\s*$", loc or "")
     if not m:
         return ""
@@ -172,10 +190,11 @@ def build_record(row: dict, det: dict, now_iso: str) -> dict:
     # «( VEDRA - A CORUÑA)» в заголовке карточки
     localidad = ""
     m = re.search(r"\(\s*([^()]+?)\s*-\s*([^()]+?)\s*\)\s*$", det.get("_titulo", ""))
-    prov = row["provincia"]  # провинция управления TGSS; сам объект может быть в другой
+    prov = province_from_location(loc) or row["provincia"]  # объект может быть не в провинции управления TGSS
     if m:
         localidad = m.group(1).strip().upper()
-        prov = province(m.group(2))
+        if not province_from_location(loc):
+            prov = province(m.group(2))
     if not localidad:
         m = re.search(r"\(([^)]+)\)\s*$", row["razon"])
         localidad = m.group(1).strip().upper() if m else ""
@@ -207,7 +226,7 @@ def build_record(row: dict, det: dict, now_iso: str) -> dict:
         "titulo": desc[:300],
         "provincia": prov,
         "localidad": localidad,
-        "cp": "",
+        "cp": cp_of(loc),
         "direccion": asset.get("direccion", ""),
         "valor_subasta": row["valor_subasta"],
         "tasacion": row["tasacion"] or None,
