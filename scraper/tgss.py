@@ -147,6 +147,15 @@ def _get(d: dict, *names: str) -> str:
     return ""
 
 
+def province_from_location(loc: str) -> str:
+    """«Término de X · VEDRA (A CORUÑA)» → «A CORUÑA» (как у BOE)."""
+    m = re.search(r"\(([^()]+)\)\s*$", loc or "")
+    if not m:
+        return ""
+    p = province(m.group(1))
+    return p if p in PROVINCES else ""
+
+
 def category(tipo_bien: str, desc: str) -> str:
     """Категория объекта TGSS: в каталоге только недвижимость (finca urbana / rústica)."""
     text = (desc or "").lower()
@@ -163,13 +172,14 @@ def build_record(row: dict, det: dict, now_iso: str) -> dict:
     # «( VEDRA - A CORUÑA)» в заголовке карточки
     localidad = ""
     m = re.search(r"\(\s*([^()]+?)\s*-\s*([^()]+?)\s*\)\s*$", det.get("_titulo", ""))
+    prov = row["provincia"]  # провинция управления TGSS; сам объект может быть в другой
     if m:
         localidad = m.group(1).strip().upper()
+        prov = province(m.group(2))
     if not localidad:
         m = re.search(r"\(([^)]+)\)\s*$", row["razon"])
         localidad = m.group(1).strip().upper() if m else ""
-    prov = row["provincia"]
-    sid = make_id(prov, row["razon"], row["tasacion"], row["lote"], row["fecha"])
+    sid = make_id(row["provincia"], row["razon"], row["tasacion"], row["lote"], row["fecha"])
     rc = ref_catastral(desc)
     urbana = "urbana" in row["tipo_bien"].lower()
     asset = {

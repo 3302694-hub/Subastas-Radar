@@ -131,6 +131,9 @@ def _migrate(db: dict[str, dict]) -> None:
         if s.get("fuente") == "tgss":
             b = (s.get("bienes") or [{}])[0]
             s["categoria"] = tgss.category(b.get("tipo_bien", ""), b.get("descripcion", ""))
+            real = tgss.province_from_location(b.get("ubicacion", ""))
+            if real:  # провинция объекта, а не провинциального управления TGSS
+                s["provincia"] = b["provincia"] = real
         else:
             s["categoria"] = boe.category_of(s.get("bienes") or [], s.get("titulo", ""))
         if not s.get("tasacion"):
