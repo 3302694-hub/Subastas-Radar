@@ -1,0 +1,47 @@
+[
+ {
+  "file": "foto_01.jpg",
+  "path": "SUB-RC-2026-0025V20260006/chrome-01-foto-8-pdf-01.jpg",
+  "portada": true
+ },
+ {
+  "file": "foto_02.jpg",
+  "path": "SUB-RC-2026-0025V20260006/chrome-02-foto-9-pdf-01.jpg",
+  "portada": false
+ },
+ {
+  "file": "foto_03.jpg",
+  "path": "SUB-RC-2026-0025V20260006/chrome-03-foto-1-pdf-01.jpg",
+  "portada": false
+ },
+ {
+  "file": "foto_04.jpg",
+  "path": "SUB-RC-2026-0025V20260006/chrome-04-foto-2-pdf-01.jpg",
+  "portada": false
+ },
+ {
+  "file": "foto_05.jpg",
+  "path": "SUB-RC-2026-0025V20260006/chrome-05-foto-3-pdf-01.jpg",
+  "portada": false
+ },
+ {
+  "file": "foto_06.jpg",
+  "path": "SUB-RC-2026-0025V20260006/chrome-06-foto-4-pdf-01.jpg",
+  "portada": false
+ },
+ {
+  "file": "foto_07.jpg",
+  "path": "SUB-RC-2026-0025V20260006/chrome-07-foto-5-pdf-01.jpg",
+  "portada": false
+ },
+ {
+  "file": "foto_08.jpg",
+  "path": "SUB-RC-2026-0025V20260006/chrome-08-foto-6-pdf-01.jpg",
+  "portada": false
+ },
+ {
+  "file": "foto_09.jpg",
+  "path": "SUB-RC-2026-0025V20260006/chrome-09-foto-7-pdf-01.jpg",
+  "portada": false
+ }
+]

@@ -1,0 +1,17 @@
+{
+ "id": "SUB-RC-2026-0025V20260006",
+ "bienes": [
+  {
+   "titulo": "Bien 8547FSM - Vehículo (Turismos)",
+   "tipo_bien": "Turismos",
+   "descripcion": "100,00% de Propiedad plena. Vehículo 8547FSM BMW 320 D",
+   "visitable": "Sí",
+   "cargas": "Sin cargas preferentes",
+   "matricula": "8547FSM",
+   "marca": "BMW",
+   "modelo": "320 D",
+   "fecha_matriculacion": "2007-07-05",
+   "ubicacion": "Parque móvil Diputación Provincial Albacete. Av. 2ª con calle A Polígono Industrial Campollano-Albacete"
+  }
+ ]
+}

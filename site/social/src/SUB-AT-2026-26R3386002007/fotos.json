@@ -1,0 +1,37 @@
+[
+ {
+  "file": "foto_01.jpg",
+  "path": "SUB-AT-2026-26R3386002007/chrome-02-ficha-inventario-01.jpg",
+  "portada": true
+ },
+ {
+  "file": "foto_02.jpg",
+  "path": "SUB-AT-2026-26R3386002007/chrome-02-ficha-inventario-02.jpg",
+  "portada": false
+ },
+ {
+  "file": "foto_03.jpg",
+  "path": "SUB-AT-2026-26R3386002007/chrome-02-ficha-inventario-03.jpg",
+  "portada": false
+ },
+ {
+  "file": "foto_04.jpg",
+  "path": "SUB-AT-2026-26R3386002007/chrome-02-ficha-inventario-04.jpg",
+  "portada": false
+ },
+ {
+  "file": "foto_05.jpg",
+  "path": "SUB-AT-2026-26R3386002007/chrome-04-foto-del-bien-1-01.jpg",
+  "portada": false
+ },
+ {
+  "file": "foto_06.jpg",
+  "path": "SUB-AT-2026-26R3386002007/chrome-05-foto-del-bien-2-01.jpg",
+  "portada": false
+ },
+ {
+  "file": "foto_07.jpg",
+  "path": "SUB-AT-2026-26R3386002007/chrome-06-foto-del-bien-3-01.jpg",
+  "portada": false
+ }
+]
