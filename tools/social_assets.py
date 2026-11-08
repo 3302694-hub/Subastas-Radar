@@ -1,8 +1,9 @@
 """Материалы для рилс: полное описание лота из BOE, данные и фото фасада из Катастро,
-аэрофото PNOA (© Instituto Geográfico Nacional, CC BY 4.0) и, по желанию, музыка.
+аэрофото PNOA (© Instituto Geográfico Nacional, CC BY 4.0), фото лота из документов аукциона
+(subasta_fotos → foto_NN.jpg) и, по желанию, музыка.
 Запуск: python tools/social_assets.py SUB-... SUB-... [--music URL]
 Всё складывается в site/social/src/<id>/."""
-import json, math, re, sys, urllib.request
+import json, math, os, re, sys, urllib.parse, urllib.request
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scraper"))
@@ -17,6 +18,31 @@ MUSIC_HOSTS = ("ai-music-tracks.s3.us-east-1.amazonaws.com", "assets.vidiq.com")
 def binary(url: str) -> bytes:
     with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=60) as r:
         return r.read()
+
+
+SB_URL = os.environ.get("SUPABASE_URL", "https://jkxvxdhmothlamhotecu.supabase.co").rstrip("/")
+SB_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
+
+
+def lot_photos(sid: str, d: Path) -> None:
+    """Фото лота, уже вынутые из документов аукциона (таблица subasta_fotos, публичное хранилище fotos/).
+    Кладёт foto_01.jpg… (главное фото — первым) и fotos.json со списком исходных путей."""
+    if not SB_KEY:
+        print(sid, "фото лота: нет SUPABASE_SERVICE_KEY, пропуск"); return
+    q = f"{SB_URL}/rest/v1/subasta_fotos?subasta_id=eq.{urllib.parse.quote(sid)}&visible=eq.true&select=path,portada&order=portada.desc,path"
+    req = urllib.request.Request(q, headers={"apikey": SB_KEY, "Authorization": f"Bearer {SB_KEY}"})
+    with urllib.request.urlopen(req, timeout=60) as r:
+        rows = json.load(r)
+    got = []
+    for n, row in enumerate(rows[:12], 1):
+        try:
+            (d / f"foto_{n:02d}.jpg").write_bytes(binary(f"{SB_URL}/storage/v1/object/public/fotos/{urllib.parse.quote(row['path'])}"))
+            got.append({"file": f"foto_{n:02d}.jpg", "path": row["path"], "portada": row.get("portada")})
+        except Exception as e:  # noqa: BLE001
+            print(sid, "фото", row["path"], e)
+    if got:
+        (d / "fotos.json").write_text(json.dumps(got, ensure_ascii=False, indent=1))
+    print(sid, "фото лота:", len(got))
 
 
 def ortho(lat: float, lon: float, w_m: float, h_m: float, px=(1080, 1920)) -> bytes:
@@ -65,6 +91,10 @@ def main(args):
                         (d / f"{name}{n}.jpg").write_bytes(ortho(cat["lat"], cat["lon"], w, h))
                     except Exception as e:  # noqa: BLE001
                         print(sid, name, e)
+        try:
+            lot_photos(sid, d)
+        except Exception as e:  # noqa: BLE001
+            print(sid, "фото лота:", e)
         (d / "info.json").write_text(json.dumps(info, ensure_ascii=False, indent=1))
         print(sid, "готово:", sorted(p.name for p in d.iterdir()))
     if music:
@@ -78,5 +108,4 @@ def main(args):
 
 
 if __name__ == "__main__":
-    import urllib.parse  # noqa: F401
     main(sys.argv[1:])

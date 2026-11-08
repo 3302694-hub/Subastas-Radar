@@ -23,6 +23,8 @@ jobs:
         env:
           IDS: ${{ inputs.ids }}
           MUSIC: ${{ inputs.music }}
+          SUPABASE_URL: ${{ vars.SUPABASE_URL || 'https://jkxvxdhmothlamhotecu.supabase.co' }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
           set -e
           ARGS=()
