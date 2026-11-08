@@ -100,7 +100,7 @@ def catastro_lookup(fetcher, rc_raw: str) -> dict | None:
 # ------------------------------------------------------------- цены м²
 
 def _download(url: str) -> bytes:
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (SubastaRadar; datos abiertos)"})
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Subastica; datos abiertos)"})
     with urllib.request.urlopen(req, timeout=90) as r:
         return r.read()
 

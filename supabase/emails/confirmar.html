@@ -1,16 +1,16 @@
-<div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#16201D">
-  <p style="font-size:20px;font-weight:bold;color:#0B6B66;margin:0 0 20px">SubastaRadar</p>
+<div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#1A1F1C">
+  <p style="font-size:20px;font-weight:bold;color:#1F4D3A;margin:0 0 20px">Subástica</p>
 {{ if eq .Data.lang "ru" }}
-  <p style="font-size:16px;line-height:1.5">Подтвердите адрес почты, чтобы закончить регистрацию на SubastaRadar.</p>
-  <p style="margin:24px 0"><a href="{{ .ConfirmationURL }}" style="background:#0B6B66;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:bold;display:inline-block">Подтвердить почту</a></p>
-  <p style="font-size:13px;color:#56625D">Если вы не регистрировались на subasta-radar.es, просто удалите это письмо.</p>
+  <p style="font-size:16px;line-height:1.5">Подтвердите адрес почты, чтобы закончить регистрацию на Subástica.</p>
+  <p style="margin:24px 0"><a href="{{ .ConfirmationURL }}" style="background:#1F4D3A;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:bold;display:inline-block">Подтвердить почту</a></p>
+  <p style="font-size:13px;color:#4A564F">Если вы не регистрировались на subastica.es, просто удалите это письмо.</p>
 {{ else if eq .Data.lang "en" }}
-  <p style="font-size:16px;line-height:1.5">Confirm your email address to finish signing up for SubastaRadar.</p>
-  <p style="margin:24px 0"><a href="{{ .ConfirmationURL }}" style="background:#0B6B66;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:bold;display:inline-block">Confirm email</a></p>
-  <p style="font-size:13px;color:#56625D">If you didn't sign up at subasta-radar.es, you can ignore this email.</p>
+  <p style="font-size:16px;line-height:1.5">Confirm your email address to finish signing up for Subástica.</p>
+  <p style="margin:24px 0"><a href="{{ .ConfirmationURL }}" style="background:#1F4D3A;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:bold;display:inline-block">Confirm email</a></p>
+  <p style="font-size:13px;color:#4A564F">If you didn't sign up at subastica.es, you can ignore this email.</p>
 {{ else }}
-  <p style="font-size:16px;line-height:1.5">Confirma tu correo electrónico para terminar el registro en SubastaRadar.</p>
-  <p style="margin:24px 0"><a href="{{ .ConfirmationURL }}" style="background:#0B6B66;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:bold;display:inline-block">Confirmar correo</a></p>
-  <p style="font-size:13px;color:#56625D">Si no te has registrado en subasta-radar.es, ignora este mensaje.</p>
+  <p style="font-size:16px;line-height:1.5">Confirma tu correo electrónico para terminar el registro en Subástica.</p>
+  <p style="margin:24px 0"><a href="{{ .ConfirmationURL }}" style="background:#1F4D3A;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:bold;display:inline-block">Confirmar correo</a></p>
+  <p style="font-size:13px;color:#4A564F">Si no te has registrado en subastica.es, ignora este mensaje.</p>
 {{ end }}
 </div>

@@ -20,7 +20,7 @@ async function send(key: string, to: string, subject: string, html: string, repl
   const r = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: Deno.env.get("NOTA_FROM") ?? "SubastaRadar <no-reply@subasta-radar.es>", to: [to], subject, html, ...(replyTo ? { reply_to: replyTo } : {}) }),
+    body: JSON.stringify({ from: Deno.env.get("NOTA_FROM") ?? "Subástica <no-reply@subastica.es>", to: [to], subject, html, ...(replyTo ? { reply_to: replyTo } : {}) }),
   });
   return r.ok ? "" : `${r.status} ${await r.text()}`;
 }
@@ -44,10 +44,10 @@ Deno.serve(async (req) => {
       .filter(([, v]) => v).map(([k, v]) => `<tr><td style="color:#56625D;padding:4px 12px 4px 0;vertical-align:top">${esc(k)}</td><td style="padding:4px 0">${esc(v)}</td></tr>`).join("");
     const e1 = await send(key, ADMIN, `Новая заявка на сопровождение #${a.id} — ${a.nombre}`,
       `<div style="font-family:Arial,sans-serif;font-size:15px;color:#16201D"><p><b>Новая заявка #${a.id}</b></p><table>${rows}</table>
-       <p><a href="https://subasta-radar.es/admin.html">Открыть панель</a></p></div>`, a.email);
+       <p><a href="https://subastica.es/admin.html">Открыть панель</a></p></div>`, a.email);
     const c = CONF[a.idioma] ?? CONF.es;
-    const e2 = await send(key, a.email, `${c.s} — SubastaRadar`,
-      `<div style="font-family:Arial,sans-serif;font-size:15px;color:#16201D;line-height:1.5"><p>${esc(c.b.replace("{n}", String(a.id)))}</p><p>SubastaRadar · subasta-radar.es</p></div>`, ADMIN);
+    const e2 = await send(key, a.email, `${c.s} — Subástica`,
+      `<div style="font-family:Arial,sans-serif;font-size:15px;color:#16201D;line-height:1.5"><p>${esc(c.b.replace("{n}", String(a.id)))}</p><p>Subástica · subastica.es</p></div>`, ADMIN);
     return json({ ok: !e1 && !e2, admin: e1 || "ok", client: e2 || "ok" });
   } catch (e) {
     return json({ ok: false, error: String(e) }, 500);

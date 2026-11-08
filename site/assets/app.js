@@ -929,7 +929,7 @@
     Object.entries(c).forEach(([p, n]) => {
       const ll = PROVINCES[p]; if (!ll) return;
       const sel = state.prov === p;
-      L.circleMarker(ll, { radius: 7 + 20 * Math.sqrt(n / max), color: sel ? "#16201D" : "#0B6B66", weight: sel ? 3 : 1.5, fillColor: sel ? "#D24A0D" : "#0B6B66", fillOpacity: sel ? .85 : .45 })
+      L.circleMarker(ll, { radius: 7 + 20 * Math.sqrt(n / max), color: sel ? "#1A1F1C" : "#1F4D3A", weight: sel ? 3 : 1.5, fillColor: sel ? "#D4A017" : "#1F4D3A", fillOpacity: sel ? .85 : .45 })
         .bindTooltip(`${place(p)}: ${n}`).on("click", () => { state.prov = sel ? "" : p; shown = CFG.pageSize; buildControls(); render(); })
         .addTo(mapLayer);
     });
@@ -1419,7 +1419,7 @@
 
   // ---------- старт
   async function boot() {
-    $("#brandName").textContent = CFG.name || "SubastaRadar";
+    $("#brandName").textContent = CFG.name || "Subástica";
     if (CFG.rssUrl) $("#rssLink").href = CFG.rssUrl;
     if (CFG.telegramUrl) { $("#tgLink").href = CFG.telegramUrl; $("#tgLink").hidden = false; }
     updateFavCount();

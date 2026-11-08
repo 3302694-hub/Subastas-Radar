@@ -34,9 +34,9 @@
       f_pack: "Paquete", f_cons: "No lo sé, aconsejadme", f_sub: "Subasta", f_sub_rm: "Quitar", f_name: "Nombre y apellidos", f_email: "Correo", f_phone: "Teléfono o WhatsApp", f_lang: "Idioma para hablar",
       f_budget: "Presupuesto máximo de compra, €", f_fin: "Financiación", fin: { propios: "Fondos propios", hipoteca: "Hipoteca", mixta: "Mixta", pendiente: "Aún no lo sé" },
       f_nie: "¿Tienes NIE / DNI?", nie: { si: "Sí", tramite: "En trámite", no: "No" }, f_firma: "Identificación electrónica", firma: { certificado: "Certificado digital", clave: "Cl@ve", ninguno: "Ninguna" },
-      f_goal: "Objetivo", goal: { vivir: "Vivir", alquilar: "Alquilar", revender: "Revender", otro: "Otro" }, f_comment: "Comentario", f_ok: "Acepto que SubastaRadar use estos datos para contactarme sobre esta solicitud (", privacy: "política de privacidad", f_send: "Enviar solicitud",
+      f_goal: "Objetivo", goal: { vivir: "Vivir", alquilar: "Alquilar", revender: "Revender", otro: "Otro" }, f_comment: "Comentario", f_ok: "Acepto que Subástica use estos datos para contactarme sobre esta solicitud (", privacy: "política de privacidad", f_send: "Enviar solicitud",
       sent: "Solicitud n.º {n} enviada. Te contactaremos en 24 horas laborables.", err_fields: "Rellena nombre, correo, teléfono y acepta la política de privacidad.", err_many: "Has enviado demasiadas solicitudes hoy.", err: "No se pudo enviar. Inténtalo de nuevo.",
-      back: "← Volver a SubastaRadar", ru: "", sel: "Seleccionado"
+      back: "← Volver a Subástica", ru: "", sel: "Seleccionado"
     },
     en: {
       title: "We guide you through the auction",
@@ -57,9 +57,9 @@
       f_pack: "Package", f_cons: "Not sure, advise me", f_sub: "Auction", f_sub_rm: "Remove", f_name: "Full name", f_email: "Email", f_phone: "Phone or WhatsApp", f_lang: "Language to talk in",
       f_budget: "Maximum purchase budget, €", f_fin: "Financing", fin: { propios: "Own funds", hipoteca: "Mortgage", mixta: "Mixed", pendiente: "Not sure yet" },
       f_nie: "Do you have an NIE / DNI?", nie: { si: "Yes", tramite: "In progress", no: "No" }, f_firma: "Electronic ID", firma: { certificado: "Digital certificate", clave: "Cl@ve", ninguno: "None" },
-      f_goal: "Goal", goal: { vivir: "Live in it", alquilar: "Rent out", revender: "Resell", otro: "Other" }, f_comment: "Comment", f_ok: "I agree that SubastaRadar may use this data to contact me about this request (", privacy: "privacy policy", f_send: "Send request",
+      f_goal: "Goal", goal: { vivir: "Live in it", alquilar: "Rent out", revender: "Resell", otro: "Other" }, f_comment: "Comment", f_ok: "I agree that Subástica may use this data to contact me about this request (", privacy: "privacy policy", f_send: "Send request",
       sent: "Request #{n} sent. We'll contact you within 24 working hours.", err_fields: "Fill in name, email, phone and accept the privacy policy.", err_many: "You've sent too many requests today.", err: "Could not send. Please try again.",
-      back: "← Back to SubastaRadar", sel: "Selected"
+      back: "← Back to Subástica", sel: "Selected"
     },
     ru: {
       title: "Сопровождаем вас на аукционе",
@@ -80,9 +80,9 @@
       f_pack: "Пакет", f_cons: "Не знаю, посоветуйте", f_sub: "Аукцион", f_sub_rm: "Убрать", f_name: "Имя и фамилия", f_email: "Email", f_phone: "Телефон или WhatsApp", f_lang: "Язык общения",
       f_budget: "Максимальный бюджет покупки, €", f_fin: "Финансирование", fin: { propios: "Свои средства", hipoteca: "Ипотека", mixta: "Смешанное", pendiente: "Пока не знаю" },
       f_nie: "Есть NIE / DNI?", nie: { si: "Да", tramite: "Оформляется", no: "Нет" }, f_firma: "Электронная идентификация", firma: { certificado: "Цифровой сертификат", clave: "Cl@ve", ninguno: "Нет" },
-      f_goal: "Цель", goal: { vivir: "Жить", alquilar: "Сдавать", revender: "Перепродать", otro: "Другое" }, f_comment: "Комментарий", f_ok: "Я согласен, что SubastaRadar использует эти данные, чтобы связаться со мной по заявке (", privacy: "политика конфиденциальности", f_send: "Отправить заявку",
+      f_goal: "Цель", goal: { vivir: "Жить", alquilar: "Сдавать", revender: "Перепродать", otro: "Другое" }, f_comment: "Комментарий", f_ok: "Я согласен, что Subástica использует эти данные, чтобы связаться со мной по заявке (", privacy: "политика конфиденциальности", f_send: "Отправить заявку",
       sent: "Заявка № {n} отправлена. Свяжемся с вами в течение 24 рабочих часов.", err_fields: "Заполните имя, email, телефон и примите политику конфиденциальности.", err_many: "Сегодня отправлено слишком много заявок.", err: "Не удалось отправить. Попробуйте ещё раз.",
-      back: "← Вернуться на SubastaRadar", sel: "Выбрано"
+      back: "← Вернуться на Subástica", sel: "Выбрано"
     }
   };
   const t = (k) => T[lang][k] != null ? T[lang][k] : T.es[k];
@@ -135,7 +135,7 @@
 
   function render() {
     document.documentElement.lang = lang;
-    document.title = t("title") + " — SubastaRadar";
+    document.title = t("title") + " — Subástica";
     $("#svRoot").innerHTML = `
       <section class="sv-hero"><h1>${esc(t("title"))}</h1><p class="sv-lead">${esc(t("lead"))}</p>
         <p class="nf-soon">${esc(t("soon"))}</p></section>

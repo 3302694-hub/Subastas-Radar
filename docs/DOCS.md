@@ -13,7 +13,7 @@ Edge Function `docs-boe` (supabase/functions/docs-boe): берёт свежие 
 
 ## 2б. Через Chrome пользователя (документы, закрытые входом на портал)
 Пользователь входит на subastas.boe.es в своём Chrome (Cl@ve / сертификат) и пишет «забери документы по SUB-…».
-Сессию сайта SubastaRadar брать нельзя (расширение не отдаёт токены), а портал BOE запрещает запросы
+Сессию сайта Subástica брать нельзя (расширение не отдаёт токены), а портал BOE запрещает запросы
 на чужие сайты (CSP connect-src 'self'). Поэтому так:
 1. Создать одноразовый билет в базе (SQL):
    `insert into docs_tickets(token, subasta_id) values (encode(gen_random_bytes(24),'hex'), 'SUB-…') returning token;`

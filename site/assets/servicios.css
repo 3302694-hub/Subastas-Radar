@@ -4,12 +4,12 @@
 .sv h2{font-size:21px;margin:36px 0 14px}
 .sv-lead{font-size:18px;line-height:1.6;color:var(--ink-2);max-width:68ch;margin:0 0 16px}
 .sv-hero .nf-soon{max-width:68ch}
-.nf-soon{margin:0;padding:10px 12px;border-radius:10px;background:var(--accent-soft);font-size:14px}
+.nf-soon{margin:0;padding:10px 12px;border-radius:var(--r-s);background:var(--accent-soft);font-size:14px}
 .sv-lang{margin-left:auto}
 .sv-packs{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
 @media (max-width:1100px){.sv-packs{grid-template-columns:repeat(2,1fr)}}
 @media (max-width:620px){.sv-packs{grid-template-columns:1fr}}
-.sv-pack{display:flex;flex-direction:column;gap:6px;padding:18px;border:1.5px solid var(--line);border-radius:16px;background:#fff;position:relative}
+.sv-pack{display:flex;flex-direction:column;gap:6px;padding:18px;border:1.5px solid var(--line);border-radius:var(--r);background:#fff;position:relative}
 .sv-pack.on{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 .sv-num{position:absolute;top:14px;right:16px;font-weight:700;color:var(--muted);font-size:13px}
 .sv-pack h3{margin:0;font-size:17px;padding-right:20px}
@@ -31,12 +31,12 @@
 .sv-list{margin:0;padding-left:20px}
 .sv-list li{line-height:1.55;margin-bottom:8px;color:var(--ink-2)}
 .sv-formbox{margin-top:16px;max-width:760px}
-.sv-login{padding:18px;border:1px solid var(--line);border-radius:14px;background:var(--surf)}
+.sv-login{padding:18px;border:1px solid var(--line);border-radius:var(--r);background:var(--surf)}
 .sv-login h3{margin:0 0 6px}
 .sv-login p{margin:0 0 12px}
 .sv-form{display:flex;flex-direction:column;gap:14px}
 .sv-form label{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:500;color:var(--ink-2)}
-.sv-form input:not([type=checkbox]):not([type=radio]),.sv-form select,.sv-form textarea{padding:10px 12px;border:1px solid var(--line-2);border-radius:10px;min-height:44px;font:inherit;background:#fff;color:var(--ink)}
+.sv-form input:not([type=checkbox]):not([type=radio]),.sv-form select,.sv-form textarea{padding:10px 12px;border:1px solid var(--line-2);border-radius:var(--r-s);min-height:44px;font:inherit;background:#fff;color:var(--ink)}
 .sv-form :focus-visible{outline:3px solid var(--focus);outline-offset:1px}
 .sv-form fieldset{border:0;margin:0;padding:0}
 .sv-form legend{font-size:13px;font-weight:500;color:var(--ink-2);margin-bottom:6px}
@@ -44,10 +44,10 @@
 @media (max-width:560px){.nf-grid{grid-template-columns:1fr}}
 .sv-chips{display:flex;flex-wrap:wrap;gap:8px}
 .sv-chips.col{flex-direction:column}
-.sv-form .sv-chip{flex-direction:row;align-items:center;gap:8px;padding:9px 12px;border:1px solid var(--line-2);border-radius:10px;cursor:pointer;font-weight:500;min-height:44px}
+.sv-form .sv-chip{flex-direction:row;align-items:center;gap:8px;padding:9px 12px;border:1px solid var(--line-2);border-radius:var(--r-s);cursor:pointer;font-weight:500;min-height:44px}
 .sv-chip:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
 .sv-chip input{width:18px;height:18px;margin:0}
-.sv-sub{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:10px;background:var(--surf)}
+.sv-sub{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:var(--r-s);background:var(--surf)}
 .sv-sub div{display:flex;flex-direction:column}
 .sv-sub small{color:var(--muted)}
 .sv-form .nf-check{flex-direction:row;align-items:flex-start;gap:10px;font-weight:400;line-height:1.4}

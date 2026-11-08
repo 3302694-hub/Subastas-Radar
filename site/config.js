@@ -1,6 +1,6 @@
 // Настройки сайта — меняйте здесь
 window.SITE_CONFIG = {
-  name: "SubastaRadar",
+  name: "Subástica",
   tagline: "subastas públicas · España",
   defaultLang: "es",            // "es", "en" или "ru" (если браузер на одном из них — берётся язык браузера)
   telegramUrl: "",               // например "https://t.me/mi_canal_subastas" (пусто — блок скрыт)
@@ -12,7 +12,7 @@ window.SITE_CONFIG = {
   // Пока поля пустые, сайт работает в открытом режиме (все данные из site/data/subastas.json).
   supabaseUrl: "https://jkxvxdhmothlamhotecu.supabase.co",
   supabaseAnonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpreHZ4ZGhtb3RobGFtaG90ZWN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM5NzczNzgsImV4cCI6MjEwOTU1MzM3OH0.S4CoToxM2Ai9Sm87UDp5DwlpAAnPrpjkJ-nYa4Akc1g",  // публичный ключ (anon)
-  // Кнопка Google на самом сайте: в окне Google будет «subasta-radar.es», а не адрес Supabase
+  // Кнопка Google на самом сайте: в окне Google будет «subastica.es», а не адрес Supabase
   googleClientId: "551579900240-6mmn147nptdk32c15d6smghftnhe9ga4.apps.googleusercontent.com",
   oauthProviders: ["google"]  // "apple" — после настройки Apple в Supabase
 };

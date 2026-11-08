@@ -1,7 +1,7 @@
-# Соцсети SubastaRadar — как делать рилс
+# Соцсети Subástica — как делать рилс
 
 ## Аккаунт
-- Instagram **@subastaradar**, один аккаунт. Подключён к vidIQ: platformAccountId `28828962653411783`. Сейчас через vidIQ доступны публикация рилс и статистика.
+- Instagram: новый аккаунт **@subastica** (зарегистрирован 8.11.2026, ещё не подключён к vidIQ). Старый @subastaradar подключён к vidIQ: platformAccountId `28828962653411783` — после подключения @subastica обновить settings.social_cuentas.
 - Текст на экране — по-русски, подпись к рилс — на трёх языках: 🇷🇺 🇪🇸 🇬🇧.
 - Telegram пока не решён (один канал или три) — спросить пользователя.
 - Публикуем только после явного «да» пользователя.
@@ -39,7 +39,7 @@
 1. Материалы: GitHub Actions → «Соцсети — материалы для рилс» (`social-assets.yml`), ввод — номера аукционов. Скрипт `tools/social_assets.py` кладёт в `site/social/src/<id>/`: info.json (полное описание BOE + Катастро), fachada0.jpg, aereo_*.jpg, parcela0.gml.
 2. Слайды 1080×1920 — HTML через Playwright (примеры: `tools/reels/*_slides.py`), шрифт Inter Display, цвета бренда #0B6B66 / #9CF2C4.
 3. Видео: `tools/reels/render.sh out.mp4 "a.png:3.4 b.png:5.6 …"` — переходы и музыка из `site/social/src/music/` (уже куплена, повторно использовать).
-4. Положить mp4 в `site/social/reels/`, запушить (сайт задеплоится), затем `vidiq_video_upload` по ссылке `https://subasta-radar.es/social/reels/…` → после «да» `vidiq_instagram_publish_reel`.
+4. Положить mp4 в `site/social/reels/`, запушить (сайт задеплоится), затем `vidiq_video_upload` по ссылке `https://subastica.es/social/reels/…` → после «да» `vidiq_instagram_publish_reel`.
 5. Обновить строку в `social_cola` (estado, resultado с permalink).
 
 ## Кредиты vidIQ

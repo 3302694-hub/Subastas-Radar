@@ -10,7 +10,7 @@ from scrape import Fetcher            # noqa: E402
 import boe, enrich                    # noqa: E402
 
 OUT = Path(__file__).resolve().parent.parent / "site" / "social" / "src"
-UA = {"User-Agent": "Mozilla/5.0 (SubastaRadar; +https://subasta-radar.es)"}
+UA = {"User-Agent": "Mozilla/5.0 (Subastica; +https://subastica.es)"}
 MUSIC_HOSTS = ("ai-music-tracks.s3.us-east-1.amazonaws.com", "assets.vidiq.com")
 
 

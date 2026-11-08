@@ -192,7 +192,7 @@ def aereo(sid: str) -> bool:
                for b in bienes if len(re.sub(r"[^0-9A-Z]", "", str(b.get("ref_catastral") or "").upper().split(" ")[0])) >= 14), None)
     if not rc:
         print("аэрофото: нет кадастрового номера"); return False
-    ua = {"User-Agent": "Mozilla/5.0 (SubastaRadar; +https://subasta-radar.es)"}
+    ua = {"User-Agent": "Mozilla/5.0 (Subastica; +https://subastica.es)"}
     gml = urllib.request.urlopen(urllib.request.Request(
         "https://ovc.catastro.meh.es/INSPIRE/wfsCP.aspx?service=wfs&version=2&request=getfeature"
         f"&STOREDQUERIE_ID=GetParcel&refcat={rc}&srsname=EPSG::4326", headers=ua), timeout=60).read().decode("latin-1")

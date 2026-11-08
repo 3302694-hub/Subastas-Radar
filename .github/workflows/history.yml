@@ -36,7 +36,7 @@ jobs:
       - run: pip install -r requirements.txt
       - name: Сбор завершённых аукционов
         env:
-          SITE_URL: https://subasta-radar.es
+          SITE_URL: https://subastica.es
           SITE_NAME: ${{ vars.SITE_NAME }}
         run: python scraper/history.py --months "${{ github.event.inputs.months || '12' }}" --budget-min "${{ github.event.inputs.budget || '170' }}"
       - name: Сохранить архив в репозиторий

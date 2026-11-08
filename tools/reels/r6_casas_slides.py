@@ -39,7 +39,7 @@ S['cta']=f'''<div class="bg"></div><div class="s" style="align-items:center;text
 <div class="mark" style="width:200px;height:200px;border-radius:52px">{ICON.replace('width="70" height="41"','width="150" height="87"')}</div>
 <h1 style="margin-top:60px">Такие аукционы —<br><span class="lime">каждую неделю</span></h1>
 <div class="mid muted" style="margin-top:30px">Сохрани, чтобы не потерять</div>
-<div class="mid" style="margin-top:110px;font-size:54px">subasta-radar.es</div>
+<div class="mid" style="margin-top:110px;font-size:54px">subastica.es</div>
 <div class="mid muted" style="font-size:38px;margin-top:14px">все аукционы недвижимости Испании на карте</div></div>'''
 async def main():
     async with async_playwright() as p:

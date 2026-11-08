@@ -29,5 +29,5 @@ jobs:
           for i in $IDS; do [[ "$i" =~ ^SUB-[A-Z]{2}-[0-9]{4}-[0-9A-Z]+$ ]] && ARGS+=("$i"); done
           [ -n "$MUSIC" ] && ARGS+=(--music "$MUSIC")
           python tools/social_assets.py "${ARGS[@]}"
-          git config user.name "subastaradar-bot"; git config user.email "bot@subasta-radar.es"
+          git config user.name "subastica-bot"; git config user.email "bot@subastica.es"
           git add site/social/src && git commit -m "Материалы для соцсетей" && git pull --rebase && git push || echo "нечего коммитить"

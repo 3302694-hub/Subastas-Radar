@@ -1,6 +1,6 @@
 // Письмо клиенту о готовой nota simple (через Resend).
 // Вызывает только администратор. Нужен секрет RESEND_API_KEY (Supabase → Edge Functions → Secrets);
-// необязательно NOTA_FROM, например "SubastaRadar <notas@subasta-radar.es>" — домен должен быть подтверждён в Resend.
+// необязательно NOTA_FROM, например "Subástica <notas@subastica.es>" — домен должен быть подтверждён в Resend.
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const CORS = {
@@ -41,19 +41,19 @@ Deno.serve(async (req) => {
     }
     const pack = n.tipo === "pack";
     const finca = [n.registro, n.finca && "finca " + n.finca].filter(Boolean).join(", ");
-    const html = `<div style="font-family:Arial,sans-serif;font-size:15px;color:#16201D;line-height:1.5">
+    const html = `<div style="font-family:Arial,sans-serif;font-size:15px;color:#1A1F1C;line-height:1.5">
       <p>Hola ${esc(n.nombre)}:</p>
       <p>Ya tienes ${pack ? "los documentos que pediste" : "la nota simple que pediste"} (pedido #${n.id}${finca ? " — " + esc(finca) : ""}).</p>
-      ${links.map((l) => `<p><a href="${esc(l.url)}" style="display:inline-block;background:#0B6B66;color:#fff;padding:10px 16px;border-radius:10px;text-decoration:none">Descargar ${esc(links.length > 1 ? l.name : pack ? "los documentos" : "la nota simple")}</a></p>`).join("")}
-      <p style="color:#56625D;font-size:13px">Los enlaces son válidos 7 días. También los tienes en subasta-radar.es → Mis pedidos.</p>
-      <p>Un saludo,<br>SubastaRadar</p></div>`;
+      ${links.map((l) => `<p><a href="${esc(l.url)}" style="display:inline-block;background:#1F4D3A;color:#fff;padding:10px 16px;border-radius:10px;text-decoration:none">Descargar ${esc(links.length > 1 ? l.name : pack ? "los documentos" : "la nota simple")}</a></p>`).join("")}
+      <p style="color:#4A564F;font-size:13px">Los enlaces son válidos 7 días. También los tienes en subastica.es → Mis pedidos.</p>
+      <p>Un saludo,<br>Subástica</p></div>`;
     const r = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from: Deno.env.get("NOTA_FROM") ?? "SubastaRadar <no-reply@subasta-radar.es>",
+        from: Deno.env.get("NOTA_FROM") ?? "Subástica <no-reply@subastica.es>",
         to: [n.email], reply_to: "subastaradar@gmail.com",
-        subject: `${pack ? "Tus documentos" : "Tu nota simple"} #${n.id} — SubastaRadar`, html,
+        subject: `${pack ? "Tus documentos" : "Tu nota simple"} #${n.id} — Subástica`, html,
       }),
     });
     if (!r.ok) return json({ ok: false, error: "resend_" + r.status, detail: await r.text() }, 502);

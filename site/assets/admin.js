@@ -1,4 +1,4 @@
-// Панель управления SubastaRadar: пользователи, доверенные адреса, сроки доступа.
+// Панель управления Subástica: пользователи, доверенные адреса, сроки доступа.
 // Все изменения проходят через функции базы admin_*, которые сами проверяют, что вы администратор.
 (function () {
   "use strict";
@@ -153,8 +153,8 @@
     } catch (e) { console.error(e); }
   }
   function mailtoNota(n, url) {
-    const subj = `${n.tipo === "pack" ? "Tus documentos" : "Tu nota simple"} #${n.id} — SubastaRadar`;
-    const body = `Hola ${n.nombre}:\n\nYa tienes ${n.tipo === "pack" ? "los documentos que pediste" : "la nota simple que pediste"} (pedido #${n.id}${n.registro ? ", " + n.registro : ""}${n.finca ? ", finca " + n.finca : ""}).\n\nPuedes descargarlo en SubastaRadar → Mis pedidos:\nhttps://subasta-radar.es/\n${url ? "\nEnlace directo (válido 7 días):\n" + url + "\n" : ""}\nUn saludo,\nSubastaRadar`;
+    const subj = `${n.tipo === "pack" ? "Tus documentos" : "Tu nota simple"} #${n.id} — Subástica`;
+    const body = `Hola ${n.nombre}:\n\nYa tienes ${n.tipo === "pack" ? "los documentos que pediste" : "la nota simple que pediste"} (pedido #${n.id}${n.registro ? ", " + n.registro : ""}${n.finca ? ", finca " + n.finca : ""}).\n\nPuedes descargarlo en Subástica → Mis pedidos:\nhttps://subastica.es/\n${url ? "\nEnlace directo (válido 7 días):\n" + url + "\n" : ""}\nUn saludo,\nSubástica`;
     location.href = `mailto:${encodeURIComponent(n.email)}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`;
   }
   async function sendNotaMail(n) {
@@ -195,7 +195,7 @@
       ${a.comentario ? `<p class="nota-bien" style="white-space:pre-wrap">${esc(a.comentario)}</p>` : ""}
       <div class="adm-bar">
         ${tel ? `<a class="btn soft" href="https://wa.me/${esc(tel.replace(/^\+/, ""))}" target="_blank" rel="noopener">WhatsApp</a><a class="btn ghost" href="tel:${esc(tel)}">Позвонить</a>` : ""}
-        <a class="btn ghost" href="mailto:${esc(a.email)}?subject=${encodeURIComponent("SubastaRadar — solicitud #" + a.id)}">Написать</a>
+        <a class="btn ghost" href="mailto:${esc(a.email)}?subject=${encodeURIComponent("Subástica — solicitud #" + a.id)}">Написать</a>
       </div>
       <div class="adm-bar">
         <label class="fld"><span>Статус</span><select data-f="estado">${Object.entries(AS).map(([k, l]) => `<option value="${k}"${k === a.estado ? " selected" : ""}>${l}</option>`).join("")}</select></label>

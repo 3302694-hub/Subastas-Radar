@@ -41,7 +41,7 @@
 .adm-t td:first-child{min-width:200px}
 .acts .btn:disabled{cursor:default;opacity:.45}
 .u-sub{display:block;font-size:12px;color:var(--muted);margin-top:2px}
-.adm-t input[type=date],.adm-t input[type=text]{min-height:38px;border:1px solid var(--line-2);border-radius:8px;padding:6px 8px;font-size:14px;width:100%}
+.adm-t input[type=date],.adm-t input[type=text]{min-height:38px;border:1px solid var(--line-2);border-radius:var(--r-s);padding:6px 8px;font-size:14px;width:100%}
 .adm-t input[type=date]{min-width:140px}
 .quick{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
 .quick button{border:1px solid var(--line);background:#fff;border-radius:6px;padding:3px 7px;font-size:12px;cursor:pointer;min-height:28px}
@@ -69,7 +69,7 @@
 .nota-card header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:10px}
 .nota-card header .btn{margin-left:auto}
 .cp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-bottom:8px}
-.cp{border:1px solid var(--line);border-radius:10px;padding:8px 10px;cursor:copy;background:#fff;transition:background 160ms}
+.cp{border:1px solid var(--line);border-radius:var(--r-s);padding:8px 10px;cursor:copy;background:#fff;transition:background 160ms}
 .cp:hover{background:var(--surf)}
 .cp.copied{background:var(--ok-bg)}
 .cp small{display:block;color:var(--muted);font-size:12px}
@@ -80,7 +80,7 @@
 /* соцсети */
 .soc-group{margin:0 0 18px}
 .soc-group h3{font-size:15px;margin:0 0 8px}
-.soc-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;margin-bottom:6px}
+.soc-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r-s);background:#fff;margin-bottom:6px}
 .soc-sel input,.soc-langs input{width:18px;height:18px}
 .soc-main{flex:1;min-width:240px;display:flex;flex-direction:column;gap:2px}
 .soc-res{font-size:13px}

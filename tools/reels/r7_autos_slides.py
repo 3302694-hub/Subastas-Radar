@@ -36,7 +36,7 @@ h1{font-size:110px;line-height:1.0;font-weight:800;letter-spacing:-.02em}
 .pill{background:rgba(255,255,255,.1);border-radius:28px;padding:30px 38px;font-size:46px;font-weight:700;line-height:1.2}
 .pill small{display:block;font-size:32px;font-weight:500;opacity:.7;margin-top:6px}
 '''
-def brand(): return f'<div class="brand"><div class="mark">{ICON}</div>SubastaRadar</div>'
+def brand(): return f'<div class="brand"><div class="mark">{ICON}</div>Subástica</div>'
 DISC = '<div class="disc">Максимальная ставка на аукционе BOE (архив 2026); не цена сделки. Оценка — сумма, назначенная для торгов.</div>'
 
 def car(rank, model, chips, old, new, pct, extra=''):
@@ -74,7 +74,7 @@ S['cta'] = f'''<div class="bg"></div><div class="s" style="align-items:center;te
 <div class="mark" style="width:200px;height:200px;border-radius:52px">{ICON.replace('width="70" height="41"', 'width="150" height="87"')}</div>
 <h1 style="margin-top:60px;font-size:92px">Машины, квартиры, дома —<br><span class="lime">аукционы каждую неделю</span></h1>
 <div class="mid muted" style="margin-top:30px">Сохрани, чтобы не потерять</div>
-<div class="mid" style="margin-top:110px;font-size:54px">subasta-radar.es</div>
+<div class="mid" style="margin-top:110px;font-size:54px">subastica.es</div>
 <div class="mid muted" style="font-size:38px;margin-top:14px">все аукционы BOE на карте</div></div>'''
 
 async def main():

@@ -37,8 +37,8 @@
       const c = document.createElement("canvas"); c.width = 240; c.height = 60;
       const x = c.getContext("2d");
       x.textBaseline = "top"; x.font = "16px Arial"; x.fillStyle = "#f60"; x.fillRect(100, 1, 62, 20);
-      x.fillStyle = "#069"; x.fillText("SubastaRadar ñ € 🏠", 2, 15);
-      x.fillStyle = "rgba(102,204,0,0.7)"; x.fillText("SubastaRadar ñ € 🏠", 4, 17);
+      x.fillStyle = "#069"; x.fillText("Subástica ñ € 🏠", 2, 15);
+      x.fillStyle = "rgba(102,204,0,0.7)"; x.fillText("Subástica ñ € 🏠", 4, 17);
       parts.push(c.toDataURL());
     } catch (e) { /* */ }
     try {

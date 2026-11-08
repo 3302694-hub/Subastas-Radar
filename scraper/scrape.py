@@ -43,7 +43,7 @@ META_FILE = SITE / "data" / "meta.json"
 FEED_FILE = SITE / "feed.xml"
 
 SITE_URL = os.environ.get("SITE_URL", "").rstrip("/")
-SITE_NAME = os.environ.get("SITE_NAME", "SubastaRadar")
+SITE_NAME = os.environ.get("SITE_NAME", "Subástica")
 USER_AGENT = os.environ.get(
     "SCRAPER_USER_AGENT",
     f"{SITE_NAME}/1.0 (agregador de subastas publicas; +{SITE_URL or 'https://github.com'})",

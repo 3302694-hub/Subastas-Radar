@@ -20,7 +20,7 @@ from datetime import datetime, timedelta, timezone
 
 URL = os.environ.get("SUPABASE_URL", "https://jkxvxdhmothlamhotecu.supabase.co").rstrip("/")
 KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
-UA = {"User-Agent": "Mozilla/5.0 (SubastaRadar; +https://subasta-radar.es)"}
+UA = {"User-Agent": "Mozilla/5.0 (Subastica; +https://subastica.es)"}
 EXT = {"application/pdf": "pdf", "image/jpeg": "jpg", "image/png": "png", "application/zip": "zip"}
 MAX_SUBASTAS = int(os.environ.get("DOCS_FAV_MAX", "10"))
 

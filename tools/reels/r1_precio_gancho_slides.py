@@ -18,7 +18,7 @@ h1{font-size:92px;line-height:1.02;font-weight:800;letter-spacing:-.02em}
 .pill{background:rgba(255,255,255,.1);border-radius:28px;padding:34px 40px;font-size:58px;font-weight:700;display:flex;justify-content:space-between;align-items:baseline}
 .pill small{font-size:34px;font-weight:500;opacity:.7}
 '''
-def brand(): return f'<div class="brand"><div class="mark">{ICON}</div>SubastaRadar</div>'
+def brand(): return f'<div class="brand"><div class="mark">{ICON}</div>Subástica</div>'
 DISC='<div class="disc">Оценка по открытым данным (MIVAU), требует проверки. Итоговая цена определяется ставками.</div>'
 S={}
 S['s1']=f'''<div class="s" style="padding:0;justify-content:flex-start"><img src="bg.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.55">
@@ -52,7 +52,7 @@ S['s6']=f'''<div class="bg"></div><div class="s" style="align-items:center;text-
 <div class="mark" style="width:200px;height:200px;border-radius:52px">{ICON.replace('width="70" height="41"','width="150" height="87"')}</div>
 <h1 style="margin-top:60px">Пиши <span class="lime">SUBASTA</span><br>в комментариях</h1>
 <div class="mid muted" style="margin-top:30px">пришлю ссылку на лот</div>
-<div class="mid" style="margin-top:110px;font-size:54px">subasta-radar.es</div>
+<div class="mid" style="margin-top:110px;font-size:54px">subastica.es</div>
 <div class="mid muted" style="font-size:38px;margin-top:14px">все аукционы недвижимости Испании на карте</div></div>'''
 async def main():
     async with async_playwright() as p:
