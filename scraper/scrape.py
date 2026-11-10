@@ -136,6 +136,11 @@ def _migrate(db: dict[str, dict]) -> None:
                 s["provincia"] = b["provincia"] = real
         else:
             s["categoria"] = boe.category_of(s.get("bienes") or [], s.get("titulo", ""))
+            hid = boe.hidden_home(s.get("bienes") or [])
+            if hid:
+                s["oculta"] = hid
+            else:
+                s.pop("oculta", None)
         if not s.get("tasacion"):
             s["tasacion"] = None
 

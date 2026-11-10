@@ -569,3 +569,11 @@ html:has(dialog[open]),html:has(dialog[open]) body{overflow:hidden}
   .dlg.detail .d-close{top:calc(8px + env(safe-area-inset-top));right:10px}
   .dlg.detail .d-body{padding:14px 16px calc(28px + env(safe-area-inset-bottom))}
 }
+
+/* ---------- скрытое жильё */
+.seg.seg-hid{border-color:var(--seal)}
+.seg.seg-hid[aria-pressed="true"]{background:#FBF0D6}
+.hid-tag{display:inline-block;margin-top:4px;font-size:12px;font-weight:600;color:var(--warn);background:var(--warn-bg);padding:3px 9px;border-radius:999px}
+.hid-note{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:var(--r-s);background:var(--warn-bg)}
+.hid-note b{color:var(--warn);font-size:14px}
+.hid-note span{font-size:13px;color:var(--ink)}

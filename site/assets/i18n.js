@@ -388,3 +388,18 @@ Object.assign(window.I18N.ru, {
   off_note_cancelada: "Организатор снял аукцион. Ставки сделать нельзя; внесённый депозит возвращается.",
   off_note_suspendida: "Аукцион приостановлен. Его могут возобновить с новыми датами — мы следим и покажем его снова, если он вернётся."
 });
+Object.assign(window.I18N.es, {
+  grp_oculta: "Vivienda oculta", hid_tip: "En el BOE figuran con otro tipo de bien, pero por la descripción son viviendas",
+  hid_card: "En el BOE: «{t}» · por la descripción es vivienda",
+  hid_note: "El anuncio del BOE clasifica este lote como «{t}», pero la descripción habla de una vivienda. Quien busca en el BOE por «Vivienda» no lo ve, así que suele haber menos competencia. Comprueba en la nota simple y en el Catastro qué es realmente."
+});
+Object.assign(window.I18N.en, {
+  grp_oculta: "Hidden homes", hid_tip: "Listed in the BOE under another asset type, but the description says it's a home",
+  hid_card: "BOE type: “{t}” · the description says it's a home",
+  hid_note: "The BOE notice files this lot as “{t}”, but the description is of a home. People searching the BOE for “Vivienda” won't see it, so there is usually less competition. Check the nota simple and the Cadastre to confirm what it really is."
+});
+Object.assign(window.I18N.ru, {
+  grp_oculta: "Скрытое жильё", hid_tip: "В BOE указан другой тип имущества, но по описанию это жильё",
+  hid_card: "В BOE: «{t}» · по описанию это жильё",
+  hid_note: "В объявлении BOE лот отнесён к типу «{t}», но в описании речь о жилье. Кто ищет на BOE по типу «Vivienda», его не видит — конкурентов обычно меньше. Проверьте по nota simple и Catastro, что это на самом деле."
+});

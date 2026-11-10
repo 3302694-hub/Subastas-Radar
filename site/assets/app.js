@@ -184,7 +184,7 @@
     const year = String(b.fecha_matriculacion || "").match(/(19|20)\d\d/);
     return capWords(name) + (year ? " · " + year[0] : "");
   }
-  const what = (s) => vehicleName(s) || t("c_" + s.categoria);
+  const what = (s) => vehicleName(s) || t("c_" + (s.oculta ? "vivienda" : s.categoria));
 
   // ---------- вид объекта: фото BOE → фасад Кадастра → Google Maps
   const NO_MAP = ["vehiculo", "embarcacion", "maquinaria", "derechos", "joyas_arte"];
@@ -269,7 +269,8 @@
   function matches(s, st = state) {
     if (onlyFavs && !favs.has(s.id)) return false;
     if (st.origin.length && !st.origin.includes(s.origen)) return false;
-    if (st.cat) { const g = GROUPS.find((x) => x.id === st.cat); if (g ? !g.cats.includes(s.categoria) : s.categoria !== st.cat) return false; }
+    if (st.cat === "oculta") { if (!s.oculta) return false; }
+    else if (st.cat) { const g = GROUPS.find((x) => x.id === st.cat); if (g ? !(g.cats.includes(s.categoria) || (g.id === "vivienda" && s.oculta)) : s.categoria !== st.cat) return false; }
     if (st.prov && s._prov !== st.prov) return false;
     if (st.status === "open" && !["activa", "proxima"].includes(s.estado)) return false;
     if (!["open", "all"].includes(st.status) && s.estado !== st.status) return false;
@@ -313,18 +314,20 @@
   // ---------- элементы управления
   const opt = (v, label, sel) => `<option value="${esc(v)}"${sel ? " selected" : ""}>${esc(label)}</option>`;
   function buildControls() {
-    const catCounts = count((s) => s.categoria, openNow());
+    const catCounts = count((s) => (s.oculta ? null : s.categoria), openNow());
+    const nHidden = openNow().filter((s) => s.oculta).length;
     const base = locked() && meta.por_categoria ? meta.por_categoria : catCounts;
     $("#segs").setAttribute("aria-label", t("f_category"));
     $("#segs").innerHTML = `<button type="button" class="seg" data-cat="" aria-pressed="${!state.cat}">${esc(t("all_types"))}</button>` +
       GROUPS.map((g) => {
-        const n = g.cats.reduce((a, c) => a + (base[c] || 0), 0);
+        const n = g.cats.reduce((a, c) => a + (base[c] || 0), 0) + (g.id === "vivienda" ? nHidden : 0);
         if (!n) return "";
-        return `<button type="button" class="seg" data-cat="${g.id}" aria-pressed="${state.cat === g.id}">${ic(g.icon)}${esc(t("grp_" + g.id))}<em>${num(n)}</em></button>`;
+        const seg = `<button type="button" class="seg" data-cat="${g.id}" aria-pressed="${state.cat === g.id}">${ic(g.icon)}${esc(t("grp_" + g.id))}<em>${num(n)}</em></button>`;
+        return g.id === "vivienda" && nHidden ? seg + `<button type="button" class="seg seg-hid" data-cat="oculta" aria-pressed="${state.cat === "oculta"}" title="${esc(t("hid_tip"))}">${ic("vivienda")}${esc(t("grp_oculta"))}<em>${num(nHidden)}</em></button>` : seg;
       }).join("");
     const isGroup = GROUPS.some((g) => g.id === state.cat && g.cats.length > 1);
     $("#fCat").innerHTML = opt("", t("all_types"), !state.cat) +
-      (isGroup ? opt(state.cat, t("grp_" + state.cat), true) : "") +
+      (isGroup ? opt(state.cat, t("grp_" + state.cat), true) : "") + (state.cat === "oculta" ? opt("oculta", t("grp_oculta"), true) : "") +
       CATS.filter((c) => base[c]).map((c) => opt(c, `${t("c_" + c)} · ${num(base[c])}`, state.cat === c)).join("");
     const provCounts = count((s) => s._prov || null, openNow());
     const provs = Object.keys(provCounts).sort((a, b) => a.localeCompare(b, "es"));
@@ -349,7 +352,7 @@
     const chips = [];
     const x = ic("x");
     if (state.q) chips.push(["q", `“${state.q}”`]);
-    if (state.cat) chips.push(["cat", GROUPS.some((g) => g.id === state.cat) ? t("grp_" + state.cat) : t("c_" + state.cat)]);
+    if (state.cat) chips.push(["cat", GROUPS.some((g) => g.id === state.cat) || state.cat === "oculta" ? t("grp_" + state.cat) : t("c_" + state.cat)]);
     if (state.prov) chips.push(["prov", place(state.prov)]);
     if (state.min !== "" || state.max !== "") chips.push(["price", state.min !== "" && state.max !== "" ? `${eur(+state.min)} – ${eur(+state.max)}` : state.max !== "" ? t("upto", { v: eur(+state.max) }) : t("from", { v: eur(+state.min) })]);
     state.origin.forEach((o) => chips.push(["origin:" + o, t("o_" + o)]));
@@ -377,7 +380,7 @@
   // Заголовок, который описывает выбор: «264 viviendas hasta 150.000 €, en toda España»
   function resultTitle(n) {
     if (onlyFavs) return t("title_favs");
-    const what = state.cat ? (GROUPS.some((g) => g.id === state.cat) ? t("grp_" + state.cat) : t("c_" + state.cat)) : t("title_any");
+    const what = state.cat ? (GROUPS.some((g) => g.id === state.cat) || state.cat === "oculta" ? t("grp_" + state.cat) : t("c_" + state.cat)) : t("title_any");
     const where = state.prov ? t("in_place", { p: place(state.prov) }) : t("in_spain");
     const price = state.max !== "" ? " · " + t("upto", { v: eur(+state.max) }) : "";
     const st = histView() ? " · " + (state.status === "all" ? t("st_all") : t("title_" + state.status)) : "";
@@ -394,7 +397,7 @@
       ${locked() && done(s) ? `<div class="c-media m-empty">${ic(s.categoria)}</div>` : media(s)}
       <div class="n-body">
         <div class="n-head"><div><h3><a href="#/s/${encodeURIComponent(s.id)}" data-open="${esc(s.id)}">${esc(city === "—" ? what(s) : t("card_title", { what: what(s), city }))}</a></h3>
-          <span class="n-sub">${esc([place(s._prov) !== city ? place(s._prov) : "", t("origin_" + s.origen)].filter(Boolean).join(" · "))}</span>${addedLine(s) ? `<span class="n-added">${esc(addedLine(s))}</span>` : ""}</div>
+          <span class="n-sub">${esc([place(s._prov) !== city ? place(s._prov) : "", t("origin_" + s.origen)].filter(Boolean).join(" · "))}</span>${addedLine(s) ? `<span class="n-added">${esc(addedLine(s))}</span>` : ""}${s.oculta ? `<span class="hid-tag">${esc(t("hid_card", { t: s.oculta }))}</span>` : ""}</div>
           ${favBtn(s)}</div>
         ${r.applies ? `<div class="risk">${riskPill(r)}${s._inv && s._inv.valoracion && s._inv.valoracion.descuento > 0 && !done(s) ? `<span class="rp ok">${esc(t("mk_pill", { p: s._inv.valoracion.descuento }))}</span>` : ""}</div>` : ""}
         <div class="n-foot">
@@ -444,7 +447,7 @@
   function emptyBlock() {
     const blockers = [];
     if (state.q) blockers.push(`“${state.q}”`);
-    if (state.cat) blockers.push(GROUPS.some((g) => g.id === state.cat) ? t("grp_" + state.cat) : t("c_" + state.cat));
+    if (state.cat) blockers.push(GROUPS.some((g) => g.id === state.cat) || state.cat === "oculta" ? t("grp_" + state.cat) : t("c_" + state.cat));
     if (state.prov) blockers.push(place(state.prov));
     if (state.max !== "" || state.min !== "") blockers.push(t("f_price_max").replace(/\.$/, ""));
     return `<div class="empty"><h2>${esc(onlyFavs ? t("saved_empty_t") : t("none_t"))}</h2>
@@ -938,6 +941,7 @@
       ${media(s, true)}
       <div class="dv-head"><div><span class="muted" style="font-size:13px">${esc(what(s))} · ${esc(t("origin_" + s.origen))}</span>
         <h2 id="${idp}Title">${esc(city)}</h2><span class="dv-id">${esc(s.id)}</span>${addedLine(s) ? `<span class="dv-added">${isNew(s) ? `<span class="new-flag inline">${esc(t("new_badge"))}</span> ` : ""}${esc(addedLine(s))}</span>` : ""}</div>${favBtn(s)}</div>
+      ${s.oculta ? `<div class="hid-note"><b>${esc(t("grp_oculta"))}</b><span>${esc(t("hid_note", { t: s.oculta }))}</span></div>` : ""}
       ${cancelledEarly(s) ? `<div class="off-note"><b>${esc(t("off_" + s.estado))}</b><span>${esc(t("off_note_" + s.estado))}</span></div>` : ""}
       <div class="dv-kv">
         <div><small>${esc(t("value"))}</small><b>${eur(s.valor_subasta)}</b></div>
