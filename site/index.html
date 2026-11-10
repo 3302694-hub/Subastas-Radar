@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
-<link rel="stylesheet" href="assets/style.css?v=20261110b">
+<link rel="stylesheet" href="assets/style.css?v=20261110c">
 </head>
 <body>
 <a class="skip" href="#catalogo" data-i="skip"></a>
@@ -129,6 +129,12 @@
   <section class="wrap block" id="alertas">
     <h2 data-i="alerts_title"></h2>
     <div class="alert-grid">
+      <div class="acard" id="mailAlerts" hidden>
+        <h3 data-i="al_title"></h3>
+        <p data-i="al_d"></p>
+        <ul class="saved-list" id="alertList"></ul>
+        <button type="button" class="btn soft" id="alertNew"></button>
+      </div>
       <div class="acard">
         <h3 data-i="alerts_saved"></h3>
         <p data-i="alerts_saved_d"></p>
@@ -140,7 +146,7 @@
   </section>
 </main>
 
-<footer class="foot"><div class="wrap foot-in"><p data-i="footer_src"></p><p data-i="footer_ind"></p><p class="kbd-help" data-i="kbd_help"></p><p class="foot-links"><a href="aviso-legal.html">Aviso legal</a> · <a href="terminos.html">Términos y condiciones</a> · <a href="privacidad.html">Privacidad</a> · <a href="cookies.html">Cookies</a> · <a href="servicios.html#precios">Precios</a> · <a href="servicios.html">Servicios</a></p></div></footer>
+<footer class="foot"><div class="wrap foot-in"><p data-i="footer_src"></p><p data-i="footer_ind"></p><p class="kbd-help" data-i="kbd_help"></p><p class="foot-links"><a href="aviso-legal.html">Aviso legal</a> · <a href="terminos.html">Términos y condiciones</a> · <a href="privacidad.html">Privacidad</a> · <a href="cookies.html">Cookies</a> · <a href="servicios.html#precios">Precios</a> · <a href="servicios.html">Servicios</a> · <a href="estadisticas.html">Estadísticas</a> · <a href="subastas/">Provincias</a></p></div></footer>
 
 <!-- Нижняя панель на телефоне -->
 <nav class="tabbar" id="tabbar" aria-label="móvil">
@@ -192,13 +198,13 @@
   </div>
 </dialog>
 
-<script src="config.js?v=20261110b"></script>
+<script src="config.js?v=20261110c"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/i18n.js?v=20261110c1"></script>
-<script src="assets/provinces.js?v=20261110b"></script>
+<script src="assets/i18n.js?v=20261110c"></script>
+<script src="assets/provinces.js?v=20261110c"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script src="https://accounts.google.com/gsi/client" async></script>
-<script src="assets/auth.js?v=20261110b"></script>
-<script src="assets/app.js?v=20261110b"></script>
+<script src="assets/auth.js?v=20261110c"></script>
+<script src="assets/app.js?v=20261110c"></script>
 </body>
 </html>

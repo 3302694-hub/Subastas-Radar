@@ -33,7 +33,7 @@ deploy() {
 }
 
 case "$1" in
-  update)  lock scrape; sync; "$PY" scraper/scrape.py --max-pages 80 --max-new 400; MSG="Обновление аукционов" commit site/data site/feed.xml; deploy ;;
+  update)  lock scrape; sync; "$PY" scraper/scrape.py --max-pages 80 --max-new 400; "$PY" scraper/alerts.py; "$PY" tools/stats.py; "$PY" tools/seo_pages.py; MSG="Обновление аукционов" commit site/data site/feed.xml; deploy ;;
   history) lock history; "$PY" scraper/history.py --months 12 --budget-min 100; MSG="Архив завершённых аукционов" commit site/data/historico ;;
   fotos)   lock fotos; "$PY" scraper/docs_fotos.py ;;
   fav)     lock fav; "$PY" scraper/docs_fav.py ;;

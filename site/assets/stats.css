@@ -1,0 +1,22 @@
+/* Страница статистики */
+.stats{max-width:920px}
+.st-lang{display:flex;gap:6px;justify-content:flex-end}
+.st-lang button{min-height:36px;min-width:44px;border:1px solid var(--line);background:#fff;border-radius:var(--r-s);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.st-lang button[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.st-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:20px 0 8px}
+.st-tile{padding:14px 16px;border-radius:var(--r);background:var(--surf);display:flex;flex-direction:column;gap:4px}
+.st-tile b{font-family:"IBM Plex Serif",Georgia,serif;font-size:30px;line-height:1.1;color:var(--ink)}
+.st-tile span{font-size:13px;color:var(--ink)}
+.st-tile small{font-size:12px;color:var(--muted)}
+.st-note{margin:-4px 0 10px;font-size:14px}
+.st-bars{width:100%;border-collapse:collapse}
+.st-bars th{width:34%;text-align:left;font-weight:500;font-size:14px;padding:5px 12px 5px 0;color:var(--ink)}
+.st-bars td{padding:5px 0;display:flex;align-items:center;gap:10px}
+.st-bar{display:block;height:14px;background:var(--accent);border-radius:0 4px 4px 0;min-width:2px}
+.st-bars em{font-style:normal;font-size:13px;color:var(--ink-2);white-space:nowrap;font-variant-numeric:tabular-nums}
+.st-bars tr:hover th{color:var(--accent)}
+.st-scroll{overflow-x:auto}
+.st-t td,.st-t th{white-space:nowrap}
+.stats .st-t td{text-align:right;font-variant-numeric:tabular-nums}
+.stats .st-t thead th{font-size:12px;color:var(--muted);font-weight:600;text-align:right}
+@media (max-width:720px){.st-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.st-tile b{font-size:24px}.st-bars th{width:42%}}

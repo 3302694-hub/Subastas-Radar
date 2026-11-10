@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Estadísticas de subastas en España — Subástica</title>
+<meta name="theme-color" content="#1F4D3A">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%2216%22 fill=%22%231F4D3A%22/%3E%3Ctext x=%2216%22 y=%2222.5%22 text-anchor=%22middle%22 font-family=%22Georgia,serif%22 font-weight=%22700%22 font-size=%2219%22 fill=%22%23F4F1EA%22%3ES%3C/text%3E%3Crect x=%2222%22 y=%225%22 width=%225%22 height=%225%22 fill=%22%23D4A017%22 transform=%22rotate(45 24.5 7.5)%22/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css?v=20261110c">
+<link rel="stylesheet" href="assets/legal.css?v=20261110c">
+<link rel="stylesheet" href="assets/stats.css?v=20261110c">
+<meta name="description" content="Cuántas subastas públicas terminan con pujas en España, la puja más alta respecto al valor de subasta, por provincia y tipo de bien. Datos del Portal de Subastas del BOE, actualizados a diario.">
+</head>
+<body>
+<header class="top"><div class="wrap top-in"><a class="brand" href="./"><span class="brand-mark" aria-hidden="true">S</span><span class="wordmark" aria-hidden="true">SUB<span class="wm-a">A</span>STICA</span><span class="sr">Subástica</span></a></div></header>
+<main class="legal stats" id="st">
+<div class="st-lang"><button data-l="es">ES</button><button data-l="en">EN</button><button data-l="ru">RU</button></div>
+<h1 data-t="title"></h1>
+<p class="muted" id="stPeriod"></p>
+<div class="st-tiles" id="stTiles"></div>
+<h2 data-t="h_bucket"></h2><p class="st-note" data-t="d_bucket"></p><div id="stBuckets"></div>
+<h2 data-t="h_group"></h2><div id="stGroups"></div>
+<h2 data-t="h_month"></h2><div id="stMonths"></div>
+<h2 data-t="h_origin"></h2><div id="stOrigins"></div>
+<h2 data-t="h_prov"></h2><p class="st-note" data-t="d_prov"></p><div id="stProvs"></div>
+<h2 data-t="h_method"></h2><p class="st-note" data-t="d_method"></p>
+<p><a href="./" data-t="back"></a></p>
+</main>
+<script>
+(function () {
+  const T = {
+    es: { title: "Estadísticas de subastas", period: "Subastas terminadas de {a} a {b} · actualizado el {d}",
+      open: "Subastas abiertas ahora", done: "Terminadas en 12 meses", bids: "Terminaron con pujas", med: "Puja más alta (mediana) · inmuebles", of_value: "del valor de subasta",
+      h_bucket: "¿Por cuánto se puja? Inmuebles con pujas", d_bucket: "Puja más alta respecto al valor de subasta.",
+      b_lt50: "Menos del 50 %", b_50_70: "Del 50 al 70 %", b_70_100: "Del 70 al 100 %", b_gte100: "100 % o más",
+      h_group: "Por tipo de bien", h_month: "Por mes de cierre", h_origin: "Por quién subasta", h_prov: "Por provincia", d_prov: "Provincias con al menos 15 subastas terminadas.",
+      c_what: "", c_done: "Terminadas", c_bids: "Con pujas", c_med: "Puja mediana", c_val: "Valor mediano",
+      g: { vivienda: "Viviendas", g_garaje: "Garajes y trasteros", g_local: "Locales y naves", g_terreno: "Terrenos", g_otros: "Otros bienes" },
+      o: { judicial: "Juzgados", notarial: "Notarías", hacienda: "Agencia Tributaria", seguridad_social: "Seguridad Social", administracion: "Otras administraciones", otros: "Otros" },
+      h_method: "Cómo se calcula", d_method: "Contamos las subastas del Portal de Subastas del BOE que terminaron en los últimos 12 meses. «Con pujas» quiere decir que alguien pujó; la puja más alta no siempre es el precio final: en las subastas judiciales por debajo del 70 % el juzgado puede no aprobarla. Las subastas canceladas o suspendidas no cuentan en los porcentajes. Es información orientativa.",
+      back: "← Volver a Subástica", err: "No se pudieron cargar los datos." },
+    en: { title: "Auction statistics", period: "Auctions that ended from {a} to {b} · updated {d}",
+      open: "Auctions open now", done: "Ended in 12 months", bids: "Ended with bids", med: "Top bid (median) · real estate", of_value: "of auction value",
+      h_bucket: "How much do people bid? Real estate with bids", d_bucket: "Top bid as a share of the auction value.",
+      b_lt50: "Under 50%", b_50_70: "50 to 70%", b_70_100: "70 to 100%", b_gte100: "100% or more",
+      h_group: "By asset type", h_month: "By closing month", h_origin: "By who runs the auction", h_prov: "By province", d_prov: "Provinces with at least 15 finished auctions.",
+      c_what: "", c_done: "Ended", c_bids: "With bids", c_med: "Median top bid", c_val: "Median value",
+      g: { vivienda: "Homes", g_garaje: "Parking and storage", g_local: "Shops and warehouses", g_terreno: "Land", g_otros: "Other assets" },
+      o: { judicial: "Courts", notarial: "Notaries", hacienda: "Tax Agency", seguridad_social: "Social Security", administracion: "Other authorities", otros: "Other" },
+      h_method: "How it's calculated", d_method: "We count auctions on the BOE auction portal that ended in the last 12 months. “With bids” means someone bid; the top bid is not always the final price: in court auctions below 70% the court may not approve it. Cancelled or suspended auctions are left out of the percentages. Indicative only.",
+      back: "← Back to Subástica", err: "Could not load the data." },
+    ru: { title: "Статистика аукционов", period: "Аукционы, завершившиеся с {a} по {b} · обновлено {d}",
+      open: "Открытых аукционов сейчас", done: "Завершилось за 12 месяцев", bids: "Завершились со ставками", med: "Макс. ставка (медиана) · недвижимость", of_value: "от стоимости лота",
+      h_bucket: "Сколько ставят? Недвижимость со ставками", d_bucket: "Максимальная ставка относительно стоимости лота на аукционе.",
+      b_lt50: "Меньше 50 %", b_50_70: "От 50 до 70 %", b_70_100: "От 70 до 100 %", b_gte100: "100 % и больше",
+      h_group: "По типу имущества", h_month: "По месяцу завершения", h_origin: "Кто проводит аукцион", h_prov: "По провинциям", d_prov: "Провинции, где завершилось не меньше 15 аукционов.",
+      c_what: "", c_done: "Завершено", c_bids: "Со ставками", c_med: "Медиана ставки", c_val: "Медиана стоимости",
+      g: { vivienda: "Жильё", g_garaje: "Гаражи и кладовые", g_local: "Помещения и склады", g_terreno: "Земля", g_otros: "Другое" },
+      o: { judicial: "Суды", notarial: "Нотариусы", hacienda: "Налоговая (AEAT)", seguridad_social: "Seguridad Social", administracion: "Другие органы", otros: "Другие" },
+      h_method: "Как считаем", d_method: "Берём аукционы портала BOE, завершившиеся за последние 12 месяцев. «Со ставками» значит, что кто-то поставил; максимальная ставка — не всегда итоговая цена: в судебных аукционах ниже 70 % суд может её не утвердить. Отменённые и приостановленные аукционы в процентах не учитываются. Информация ориентировочная.",
+      back: "← На главную Subástica", err: "Не удалось загрузить данные." }
+  };
+  const q = new URLSearchParams(location.search);
+  let lang = q.get("l"); try { lang = lang || JSON.parse(localStorage.getItem("sr_lang")); } catch (e) { /* */ }
+  if (!T[lang]) lang = (navigator.language || "es").slice(0, 2); if (!T[lang]) lang = "es";
+  const loc = { es: "es-ES", en: "en-GB", ru: "ru-RU" };
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const PN = { "ILLES BALEARS": "Illes Balears", "A CORUÑA": "A Coruña", "SANTA CRUZ DE TENERIFE": "Santa Cruz de Tenerife", "LAS PALMAS": "Las Palmas", "LA RIOJA": "La Rioja" };
+  const place = (p) => PN[p] || String(p || "").toLowerCase().replace(/(^|[\s-])\p{L}/gu, (m) => m.toUpperCase());
+  let data = null;
+  function render() {
+    const t = T[lang], n = (v) => v == null ? "—" : Number(v).toLocaleString(loc[lang]);
+    const eur = (v) => v == null ? "—" : new Intl.NumberFormat(loc[lang], { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(v);
+    const pct = (v) => v == null ? "—" : n(v) + " %";
+    const mon = (m, y) => new Date(m + "-15").toLocaleDateString(loc[lang], { month: y ? "long" : "short", year: y ? "numeric" : "2-digit" });
+    document.documentElement.lang = lang;
+    document.querySelectorAll("[data-t]").forEach((e) => (e.textContent = t[e.dataset.t]));
+    document.querySelectorAll(".st-lang button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.l === lang));
+    if (!data) return;
+    const ms = data.meses;
+    document.getElementById("stPeriod").textContent = t.period.replace("{a}", mon(ms[0], 1)).replace("{b}", mon(ms[ms.length - 1], 1)).replace("{d}", new Date(data.generado).toLocaleDateString(loc[lang], { day: "numeric", month: "long" }));
+    const tot = data.total, inm = data.inmuebles;
+    const tile = (v, l, s) => `<div class="st-tile"><b>${v}</b><span>${esc(l)}</span>${s ? `<small>${esc(s)}</small>` : ""}</div>`;
+    document.getElementById("stTiles").innerHTML = tile(n(data.abiertas.total), t.open) + tile(n(tot.terminadas), t.done) + tile(pct(tot.pct_con_pujas), t.bids) + tile(pct(inm.mediana_puja_pct), t.med, t.of_value);
+    // одна величина — один цвет; подписи значений текстом, не цветом
+    const bars = (rows, max, fmt) => `<table class="st-bars">${rows.map(([label, v, title]) => `<tr title="${esc(title || "")}"><th scope="row">${esc(label)}</th><td><span class="st-bar" style="width:${max ? Math.max(1, 100 * v / max) : 0}%"></span><em>${fmt(v)}</em></td></tr>`).join("")}</table>`;
+    const b = data.tramos_inmuebles, bt = Object.values(b).reduce((a, x) => a + x, 0) || 1;
+    const bk = ["lt50", "50_70", "70_100", "gte100"].map((k) => [t["b_" + k], 100 * b[k] / bt, n(b[k])]);
+    document.getElementById("stBuckets").innerHTML = bars(bk, Math.max(...bk.map((x) => x[1])), (v) => pct(Math.round(v)));
+    const table = (rows) => `<div class="st-scroll"><table class="tbl st-t"><thead><tr><th></th><th>${t.c_done}</th><th>${t.c_bids}</th><th>${t.c_med}</th><th>${t.c_val}</th></tr></thead><tbody>${rows.map(([label, s]) =>
+      `<tr><th scope="row">${esc(label)}</th><td>${n(s.terminadas)}</td><td>${pct(s.pct_con_pujas)}</td><td>${pct(s.mediana_puja_pct)}</td><td>${eur(s.mediana_valor)}</td></tr>`).join("")}</tbody></table></div>`;
+    const G = ["vivienda", "g_garaje", "g_local", "g_terreno", "g_otros"].filter((k) => data.por_grupo[k]);
+    document.getElementById("stGroups").innerHTML = table(G.map((k) => [t.g[k], data.por_grupo[k]]));
+    const pm = data.por_mes, mx = Math.max(...ms.map((m) => (pm[m] || {}).terminadas || 0));
+    document.getElementById("stMonths").innerHTML = bars(ms.map((m) => [mon(m), (pm[m] || {}).terminadas || 0, `${t.c_bids}: ${pct((pm[m] || {}).pct_con_pujas)}`]), mx, n);
+    const O = Object.entries(data.por_origen).sort((a, b) => b[1].terminadas - a[1].terminadas);
+    document.getElementById("stOrigins").innerHTML = table(O.map(([k, s]) => [t.o[k] || k, s]));
+    const P = Object.entries(data.por_provincia).sort((a, b) => b[1].terminadas - a[1].terminadas);
+    document.getElementById("stProvs").innerHTML = table(P.map(([k, s]) => [place(k), s]));
+  }
+  document.querySelector(".st-lang").addEventListener("click", (e) => { const b = e.target.closest("[data-l]"); if (!b) return; lang = b.dataset.l; try { localStorage.setItem("sr_lang", JSON.stringify(lang)); } catch (er) { /* */ } render(); });
+  render();
+  fetch("data/stats.json", { cache: "no-cache" }).then((r) => r.json()).then((d) => { data = d; render(); })
+    .catch(() => { document.getElementById("stPeriod").textContent = T[lang].err; });
+})();
+</script>
+</main>
+<footer class="foot"><div class="wrap foot-in"><p class="foot-links"><a href="aviso-legal.html">Aviso legal</a> · <a href="terminos.html">Términos y condiciones</a> · <a href="privacidad.html">Privacidad</a> · <a href="cookies.html">Cookies</a> · <a href="servicios.html#precios">Precios</a> · <a href="servicios.html">Servicios</a> · <a href="estadisticas.html">Estadísticas</a> · <a href="subastas/">Provincias</a></p><p class="fine">Datos del Portal de Subastas del BOE — <a href="https://subastas.boe.es" rel="noopener">subastas.boe.es</a> — y del catálogo de subastas de la Seguridad Social — <a href="https://www.seg-social.es" rel="noopener">seg-social.es</a>. Subástica es un servicio independiente.</p></div></footer>
+</body>
+</html>
