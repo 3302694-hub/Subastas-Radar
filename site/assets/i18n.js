@@ -1,6 +1,7 @@
 // Переводы интерфейса: испанский (es), английский (en), русский (ru)
 window.I18N = {
   es: {
+    nav_course: "Curso", // ссылка на курс в меню
     skip: "Ir al listado",
     nav_list: "Subastas", nav_map: "Mapa", nav_alerts: "Alertas", nav_saved: "Guardadas",
     login: "Entrar", signup: "Crear cuenta", logout: "Cerrar sesión", cta_start: "Empezar gratis",
@@ -62,6 +63,7 @@ window.I18N = {
   },
 
   en: {
+    nav_course: "Course", // ссылка на курс в меню
     skip: "Skip to listings",
     nav_list: "Auctions", nav_map: "Map", nav_alerts: "Alerts", nav_saved: "Saved",
     login: "Log in", signup: "Sign up", logout: "Log out", cta_start: "Start free",
@@ -123,6 +125,7 @@ window.I18N = {
   },
 
   ru: {
+    nav_course: "Обучение", // ссылка на курс в меню
     skip: "Перейти к списку",
     nav_list: "Аукционы", nav_map: "Карта", nav_alerts: "Уведомления", nav_saved: "Избранное",
     login: "Войти", signup: "Регистрация", logout: "Выйти", cta_start: "Начать бесплатно",

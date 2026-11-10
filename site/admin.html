@@ -7,6 +7,8 @@
 <title>Панель управления — Subástica</title>
 <meta name="theme-color" content="#1F4D3A">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%2216%22 fill=%22%231F4D3A%22/%3E%3Ctext x=%2216%22 y=%2222.5%22 text-anchor=%22middle%22 font-family=%22Georgia,serif%22 font-weight=%22700%22 font-size=%2219%22 fill=%22%23F4F1EA%22%3ES%3C/text%3E%3Crect x=%2222%22 y=%225%22 width=%225%22 height=%225%22 fill=%22%23D4A017%22 transform=%22rotate(45 24.5 7.5)%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/admin-curso.css?v=20261110k">
+<script defer src="assets/admin-curso.js?v=20261110k"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
@@ -52,6 +54,7 @@
       <button role="tab" data-tab="soc" aria-selected="false">Соцсети <span class="adm-badge" id="socBadge" hidden></span></button>
       <button role="tab" data-tab="ayuda" aria-selected="false">Сопровождение <span class="adm-badge" id="ayudaBadge" hidden></span></button>
       <button role="tab" data-tab="notas" aria-selected="false">Заказы документов <span class="adm-badge" id="notasBadge" hidden></span></button>
+      <button role="tab" data-tab="curso" aria-selected="false">Обучение <span class="adm-badge" id="cursoBadge" hidden></span></button>
       <button role="tab" data-tab="settings" aria-selected="false">Сроки доступа</button>
     </nav>
 
@@ -156,6 +159,102 @@
         <span class="muted" id="nCount"></span>
       </div>
       <div id="notas" class="nota-cards"></div>
+    </section>
+
+    <!-- обучение: метки доступа, оплаты в Telegram, уроки -->
+    <section id="tab-curso" class="adm-tab" hidden>
+      <p class="muted adm-lead">Курс на странице <a href="curso.html" target="_blank">curso.html</a>. Пользователь входит на сайт и платит в Telegram-боте (Stars) — метка доступа создаётся автоматически, дата старта = дата оплаты. Здесь можно выдать доступ вручную, закрыть или открыть его, сдвинуть старт или открыть все уроки сразу.</p>
+
+      <div class="adm-card">
+        <h2>Продажа и бот</h2>
+        <p class="muted" id="cBot">…</p>
+        <form class="adm-bar" id="cCfg">
+          <label class="fld"><span>Цена, Telegram Stars</span><input type="number" id="cPrice" min="1" max="100000" step="1" inputmode="numeric"></label>
+          <label class="fld"><span>Доступ после оплаты, дней</span><input type="number" id="cDias" min="1" step="1" placeholder="бессрочно" inputmode="numeric"></label>
+          <label class="chk-inline"><input type="checkbox" id="cGoteo"> уроки по расписанию от даты старта</label>
+          <label class="chk-inline"><input type="checkbox" id="cVenta"> продажа включена</label>
+          <button class="btn">Сохранить</button>
+        </form>
+        <div class="adm-bar">
+          <button class="btn ghost" id="cSetup" type="button">Подключить бота</button>
+          <button class="btn ghost" id="cCheck" type="button">Проверить бота</button>
+        </div>
+        <details class="c-help"><summary>Как подключить бота</summary>
+          <ol>
+            <li>Создайте бота у @BotFather (или возьмите существующий) и скопируйте токен.</li>
+            <li>Supabase → Edge Functions → Secrets: добавьте <code>CURSO_BOT_TOKEN</code> с этим токеном.</li>
+            <li>Нажмите «Подключить бота»: панель подключит вебхук и сохранит имя бота.</li>
+            <li>Укажите цену в Stars и включите продажу.</li>
+          </ol>
+          <p class="muted">Цифровые товары в Telegram продаются только за Stars. Stars выводятся через Fragment по правилам Telegram.</p>
+        </details>
+      </div>
+
+      <div class="adm-card">
+        <h2>Выдать доступ вручную</h2>
+        <form class="adm-bar" id="cGrant">
+          <label class="fld grow"><span>Почта пользователя на сайте</span><input type="email" id="gEmail" required></label>
+          <label class="fld"><span>Метка</span><input type="text" id="gTag" maxlength="60" placeholder="curso-manual"></label>
+          <label class="fld"><span>Старт</span><input type="date" id="gStart"></label>
+          <label class="fld"><span>Доступ до</span><input type="date" id="gEnd"></label>
+          <label class="chk-inline"><input type="checkbox" id="gAll"> все уроки сразу</label>
+          <button class="btn">Выдать</button>
+        </form>
+      </div>
+
+      <h2 class="c-h">Метки доступа</h2>
+      <div class="adm-bar">
+        <label class="fld grow"><span class="sr">Поиск</span><input type="search" id="cQ" placeholder="Поиск по почте, метке или заметке"></label>
+        <span class="muted" id="cCount"></span>
+      </div>
+      <div class="adm-table-box">
+        <table class="adm-t c-t">
+          <thead><tr>
+            <th scope="col">Пользователь</th><th scope="col">Метка</th><th scope="col">Статус</th>
+            <th scope="col">Старт</th><th scope="col">Доступ до</th><th scope="col">Уроки</th><th scope="col">Заметка</th>
+            <th scope="col"><span class="sr">Действия</span></th>
+          </tr></thead>
+          <tbody id="cRows"></tbody>
+        </table>
+      </div>
+
+      <h2 class="c-h">Оплаты в Telegram</h2>
+      <div class="adm-table-box">
+        <table class="adm-t c-t">
+          <thead><tr><th scope="col">Дата</th><th scope="col">Пользователь</th><th scope="col">Telegram</th><th scope="col">Сумма</th><th scope="col">ID платежа</th></tr></thead>
+          <tbody id="cPays"></tbody>
+        </table>
+      </div>
+
+      <h2 class="c-h">Уроки</h2>
+      <p class="muted">Неопубликованные уроки видны только администраторам. «День» — через сколько дней после старта урок открывается (при расписании).</p>
+      <div class="adm-table-box">
+        <table class="adm-t c-t">
+          <thead><tr><th scope="col">Урок</th><th scope="col">День</th><th scope="col">Опубликован</th><th scope="col"><span class="sr">Действия</span></th></tr></thead>
+          <tbody id="cLessons"></tbody>
+        </table>
+      </div>
+      <dialog id="cEdit" class="c-edit" aria-labelledby="cEditT">
+        <form method="dialog" id="cEditF">
+          <h2 id="cEditT">Урок</h2>
+          <div class="c-grid">
+            <label class="fld"><span>День</span><input type="number" name="dia" min="0" step="1"></label>
+            <label class="chk-inline"><input type="checkbox" name="publicada"> опубликован</label>
+          </div>
+          <label class="fld"><span>Заголовок ES</span><input type="text" name="t_es" maxlength="200"></label>
+          <label class="fld"><span>Заголовок EN</span><input type="text" name="t_en" maxlength="200"></label>
+          <label class="fld"><span>Заголовок RU</span><input type="text" name="t_ru" maxlength="200"></label>
+          <p class="muted c-md">Текст: пустая строка — новый абзац; <code>## Подзаголовок</code>, <code>- пункт</code>, <code>1. пункт</code>, <code>**жирный**</code>, <code>[ссылка](https://…)</code>, <code>&gt; врезка</code>.</p>
+          <label class="fld"><span>Текст ES</span><textarea name="es" rows="10"></textarea></label>
+          <label class="fld"><span>Текст EN</span><textarea name="en" rows="10"></textarea></label>
+          <label class="fld"><span>Текст RU</span><textarea name="ru" rows="10"></textarea></label>
+          <div class="adm-bar c-edit-acts">
+            <button class="btn" value="save">Сохранить</button>
+            <button class="btn ghost" value="cancel" formnovalidate>Отмена</button>
+            <a class="btn ghost" id="cPreview" target="_blank">Открыть на сайте ↗</a>
+          </div>
+        </form>
+      </dialog>
     </section>
 
     <!-- сроки -->
