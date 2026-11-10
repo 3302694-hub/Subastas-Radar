@@ -27,6 +27,7 @@
   const browserLang = ((navigator.language || "").slice(0, 2) || "").toLowerCase();
   let lang = store.get("lang", null) || (LANGS.includes(browserLang) ? browserLang : (CFG.defaultLang || "es"));
   if (!LANGS.includes(lang)) lang = "es";
+  { const ul = new URLSearchParams(location.search).get("l"); if (LANGS.includes(ul)) { lang = ul; store.set("lang", ul); } } // ссылки со страниц провинций
 
   let mode = store.get("mode", null) || CFG.defaultMode || "novato";
   if (!MODES.includes(mode)) mode = "novato";
@@ -1279,6 +1280,108 @@
     clearTimeout(note._t); if (!sticky) note._t = setTimeout(() => (n.hidden = true), 4500);
   }
 
+  // ---------- почтовые оповещения о новых аукционах
+  const AL_CATS = [["vivienda", "al_c_viv"], ["g_garaje", "al_c_gar"], ["g_local", "al_c_loc"], ["g_terreno", "al_c_ter"], ["", "al_c_any"]];
+  const AL_MAX = ["50000", "100000", "200000", ""];
+  let myAlerts = null, alSel = null, alBound = false, alBroken = false;
+  const canAlerts = () => !!(AUTH.enabled && AUTH.alertas && AUTH.user && AUTH.user());
+  function alertLabel(a) {
+    const c = a.categoria ? t(a.categoria === "oculta" ? "grp_oculta" : (AL_CATS.find((x) => x[0] === a.categoria) || [, "al_c_any"])[1]) : t("al_c_any");
+    return [c, a.provincia ? place(a.provincia) : t("all_spain"), a.max_valor ? t("upto", { v: eur(+a.max_valor) }) : ""].filter(Boolean).join(" · ");
+  }
+  async function loadAlerts() {
+    if (!canAlerts()) { myAlerts = null; renderAlerts(); return; }
+    try { myAlerts = await AUTH.alertas.list(); alBroken = false; } catch (e) { console.error("alertas", e); myAlerts = null; alBroken = true; }
+    renderAlerts();
+  }
+  function renderAlerts() {
+    const box = $("#mailAlerts"); if (!box) return;
+    box.hidden = !AUTH.enabled || alBroken;
+    if (box.hidden) return;
+    const u = AUTH.user && AUTH.user();
+    $("#alertList").innerHTML = !u ? `<li><span class="muted">${esc(t("al_login"))}</span></li>`
+      : myAlerts && myAlerts.length ? myAlerts.map((a) => `<li class="${a.activa ? "" : "al-off"}"><span>${esc(alertLabel(a))}${a.activa ? "" : ` · <em>${esc(t("al_paused"))}</em>`}</span><div>
+          <button class="btn soft" data-altog="${a.id}" data-on="${a.activa ? 0 : 1}">${esc(t(a.activa ? "al_pause" : "al_resume"))}</button>
+          <button class="btn ghost" data-aldel="${a.id}" aria-label="${esc(t("remove"))}">${ic("x")}</button></div></li>`).join("")
+      : `<li><span class="muted">${esc(t("al_none"))}</span></li>`;
+    $("#alertNew").textContent = t(u ? "al_new" : "lock_cta_guest");
+  }
+  function alertCount(sel) {
+    const st = Object.assign({}, DEFAULTS, { prov: sel.prov, cat: sel.cat, max: sel.max, status: "open" });
+    const f = onlyFavs; onlyFavs = false;
+    const list = all.filter((s) => matches(s, st));
+    onlyFavs = f;
+    return list;
+  }
+  function alertDialogHTML() {
+    const list = alertCount(alSel);
+    const ex = list.slice().sort((a, b) => (b.detectada || "").localeCompare(a.detectada || "")).slice(0, 3);
+    const provs = Object.keys(PROVINCES).sort((a, b) => place(a).localeCompare(place(b), "es"));
+    const chip = (k, v, label) => `<button type="button" class="al-chip" data-al="${k}" data-v="${esc(v)}" aria-pressed="${alSel[k] === v}">${esc(label)}</button>`;
+    return `<div class="d-head">${closeBtn()}<h2 id="alTitle">${esc(t("al_q_title"))}</h2><p class="muted" style="margin:6px 52px 0 0">${esc(t("al_q_lead"))}</p></div>
+      <div class="d-body al-form">
+        <label class="al-l">${esc(t("al_q_prov"))}<select id="alProv"><option value="">${esc(t("all_spain"))}</option>${provs.map((p) => `<option value="${esc(p)}"${alSel.prov === p ? " selected" : ""}>${esc(place(p))}</option>`).join("")}</select></label>
+        <div class="al-l">${esc(t("al_q_what"))}<div class="al-chips">${AL_CATS.map(([v, k]) => chip("cat", v, t(k))).join("")}</div></div>
+        <div class="al-l">${esc(t("al_q_max"))}<div class="al-chips">${AL_MAX.map((v) => chip("max", v, v ? eur(+v) : t("al_nolimit"))).join("")}</div></div>
+        <div class="al-res"><b>${esc(t("al_q_now", { n: num(list.length) }))}</b>
+          ${ex.length ? `<ul>${ex.map((s) => `<li><span>${esc(what(s))}, ${esc(place(s.localidad) || place(s._prov))}</span><b>${eur(s.valor_subasta)}</b></li>`).join("")}</ul>` : ""}
+          <small>${esc(t("al_q_how"))}</small></div>
+        <div class="al-acts"><button type="button" class="btn" id="alSave">${esc(t("al_activate"))}</button><button type="button" class="btn ghost" data-close>${esc(t("al_later"))}</button></div>
+        <p class="fine al-err" id="alErr" hidden></p>
+      </div>`;
+  }
+  function openAlertDialog(pre) {
+    if (!canAlerts()) { openAuth("signup"); return; }
+    const grp = AL_CATS.some((x) => x[0] === pre.cat) ? pre.cat : (GROUPS.find((g) => g.cats.includes(pre.cat)) || {}).id || "";
+    alSel = { prov: pre.prov || "", cat: grp, max: AL_MAX.includes(String(pre.max || "")) ? String(pre.max || "") : (pre.max ? "" : "") };
+    let d = $("#alertDlg");
+    if (!d) {
+      d = document.createElement("dialog"); d.id = "alertDlg"; d.className = "dlg alert-dlg"; d.setAttribute("aria-labelledby", "alTitle");
+      document.body.appendChild(d);
+      d.addEventListener("click", async (e) => {
+        if (e.target === d || e.target.closest("[data-close]")) { d.close(); return; }
+        const c = e.target.closest("[data-al]");
+        if (c) { alSel[c.dataset.al] = c.dataset.v; d.innerHTML = alertDialogHTML(); return; }
+        if (e.target.closest("#alSave")) {
+          const b = $("#alSave"); b.disabled = true;
+          try {
+            await AUTH.alertas.create({ provincia: alSel.prov || null, categoria: alSel.cat || null, max_valor: alSel.max ? +alSel.max : null, idioma: lang });
+            d.close(); note(t("al_ok")); await loadAlerts();
+          } catch (err) {
+            b.disabled = false; const m = $("#alErr"); m.hidden = false;
+            m.textContent = String(err && err.message || "").includes("too_many") ? t("al_err_many") : t("err_generic");
+          }
+        }
+      });
+      d.addEventListener("change", (e) => { if (e.target.id === "alProv") { alSel.prov = e.target.value; d.innerHTML = alertDialogHTML(); } });
+    }
+    d.innerHTML = alertDialogHTML();
+    if (!d.open) d.showModal();
+  }
+  // Сразу после регистрации/входа: один раз предлагаем включить оповещение (как у конкурентов, но без навязчивости)
+  async function maybeAskAlert() {
+    if (!canAlerts() || !all.length) return;
+    const k = "alert_ask_" + AUTH.user().id;
+    if (store.get(k)) return;
+    if (myAlerts === null) await loadAlerts();
+    if (myAlerts === null) return;
+    store.set(k, 1);
+    if (myAlerts.length || $("dialog[open]")) return;
+    openAlertDialog({ prov: state.prov, cat: state.cat, max: state.max });
+  }
+  function bindAlerts() {
+    if (alBound || !$("#mailAlerts")) return; alBound = true;
+    $("#mailAlerts").addEventListener("click", async (e) => {
+      if (e.target.closest("#alertNew")) { if (canAlerts()) openAlertDialog({ prov: state.prov, cat: state.cat, max: state.max }); else openAuth("signup"); return; }
+      const del = e.target.closest("[data-aldel]");
+      const tog = e.target.closest("[data-altog]");
+      try {
+        if (del) { await AUTH.alertas.remove(+del.dataset.aldel); await loadAlerts(); }
+        if (tog) { await AUTH.alertas.toggle(+tog.dataset.altog, tog.dataset.on === "1"); await loadAlerts(); }
+      } catch (err) { console.error(err); note(t("err_generic")); }
+    });
+  }
+
   // ---------- URL
   function writeUrl() {
     const p = new URLSearchParams();
@@ -1305,7 +1408,7 @@
     $$(".lang button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.lang === lang));
     $("#pMin").placeholder = t("f_min"); $("#pMax").placeholder = t("f_max");
     $("#kbdHelpDummy");
-    renderModes(); buildControls(); render(); renderAccount(); renderSaved();
+    renderModes(); buildControls(); render(); renderAccount(); renderSaved(); renderAlerts();
   }
 
   // ---------- события
@@ -1441,6 +1544,7 @@
       await loadData();
       if (!statusTouched) state.status = defStatus();
       applyI18n(); checkSaved();
+      await loadAlerts(); setTimeout(maybeAskAlert, 1200);
     });
   }
   // после входа возвращаем туда, откуда пришли (не дольше 30 минут)
@@ -1543,6 +1647,7 @@
     $("#demoBanner").hidden = !isDemo;
     applyI18n(); checkSaved();
     const m = location.hash.match(/^#\/s\/(.+)$/); if (m) openDetail(decodeURIComponent(m[1]));
+    bindAlerts(); loadAlerts().then(() => setTimeout(maybeAskAlert, 1500));
     // переход с других страниц: ./?auth=login&next=servicios.html…
     const qa = new URLSearchParams(location.search);
     if (qa.get("next")) { const nx = qa.get("next"); if (/^[a-z0-9_-]+\.html/i.test(nx)) store.set("next", { u: nx, ts: Date.now() }); }

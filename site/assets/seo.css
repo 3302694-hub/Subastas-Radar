@@ -1,0 +1,20 @@
+/* Страницы провинций и городов */
+.seo{max-width:820px}
+.top-in{display:flex;align-items:center;justify-content:space-between}
+.seo-lang{display:flex;gap:6px}
+.seo-lang a{min-width:40px;min-height:36px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:var(--r-s);font-size:13px;font-weight:600;color:var(--ink);text-decoration:none;background:#fff}
+.seo-lang a[aria-current="page"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.seo-lead{font-size:17px}
+.seo-types{list-style:none;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.seo-types li{padding:8px 12px;border-radius:var(--r-s);background:var(--surf);font-size:14px}
+.seo-list{list-style:none;padding:0;margin:0;border-top:1px solid var(--line)}
+.seo-list li{border-bottom:1px solid var(--line)}
+.seo-list a{display:flex;flex-direction:column;gap:2px;padding:12px 0;text-decoration:none;color:var(--ink)}
+.seo-list a b{font-family:"IBM Plex Serif",Georgia,serif;font-size:17px}
+.seo-list a span{font-size:14px;color:var(--muted)}
+.seo-list a:hover b{color:var(--accent)}
+.seo-cta{margin:20px 0 6px}
+.seo-provs{list-style:none;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:4px 16px}
+.seo-provs li{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:15px}
+.seo-provs span{color:var(--muted);font-variant-numeric:tabular-nums}
+.seo-small li{font-size:14px;padding:4px 0}

@@ -2,3 +2,12 @@ __pycache__/
 *.pyc
 scrape.log
 .venv/
+
+# генерируются на сервере
+site/data/stats.json
+site/subastas/
+site/en/
+site/ru/
+site/sitemap.xml
+site/robots.txt
+site/data/debug_*.html

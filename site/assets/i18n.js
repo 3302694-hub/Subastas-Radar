@@ -403,3 +403,27 @@ Object.assign(window.I18N.ru, {
   hid_card: "В BOE: «{t}» · по описанию это жильё",
   hid_note: "В объявлении BOE лот отнесён к типу «{t}», но в описании речь о жилье. Кто ищет на BOE по типу «Vivienda», его не видит — конкурентов обычно меньше. Проверьте по nota simple и Catastro, что это на самом деле."
 });
+Object.assign(window.I18N.es, {
+  al_title: "Alertas por correo", al_d: "Te escribimos cuando aparece una subasta nueva que encaja con lo que buscas. Puedes pausarla o borrarla cuando quieras.",
+  al_login: "Crea una cuenta gratis para recibir alertas por correo.", al_none: "Aún no tienes alertas.", al_new: "Crear alerta", al_paused: "en pausa", al_pause: "Pausar", al_resume: "Reanudar",
+  al_c_viv: "Vivienda", al_c_gar: "Garaje o trastero", al_c_loc: "Local o nave", al_c_ter: "Solar o terreno", al_c_any: "Cualquier cosa", al_nolimit: "Sin límite",
+  al_q_title: "¿Te avisamos de nuevas subastas?", al_q_lead: "Elige qué buscas y te mandamos un correo cuando aparezca algo nuevo.",
+  al_q_prov: "Provincia", al_q_what: "Qué buscas", al_q_max: "Valor máximo", al_q_now: "Ahora mismo hay {n} subastas así", al_q_how: "Solo te escribimos cuando hay novedades. Cada correo trae un enlace para darte de baja.",
+  al_activate: "Activar mi alerta", al_later: "Ahora no", al_ok: "Alerta activada. Te escribiremos cuando haya subastas nuevas.", al_err_many: "Ya tienes 5 alertas: borra alguna para crear otra."
+});
+Object.assign(window.I18N.en, {
+  al_title: "Email alerts", al_d: "We email you when a new auction matches what you're looking for. Pause or delete it any time.",
+  al_login: "Create a free account to get email alerts.", al_none: "No alerts yet.", al_new: "Create alert", al_paused: "paused", al_pause: "Pause", al_resume: "Resume",
+  al_c_viv: "Home", al_c_gar: "Parking or storage", al_c_loc: "Shop or warehouse", al_c_ter: "Plot or land", al_c_any: "Anything", al_nolimit: "No limit",
+  al_q_title: "Shall we tell you about new auctions?", al_q_lead: "Choose what you're after and we'll email you when something new comes up.",
+  al_q_prov: "Province", al_q_what: "What you're looking for", al_q_max: "Maximum value", al_q_now: "There are {n} auctions like this right now", al_q_how: "We only write when there's something new. Every email has an unsubscribe link.",
+  al_activate: "Turn on my alert", al_later: "Not now", al_ok: "Alert on. We'll email you when new auctions appear.", al_err_many: "You already have 5 alerts: delete one to add another."
+});
+Object.assign(window.I18N.ru, {
+  al_title: "Оповещения на почту", al_d: "Напишем, когда появится новый аукцион под ваш запрос. Оповещение можно приостановить или удалить в любой момент.",
+  al_login: "Создайте бесплатный аккаунт, чтобы получать оповещения на почту.", al_none: "Оповещений пока нет.", al_new: "Создать оповещение", al_paused: "на паузе", al_pause: "Пауза", al_resume: "Включить",
+  al_c_viv: "Жильё", al_c_gar: "Гараж или кладовая", al_c_loc: "Помещение или склад", al_c_ter: "Участок или земля", al_c_any: "Что угодно", al_nolimit: "Без лимита",
+  al_q_title: "Сообщать вам о новых аукционах?", al_q_lead: "Выберите, что ищете, — пришлём письмо, когда появится новое.",
+  al_q_prov: "Провинция", al_q_what: "Что ищете", al_q_max: "Максимальная стоимость", al_q_now: "Сейчас таких аукционов: {n}", al_q_how: "Пишем только когда есть новое. В каждом письме — ссылка для отписки.",
+  al_activate: "Включить оповещение", al_later: "Не сейчас", al_ok: "Оповещение включено. Напишем, когда появятся новые аукционы.", al_err_many: "У вас уже 5 оповещений: удалите одно, чтобы добавить новое."
+});

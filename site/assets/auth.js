@@ -130,6 +130,14 @@
   // Вход по токену Google Identity Services (кнопка Google на самом сайте)
   A.googleIdToken = (token, nonce) => client.auth.signInWithIdToken({ provider: "google", token, nonce });
 
+  // Почтовые оповещения о новых аукционах (таблица alertas, RLS: только свои)
+  A.alertas = {
+    list: async () => { const { data, error } = await client.from("alertas").select("id,provincia,categoria,max_valor,idioma,activa,created_at").order("id"); if (error) throw error; return data || []; },
+    create: async (o) => { const { data, error } = await client.from("alertas").insert(Object.assign({ user_id: A.user().id }, o)).select("id").single(); if (error) throw error; return data; },
+    remove: async (id) => { const { error } = await client.from("alertas").delete().eq("id", id); if (error) throw error; },
+    toggle: async (id, on) => { const { error } = await client.from("alertas").update({ activa: on }).eq("id", id); if (error) throw error; }
+  };
+
   // Загрузка аукционов, разрешённых текущему пользователю (RLS решает на сервере)
   A.loadSubastas = async function () {
     let out = [], from = 0;

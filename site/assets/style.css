@@ -577,3 +577,23 @@ html:has(dialog[open]),html:has(dialog[open]) body{overflow:hidden}
 .hid-note{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:var(--r-s);background:var(--warn-bg)}
 .hid-note b{color:var(--warn);font-size:14px}
 .hid-note span{font-size:13px;color:var(--ink)}
+
+/* ---------- оповещения на почту */
+.alert-dlg{max-width:560px}
+.al-form{display:flex;flex-direction:column;gap:16px}
+.al-l{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:600;color:var(--muted)}
+.al-l select{min-height:44px;font:inherit;font-size:15px;font-weight:400;color:var(--ink);padding:8px 10px;border:1px solid var(--line);border-radius:var(--r-s);background:#fff}
+.al-chips{display:flex;flex-wrap:wrap;gap:8px}
+.al-chip{min-height:40px;padding:8px 14px;border:1.5px solid var(--line);border-radius:999px;background:#fff;font:inherit;font-size:14px;font-weight:500;color:var(--ink);cursor:pointer}
+.al-chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-ink);font-weight:600}
+.al-res{padding:12px 14px;border-radius:var(--r-s);background:var(--surf)}
+.al-res > b{font-size:16px}
+.al-res ul{list-style:none;margin:8px 0;padding:0;display:flex;flex-direction:column;gap:4px}
+.al-res li{display:flex;justify-content:space-between;gap:12px;font-size:14px}
+.al-res li span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.al-res small{display:block;color:var(--muted);font-size:12px;margin-top:6px}
+.al-acts{display:flex;gap:10px;flex-wrap:wrap}
+.al-acts .btn{flex:1 1 auto}
+.al-err{color:var(--bad)}
+.saved-list li.al-off span{color:var(--muted)}
+#mailAlerts .btn{margin-top:10px}
