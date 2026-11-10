@@ -1,0 +1,7 @@
+# Время — по Мадриду (на сервере: timedatectl set-timezone Europe/Madrid)
+CRON_TZ=Europe/Madrid
+17 6-21/3 * * *  /opt/subastica/repo/server/run.sh update
+47 1,13 * * *    /opt/subastica/repo/server/run.sh history
+7,37 * * * *     /opt/subastica/repo/server/run.sh fotos
+17 */6 * * *     /opt/subastica/repo/server/run.sh fav
+0 4 * * *        find /opt/subastica/logs -name '*.log' -mtime +14 -delete

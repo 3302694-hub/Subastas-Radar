@@ -37,9 +37,9 @@ ORIGIN_BY_PREFIX = {
 CATEGORY_RULES = [
     ("garaje", r"garaje|aparcamiento|plaza de parking|plaza aparc"),
     ("trastero", r"trastero"),
-    ("local", r"local comercial|\blocal\b|oficina"),
+    ("local", r"local comercial|\blocal\b|oficina|\blonja\b"),
     ("nave", r"nave|industrial|almac[eé]n"),
-    ("solar", r"solar|parcela|terreno urbano|suelo"),
+    ("solar", r"solar|parcela|terreno urbano|\bterreno\b|suelo"),
     ("rustica", r"r[uú]stic|huerto|olivar|vi[nñ]edo|cultivo|tierra de labor|\bmonte\b|regad[ií]o|secano"),
     ("vivienda", r"vivienda|\bpiso\b|(?<!de )\bcasa\b|chalet|apartamento|d[uú]plex|[aá]tico|unifamiliar|adosad"),
     ("vehiculo", r"veh[ií]culo|turismo|furgoneta|cami[oó]n|motocicleta|coche|matr[ií]cula|remolque"),
@@ -145,17 +145,78 @@ HOUSING = r"vivienda|chalet|apartamento|d[uú]plex|[aá]tico|unifamiliar|adosad|
 BUILT = r"construid|edificaci|planta (baja|alta|primera|segunda)|dormitorio|\bba[ñn]os?\b|\bhabitaci[oó]n|\bsal[oó]n\b|\bcocina\b"
 
 
+# Анексы («tiene como anejo el trastero…») описывают не сам объект, а то, что к нему приложено
+ANNEX_RE = r"\banej[oa]s?\b|\banex[oa]s?\b|vinculad[oa]s?|le corresponde como|lleva incorporad|con derecho de uso"
+PRIMARY = ["garaje", "trastero", "local", "nave", "solar", "rustica", "vivienda"]
+
+
+def _primary(blob: str, promote: bool = True) -> str | None:
+    """Объект — то, что названо первым: «vivienda … con trastero» — это жильё, а не кладовая."""
+    # «local número 86.- vivienda…» — номер в доме, а не помещение
+    blob = re.sub(r"\blocal\s+(n[uú]mero|n[º°o]\.?)(?=[^.]{0,40}[.\-\s]+(vivienda|piso)\b)", " ", blob)
+    rules = dict(CATEGORY_RULES)
+    hits = []
+    for cat in PRIMARY:
+        m = re.search(HOUSING if cat == "vivienda" else rules[cat], blob)
+        if m:
+            hits.append((m.start(), cat))
+    if not hits:
+        return None
+    cat = min(hits)[1]
+    if promote and cat in ("solar", "rustica") and re.search(HOUSING, blob) and re.search(BUILT, blob):
+        return "vivienda"  # участок с построенным домом
+    return cat
+
+
 def categorize(*texts: str) -> str:
     blob = " ".join(t for t in texts if t).lower()
-    for cat, pattern in CATEGORY_RULES[:4]:          # гараж, трастеро, локаль, нава — как раньше
+    head = re.split(ANNEX_RE, blob)[0]
+    cat = _primary(head) if len(head) > 30 else None
+    if not cat:
+        cat = _primary(blob)
+    if cat:
+        return cat
+    for c, pattern in CATEGORY_RULES:
         if re.search(pattern, blob):
-            return cat
-    if re.search(HOUSING, blob) and re.search(BUILT, blob):
-        return "vivienda"
-    for cat, pattern in CATEGORY_RULES:
-        if re.search(pattern, blob):
-            return cat
+            return c
     return "otros"
+
+
+# «Скрытое жильё»: в BOE указан другой тип (Local, Solar, Otros…), а по описанию это квартира или дом.
+# На портале BOE такие лоты не находятся поиском по «Vivienda» — конкурентов меньше.
+HIDDEN_TYPES = {"otros", "local comercial", "local", "oficina", "nave industrial", "solar",
+                "finca rústica", "finca rustica", "garaje", "trastero"}
+NOT_HOME = r"semana\s+\d|aprovechamiento por turno|multipropiedad|tiempo compartido|\bruinas?\b|derribo"
+
+
+def hidden_home(assets: list[dict]) -> str | None:
+    """Возвращает тип, указанный в BOE, если по описанию лот — жильё; иначе None."""
+    for a in assets or []:
+        declared = (a.get("tipo_bien") or "").strip()
+        if declared.lower() not in HIDDEN_TYPES:
+            continue
+        d = (a.get("descripcion") or "").lower()
+        if not d or re.search(NOT_HOME, d):
+            continue
+        # «local … de la casa número 7» — здесь «casa» означает здание, а не жильё
+        d = re.sub(r"\b(de|en)\s+(la|una|esta|dicha)\s+casa\b|\bcasa\s+(n[uú]mero|n[º°o]\.?)\s", " edificio ", d)
+        head = re.split(ANNEX_RE, d)[0]
+        if len(head) <= 30:
+            head = d
+        home = re.search(HOUSING, head)
+        # жильё должно быть названо в самом начале описания и раньше любого другого типа
+        if not home or home.start() > 160:
+            continue
+        other = [re.search(p, head) for p in OTHER_KIND]
+        if any(m and m.start() < home.start() for m in other):
+            continue
+        return declared
+    return None
+
+
+OTHER_KIND = [r"garaje|aparcamiento|plaza de parking", r"trastero", r"\blocal\b|comercial|oficina|\blonja\b",
+              r"\bnave\b|industrial|almac[eé]n", r"\bsolar\b|parcela|\bterreno\b|\bsuelo\b",
+              r"r[uú]stic|huert[ao]|olivar|vi[nñ]edo|\bprado\b|\btierra\b|secano|regad[ií]o|\bmonte\b"]
 
 
 def detail_url(sub_id: str, ver: int = 1, lote: str | None = None) -> str:
@@ -392,6 +453,7 @@ def build_record(listing: dict, general: dict, authority: dict, assets: list[dic
         "anuncio_boe": general.get("anuncio_boe", ""),
         "lotes": general.get("lotes", ""),
         "bienes": assets,
+        **({"oculta": hidden_home(assets)} if hidden_home(assets) else {}),
     }
 
 
