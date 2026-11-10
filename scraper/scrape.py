@@ -296,6 +296,33 @@ def _sample(sid: str, tab: str, html: str) -> None:
     (DATA_FILE.parent / f"debug_detail_{tab}.html").write_text(html, "utf-8")
 
 
+def recheck_missing(fetcher: Fetcher, db: dict[str, dict], listing: list[dict], now: datetime,
+                    limit: int, budget_s: float) -> int:
+    """Аукцион BOE пропал из списков «celebrándose / próxima apertura» раньше срока —
+    открываем его карточку и берём статус: его могли приостановить или отменить."""
+    if len(listing) < 300:  # список собран не полностью — ничего не трогаем
+        return 0
+    in_list = {l["id"] for l in listing}
+    todo = [s for s in db.values() if s.get("fuente") != "tgss" and s.get("estado") in ("activa", "proxima")
+            and s["id"] not in in_list and not s.get("historico")]
+    t0, changed = time.monotonic(), 0
+    for s in todo[:limit]:
+        if time.monotonic() - t0 > budget_s:
+            break
+        try:
+            g = boe.parse_general(fetcher.get(boe.detail_url(s["id"], 1)))
+        except Exception as e:  # noqa: BLE001
+            log(f"  статус {s['id']}: {e!r}")
+            continue
+        st = boe.status_code(g.get("status_text", ""), s.get("fecha_fin"), now)
+        if st in ("cancelada", "suspendida", "finalizada") and st != s.get("estado"):
+            s["estado"] = st
+            s["estado_cambio"] = now.isoformat()
+            changed += 1
+    log(f"проверка пропавших из списка: {min(len(todo), limit)}, сменили статус {changed}")
+    return changed
+
+
 def refresh_states(db: dict[str, dict], now: datetime) -> None:
     for s in db.values():
         if s.get("estado") in ("activa", "proxima"):
@@ -494,9 +521,14 @@ def main() -> int:
                 for s in db.values():
                     if s.get("fuente") == "tgss" and s.get("estado") in ("activa", "proxima") and s["id"] not in seen:
                         s["estado"] = "cancelada"
+                        s["estado_cambio"] = now.isoformat()
         except Exception as e:  # noqa: BLE001 — TGSS не должен ломать основной сбор
             log(f"TGSS: ошибка {e!r}")
 
+    try:
+        recheck_missing(fetcher, db, listing, now, int(os.environ.get("RECHECK", "150")), 10 * 60)
+    except Exception as e:  # noqa: BLE001
+        log(f"проверка статусов: ошибка {e!r}")
     backfill(fetcher, db, int(os.environ.get("BACKFILL", "300")), 20 * 60)
     try:
         prices = enrich_mod.load_prices(SITE / "data" / "precios_m2.json")

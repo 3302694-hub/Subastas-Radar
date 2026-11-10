@@ -370,3 +370,21 @@ Object.assign(window.I18N.ru, {
   kn_occ: "Кто живёт", kn_visit: "Осмотр", kn_charges: "Обременения", kn_rc: "Кадастровый номер", kn_sup: "Площадь", kn_photos: "Фото", kn_appr: "Оценка", kn_docs: "Документы",
   cal_google: "В Google Календарь", cal_ics: "Напоминание (.ics)", cal_title: "Конец аукциона {id}", cal_desc: "Аукцион: {c}. Карточка: {u}"
 });
+Object.assign(window.I18N.es, {
+  added_at: "Añadida {d}", new_badge: "Nueva", fresh_today: "Añadidas hoy", fresh_3: "Últimos 3 días", fresh_7: "Últimos 7 días", fresh_30: "Último mes",
+  off_cancelada: "Cancelada antes de la puja", off_suspendida: "Suspendida", off_was: "Iba a terminar el {d}",
+  off_note_cancelada: "La autoridad retiró esta subasta. No se puede pujar; el depósito, si se consignó, se devuelve.",
+  off_note_suspendida: "La subasta está suspendida. Puede reanudarse con nuevas fechas: la vigilamos y la mostraremos de nuevo si vuelve."
+});
+Object.assign(window.I18N.en, {
+  added_at: "Added {d}", new_badge: "New", fresh_today: "Added today", fresh_3: "Last 3 days", fresh_7: "Last 7 days", fresh_30: "Last month",
+  off_cancelada: "Cancelled before bidding", off_suspendida: "Suspended", off_was: "Was due to end {d}",
+  off_note_cancelada: "The authority withdrew this auction. Bidding is not possible; any deposit paid is returned.",
+  off_note_suspendida: "The auction is suspended. It may resume with new dates: we keep watching it and will show it again if it comes back."
+});
+Object.assign(window.I18N.ru, {
+  added_at: "Добавлено {d}", new_badge: "Новинка", fresh_today: "Добавлены сегодня", fresh_3: "За 3 дня", fresh_7: "За 7 дней", fresh_30: "За месяц",
+  off_cancelada: "Отменён до начала торгов", off_suspendida: "Приостановлен", off_was: "Должен был завершиться {d}",
+  off_note_cancelada: "Организатор снял аукцион. Ставки сделать нельзя; внесённый депозит возвращается.",
+  off_note_suspendida: "Аукцион приостановлен. Его могут возобновить с новыми датами — мы следим и покажем его снова, если он вернётся."
+});

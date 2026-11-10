@@ -179,7 +179,7 @@ def category(tipo_bien: str, desc: str) -> str:
     text = (desc or "").lower()
     if "urbana" in (tipo_bien or "").lower():
         cat = boe.categorize(desc)
-        return cat if cat in ("vivienda", "garaje", "trastero", "local", "nave", "solar") else "inmueble"
+        return cat if cat in ("vivienda", "garaje", "trastero", "local", "nave", "solar", "rustica") else "inmueble"
     built = re.search(boe.HOUSING, text) and re.search(boe.BUILT, text)
     return "vivienda" if built else "rustica"
 

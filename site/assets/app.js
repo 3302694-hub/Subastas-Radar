@@ -250,7 +250,19 @@
     return { hot: true, short: t("h_short", { n: Math.max(h, 1) }), long: t("hours_left", { n: Math.max(h, 1) }) };
   }
   const disc = (s) => (s.tasacion && s.valor_subasta && s.tasacion > s.valor_subasta) ? Math.round((1 - s.valor_subasta / s.tasacion) * 100) : 0;
-  const isNew = (s) => !s.historico && newShare < 0.3 && s.detectada && (Date.now() - new Date(s.detectada).getTime()) < 864e5;
+  const isNew = (s) => !s.historico && !done(s) && newShare < 0.3 && s.detectada && (Date.now() - new Date(s.detectada).getTime()) < 864e5;
+  // «Добавлено сегодня» — по календарю Мадрида, а не последние 24 часа
+  const madridDay = (d) => new Date(d).toLocaleDateString("en-CA", { timeZone: "Europe/Madrid" });
+  const FRESH_OLD = { "24": "today", "168": "7" };   // старые сохранённые поиски
+  function freshOk(s, f) {
+    f = FRESH_OLD[f] || f;
+    if (!f) return true;
+    if (!s.detectada) return false;
+    if (f === "today") return madridDay(s.detectada) === madridDay(Date.now());
+    return Date.now() - new Date(s.detectada).getTime() < +f * 864e5;
+  }
+  const addedLine = (s) => s.detectada && !s.historico ? t("added_at", { d: dateFmt(s.detectada) }) : "";
+  const cancelledEarly = (s) => ["cancelada", "suspendida"].includes(s.estado);
   const depPct = (s) => (s.deposito && s.valor_subasta) ? Math.round((s.deposito / s.valor_subasta) * 100) : null;
 
   // ---------- фильтрация
@@ -264,7 +276,7 @@
     const v = s.valor_subasta;
     if (st.min !== "" && (v == null || v < +st.min)) return false;
     if (st.max !== "" && (v == null || v > +st.max)) return false;
-    if (st.fresh && !(s.detectada && (Date.now() - new Date(s.detectada).getTime()) < +st.fresh * 36e5)) return false;
+    if (st.fresh && !freshOk(s, st.fresh)) return false;
     if (st.norisk && (s._risk.bad || s._risk.unknown > 1)) return false;
     if (st.q) {
       const words = st.q.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").split(/\s+/).filter(Boolean);
@@ -322,7 +334,8 @@
       + (state.max !== "" && !preset ? opt(String(state.max), t("upto", { v: eur(+state.max) }), true) : "");
     $("#fOrigin").innerHTML = ORIGINS.map((o) => `<button type="button" class="chip" data-o="${o}" aria-pressed="${state.origin.includes(o)}">${esc(t("o_" + o))}</button>`).join("");
     $("#fStatus").innerHTML = STATUSES.map((s) => opt(s, s === "open" ? t("st_open") : s === "all" ? t("any") : t("s_" + s), state.status === s)).join("");
-    $("#fFresh").innerHTML = opt("", t("any_f"), !state.fresh) + opt("24", t("fresh_24"), state.fresh === "24") + opt("168", t("fresh_7"), state.fresh === "168");
+    state.fresh = FRESH_OLD[state.fresh] || state.fresh;
+    $("#fFresh").innerHTML = opt("", t("any_f"), !state.fresh) + ["today", "3", "7", "30"].map((f) => opt(f, t("fresh_" + f), state.fresh === f)).join("");
     const sorts = histView() ? ["end", "price_asc", "price_desc", "bid_ratio"] : mode === "novato" ? ["end", "new", "price_asc", "price_desc", "risk"] : ["end", "new", "price_asc", "price_desc", "discount", "deposit", "risk"];
     if (!sorts.includes(state.sort)) state.sort = "end";
     $("#sort").innerHTML = sorts.map((s) => opt(s, t("sort_" + s), state.sort === s)).join("");
@@ -341,7 +354,7 @@
     if (state.min !== "" || state.max !== "") chips.push(["price", state.min !== "" && state.max !== "" ? `${eur(+state.min)} – ${eur(+state.max)}` : state.max !== "" ? t("upto", { v: eur(+state.max) }) : t("from", { v: eur(+state.min) })]);
     state.origin.forEach((o) => chips.push(["origin:" + o, t("o_" + o)]));
     if (state.status !== defStatus()) chips.push(["status", state.status === "all" ? t("st_all") : t("s_" + state.status)]);
-    if (state.fresh) chips.push(["fresh", state.fresh === "24" ? t("fresh_24") : t("fresh_7")]);
+    if (state.fresh) chips.push(["fresh", t("fresh_" + (FRESH_OLD[state.fresh] || state.fresh))]);
     if (state.norisk) chips.push(["norisk", t("f_norisk")]);
     if (onlyFavs) chips.push(["favs", t("nav_saved")]);
     $("#active").innerHTML = chips.map(([k, l]) => `<button type="button" class="a-chip" data-rm="${esc(k)}" aria-label="${esc(t("remove_filter", { f: l }))}">${esc(l)}${x}</button>`).join("")
@@ -376,16 +389,18 @@
   function novCard(s) {
     const city = place(s.localidad) || place(s._prov) || "—";
     const l = left(s), r = s._risk;
-    return `<article class="n-card">
+    return `<article class="n-card${cancelledEarly(s) ? " is-off" : ""}">
+      ${isNew(s) ? `<span class="new-flag">${esc(t("new_badge"))}</span>` : ""}
       ${locked() && done(s) ? `<div class="c-media m-empty">${ic(s.categoria)}</div>` : media(s)}
       <div class="n-body">
         <div class="n-head"><div><h3><a href="#/s/${encodeURIComponent(s.id)}" data-open="${esc(s.id)}">${esc(city === "—" ? what(s) : t("card_title", { what: what(s), city }))}</a></h3>
-          <span class="n-sub">${esc([place(s._prov) !== city ? place(s._prov) : "", t("origin_" + s.origen)].filter(Boolean).join(" · "))}${isNew(s) ? ` <span class="tag new">${esc(t("new_badge"))}</span>` : ""}</span></div>
+          <span class="n-sub">${esc([place(s._prov) !== city ? place(s._prov) : "", t("origin_" + s.origen)].filter(Boolean).join(" · "))}</span>${addedLine(s) ? `<span class="n-added">${esc(addedLine(s))}</span>` : ""}</div>
           ${favBtn(s)}</div>
         ${r.applies ? `<div class="risk">${riskPill(r)}${s._inv && s._inv.valoracion && s._inv.valoracion.descuento > 0 && !done(s) ? `<span class="rp ok">${esc(t("mk_pill", { p: s._inv.valoracion.descuento }))}</span>` : ""}</div>` : ""}
         <div class="n-foot">
           <div class="n-price"><small>${esc(done(s) ? t("value") : t("start_price"))}</small><b>${eur(s.valor_subasta)}</b>${s.deposito && !done(s) ? `<span>${esc(t("deposit_needed", { v: eur(s.deposito) }))}</span>` : ""}</div>
-          ${done(s) ? `<div class="n-when n-res"><span>${esc(t("ended_on", { d: day(s.fecha_fin) }))} · ${esc(t("col_bid"))}</span>${resultLine(result(s)) || "—"}</div>`
+          ${cancelledEarly(s) ? `<div class="n-when"><span>${esc(t("off_was", { d: dateFmt(s.fecha_fin) }))}</span><b class="off">${esc(t("off_" + s.estado))}</b></div>`
+          : done(s) ? `<div class="n-when n-res"><span>${esc(t("ended_on", { d: day(s.fecha_fin) }))} · ${esc(t("col_bid"))}</span>${resultLine(result(s)) || "—"}</div>`
           : `<div class="n-when"><span>${esc(t("closes_on", { d: dateFmt(s.fecha_fin) }))}</span><b class="${l.hot ? "hot" : ""}">${esc(l.long)}</b></div>`}
         </div>
       </div>
@@ -922,7 +937,8 @@
     return `<div class="dv">
       ${media(s, true)}
       <div class="dv-head"><div><span class="muted" style="font-size:13px">${esc(what(s))} · ${esc(t("origin_" + s.origen))}</span>
-        <h2 id="${idp}Title">${esc(city)}</h2><span class="dv-id">${esc(s.id)}</span></div>${favBtn(s)}</div>
+        <h2 id="${idp}Title">${esc(city)}</h2><span class="dv-id">${esc(s.id)}</span>${addedLine(s) ? `<span class="dv-added">${isNew(s) ? `<span class="new-flag inline">${esc(t("new_badge"))}</span> ` : ""}${esc(addedLine(s))}</span>` : ""}</div>${favBtn(s)}</div>
+      ${cancelledEarly(s) ? `<div class="off-note"><b>${esc(t("off_" + s.estado))}</b><span>${esc(t("off_note_" + s.estado))}</span></div>` : ""}
       <div class="dv-kv">
         <div><small>${esc(t("value"))}</small><b>${eur(s.valor_subasta)}</b></div>
         <div><small>${esc(t("appraisal"))}</small><b>${s.tasacion ? eur(s.tasacion) : "—"}</b></div>
@@ -989,6 +1005,7 @@
     $("#proMap").hidden = mode !== "pro";
     if (m.parentNode !== target) { target.insertBefore(m, target.firstChild); if (map) setTimeout(() => map.invalidateSize(), 50); }
   }
+  let mapProv = "";
   function renderMap() {
     if (!window.L) return;
     if (!map) {
@@ -1009,9 +1026,16 @@
           .bindTooltip(`${what(s)} · ${place(s.localidad) || ""} · ${eur(s.valor_subasta)}`).on("click", () => openDetail(s.id)).addTo(mapLayer);
       });
     }
+    // выбрана провинция — на карте остаётся только она, карта приближается к ней
+    if (state.prov !== mapProv) {
+      mapProv = state.prov;
+      const ll = PROVINCES[state.prov];
+      if (ll) map.flyTo(ll, 8, { duration: .6 }); else map.flyToBounds([[35.6, -9.6], [43.9, 4.5]], { duration: .6 });
+    }
     Object.entries(c).forEach(([p, n]) => {
       const ll = PROVINCES[p]; if (!ll) return;
       const sel = state.prov === p;
+      if (state.prov && !sel) return;
       L.circleMarker(ll, { radius: 7 + 20 * Math.sqrt(n / max), color: sel ? "#1A1F1C" : "#1F4D3A", weight: sel ? 3 : 1.5, fillColor: sel ? "#D4A017" : "#1F4D3A", fillOpacity: sel ? .85 : .45 })
         .bindTooltip(`${place(p)}: ${n}`).on("click", () => { state.prov = sel ? "" : p; shown = CFG.pageSize; buildControls(); render(); })
         .addTo(mapLayer);
