@@ -616,3 +616,13 @@ html:has(dialog[open]),html:has(dialog[open]) body{overflow:hidden}
 @media (pointer:coarse){.car-btn{width:40px;height:40px}}
 .n-card .c-media.car,.p-side .c-media.car{z-index:2}
 .n-card .car-track{cursor:pointer}
+
+/* ---------- мобильная навигация: вкладка «Обучение» и разделы в «Я» */
+@media (max-width:1000px){
+  .tabbar a,.tabbar button{min-width:0}
+  .tabbar span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 2px}
+}
+@media (max-width:380px){.tabbar a,.tabbar button{font-size:10px}}
+.set-links{display:flex;flex-direction:column;margin:0 0 8px}
+.set-links a{display:flex;align-items:center;justify-content:space-between;min-height:48px;padding:0 4px;border-bottom:1px solid var(--line);color:var(--ink);font-weight:600;text-decoration:none}
+.set-links a::after{content:"›";color:var(--muted);font-size:20px}

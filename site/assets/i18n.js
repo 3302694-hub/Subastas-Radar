@@ -433,3 +433,9 @@ Object.assign(window.I18N.ru, {
 Object.assign(window.I18N.es, { prev_photo: "Foto anterior", next_photo: "Foto siguiente", photos_n: "{n} fotos, desliza para ver más", src_docs: "Documentos", sv_title: "Vista de calle · {place}" });
 Object.assign(window.I18N.en, { prev_photo: "Previous photo", next_photo: "Next photo", photos_n: "{n} photos, swipe to see more", src_docs: "Documents", sv_title: "Street view · {place}" });
 Object.assign(window.I18N.ru, { prev_photo: "Предыдущее фото", next_photo: "Следующее фото", photos_n: "Фото: {n}, листайте", src_docs: "Документы", sv_title: "Вид с улицы · {place}" });
+Object.assign(window.I18N.es, { sections: "Secciones", nav_stats: "Estadísticas", nav_provs: "Subastas por provincia" });
+Object.assign(window.I18N.en, { sections: "Sections", nav_stats: "Statistics", nav_provs: "Auctions by province" });
+Object.assign(window.I18N.ru, { sections: "Разделы", nav_stats: "Статистика", nav_provs: "Аукционы по провинциям" });
+Object.assign(window.I18N.es, { tab_alerts: "Avisos" });
+Object.assign(window.I18N.en, { tab_alerts: "Alerts" });
+Object.assign(window.I18N.ru, { tab_alerts: "Подписки" });
