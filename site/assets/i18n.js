@@ -430,3 +430,6 @@ Object.assign(window.I18N.ru, {
   al_q_prov: "Провинция", al_q_what: "Что ищете", al_q_max: "Максимальная стоимость", al_q_now: "Сейчас таких аукционов: {n}", al_q_how: "Пишем только когда есть новое. В каждом письме — ссылка для отписки.",
   al_activate: "Включить оповещение", al_later: "Не сейчас", al_ok: "Оповещение включено. Напишем, когда появятся новые аукционы.", al_err_many: "У вас уже 5 оповещений: удалите одно, чтобы добавить новое."
 });
+Object.assign(window.I18N.es, { prev_photo: "Foto anterior", next_photo: "Foto siguiente", photos_n: "{n} fotos, desliza para ver más", src_docs: "Documentos", sv_title: "Vista de calle · {place}" });
+Object.assign(window.I18N.en, { prev_photo: "Previous photo", next_photo: "Next photo", photos_n: "{n} photos, swipe to see more", src_docs: "Documents", sv_title: "Street view · {place}" });
+Object.assign(window.I18N.ru, { prev_photo: "Предыдущее фото", next_photo: "Следующее фото", photos_n: "Фото: {n}, листайте", src_docs: "Документы", sv_title: "Вид с улицы · {place}" });

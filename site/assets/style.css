@@ -597,3 +597,22 @@ html:has(dialog[open]),html:has(dialog[open]) body{overflow:hidden}
 .al-err{color:var(--bad)}
 .saved-list li.al-off span{color:var(--muted)}
 #mailAlerts .btn{margin-top:10px}
+
+/* ---------- карусель фото на плашке и в окне аукциона (ручная прокрутка) */
+.c-media.car{display:block}
+.car-track{display:flex;height:100%;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+.car-track::-webkit-scrollbar{display:none}
+.car-track:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
+.car-s{flex:0 0 100%;height:100%;margin:0;position:relative;scroll-snap-align:start;scroll-snap-stop:always}
+.car-s img,.car-s iframe{width:100%;height:100%;object-fit:cover;display:block;border:0}
+.c-media.big .car-s iframe{pointer-events:auto}
+.car-btn{position:absolute;top:50%;transform:translateY(-50%);width:34px;height:34px;border-radius:50%;border:0;background:rgba(255,255,255,.92);color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.25);z-index:2}
+.car-btn svg{width:18px;height:18px}
+.car-btn.prev{left:8px}.car-btn.next{right:8px}
+.car-btn[hidden]{display:none}
+.car-count{position:absolute;right:8px;bottom:8px;z-index:2;font:600 11px/1 "IBM Plex Mono",ui-monospace,monospace;padding:4px 7px;border-radius:999px;background:rgba(26,31,28,.72);color:#fff}
+.car .m-tag{bottom:8px;left:8px;right:auto}
+@media (hover:hover) and (pointer:fine){.car .car-btn{opacity:0;transition:opacity 150ms}.car:hover .car-btn,.car:focus-within .car-btn{opacity:1}}
+@media (pointer:coarse){.car-btn{width:40px;height:40px}}
+.n-card .c-media.car,.p-side .c-media.car{z-index:2}
+.n-card .car-track{cursor:pointer}

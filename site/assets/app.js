@@ -93,6 +93,7 @@
 
   // ---------- icons
   const ICONS = {
+    "chev-l": '<path d="M15 5l-7 7 7 7"/>', "chev-r": '<path d="M9 5l7 7-7 7"/>',
     vivienda: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>',
     garaje: '<path d="M3 20V9l9-5 9 5v11"/><path d="M7 20v-7h10v7"/><path d="M7 16h10"/>',
     trastero: '<rect x="4" y="4" width="16" height="16" rx="1"/><path d="M4 10h16M10 10v10"/>',
@@ -213,25 +214,74 @@
   const facadeUrl = (rc) => `https://ovc.catastro.meh.es/OVCServWeb/OVCWcfLibres/OVCFotoFachada.svc/RecuperarFotoFachadaGet?ReferenciaCatastral=${rc}`;
   // Точное место по координатам Катастро — только в тарифе Про
   const exact = (s) => (atLeast("pro") && s._pro && s._pro.lat) ? s._pro : null;
+  // Street View: панорама с улицы, камера повёрнута на объект. Нужен ключ Maps Embed API (бесплатно, без лимита)
+  const svKey = () => (window.SITE_CONFIG || {}).mapsEmbedKey || "";
+  const svEmbed = (ex, heading) => `https://www.google.com/maps/embed/v1/streetview?key=${encodeURIComponent(svKey())}&location=${ex.lat},${ex.lon}&fov=80&pitch=5${heading != null ? `&heading=${Math.round(heading)}` : ""}&language=${lang}`;
+  function photoSlides(s) {
+    const where = place(s.localidad) || place(s._prov);
+    const out = (s.fotos || []).map((src) => {
+      const air = /aereo-pnoa/.test(src);
+      return { src, alt: air ? t("map_of", { place: where }) : t("photo_boe"), tag: air ? "© IGN-PNOA · Catastro" : /\/storage\/v1\/object\/public\/fotos\//.test(src) ? t("src_docs") : "BOE" };
+    });
+    const rc = cadastreRef(s);
+    if (rc && !NO_MAP.includes(s.categoria)) out.push({ src: facadeUrl(rc), alt: t("photo_cadastre") + " · " + where, tag: t("src_cadastre") });
+    return out;
+  }
   function media(s, big) {
     const ex = exact(s);
     const m = ex ? { q: `${ex.lat},${ex.lon}`, exact: true } : mapQuery(s);
     const cls = big ? "c-media big" : "c-media";
-    const photo = (s.fotos || [])[0];
-    const rc = cadastreRef(s);
     const where = place(s.localidad) || place(s._prov);
     const fb = m ? ` data-map="${esc(gmapEmbed(m))}" data-title="${esc(t("map_of", { place: where }))}"` : "";
-    if (photo) { const air = /aereo-pnoa/.test(photo); return `<div class="${cls}"><img src="${esc(photo)}" loading="lazy" alt="${esc(air ? t("map_of", { place: where }) : t("photo_boe"))}"${fb}><span class="m-tag">${air ? "© IGN-PNOA · Catastro" : "BOE"}</span></div>`; }
-    if (rc && !NO_MAP.includes(s.categoria)) return `<div class="${cls}"><img src="${facadeUrl(rc)}" loading="lazy" alt="${esc(t("photo_cadastre") + " · " + where)}"${fb}><span class="m-tag">${esc(t("src_cadastre"))}</span></div>`;
+    const slides = photoSlides(s).map((x, i) => `<figure class="car-s"><img src="${esc(x.src)}" loading="${i ? "lazy" : big ? "eager" : "lazy"}" alt="${esc(x.alt)}"${fb}><span class="m-tag">${esc(x.tag)}</span></figure>`);
+    if (big && ex && svKey() && !NO_MAP.includes(s.categoria)) slides.push(`<figure class="car-s sv"><iframe data-sv="${ex.lat},${ex.lon}" src="${esc(svEmbed(ex))}" loading="lazy" title="${esc(t("sv_title", { place: where }))}" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe><span class="m-tag">Google Street View</span></figure>`);
+    if (slides.length > 1) return `<div class="${cls} car"${fb}><div class="car-track" tabindex="0"${big ? "" : ` data-open="${esc(s.id)}"`} aria-label="${esc(t("photos_n", { n: slides.length }))}">${slides.join("")}</div>
+      <button type="button" class="car-btn prev" data-car="-1" aria-label="${esc(t("prev_photo"))}" hidden>${ic("chev-l")}</button><button type="button" class="car-btn next" data-car="1" aria-label="${esc(t("next_photo"))}">${ic("chev-r")}</button><span class="car-count">1 / ${slides.length}</span></div>`;
+    if (slides.length === 1) return `<div class="${cls}"${fb}>${slides[0].replace(/^<figure class="car-s[^"]*">|<\/figure>$/g, "")}</div>`;
     if (m) return `<div class="${cls}"><iframe src="${esc(gmapEmbed(m))}" loading="lazy" title="${esc(t("map_of", { place: where }))}" tabindex="-1" referrerpolicy="no-referrer-when-downgrade"></iframe><span class="m-tag">Google Maps</span></div>`;
     return `<div class="${cls} m-empty">${ic(s.categoria)}</div>`;
+  }
+  // карусель: только ручная прокрутка — стрелки, свайп, клавиши
+  function carSync(track) {
+    const box = track.closest(".car"); if (!box) return;
+    const n = track.children.length, i = Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
+    const c = box.querySelector(".car-count"); if (c) c.textContent = `${Math.min(i + 1, n)} / ${n}`;
+    const pr = box.querySelector(".prev"), nx = box.querySelector(".next");
+    if (pr) pr.hidden = i <= 0; if (nx) nx.hidden = i >= n - 1;
+  }
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-car]"); if (!b) return;
+    e.preventDefault(); e.stopPropagation();
+    const tr = b.closest(".car").querySelector(".car-track");
+    tr.scrollBy({ left: +b.dataset.car * tr.clientWidth, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  }, true);
+  document.addEventListener("scroll", (e) => { if (e.target.classList && e.target.classList.contains("car-track")) carSync(e.target); }, true);
+  document.addEventListener("keydown", (e) => {
+    if (!e.target.classList || !e.target.classList.contains("car-track") || !/Arrow(Left|Right)/.test(e.key)) return;
+    e.preventDefault(); e.target.scrollBy({ left: (e.key === "ArrowRight" ? 1 : -1) * e.target.clientWidth });
+  });
+  // камера Street View — на объект: ближайшая панорама из бесплатного Metadata API, курс считаем сами
+  async function svAim(root) {
+    for (const fr of root.querySelectorAll("iframe[data-sv]")) {
+      const [la, lo] = fr.dataset.sv.split(",").map(Number); fr.removeAttribute("data-sv");
+      try {
+        const r = await fetch(`https://maps.googleapis.com/maps/api/streetview/metadata?location=${la},${lo}&radius=60&source=outdoor&key=${encodeURIComponent(svKey())}`);
+        const d = await r.json();
+        if (d.status !== "OK") { const f = fr.closest(".car-s"); const tr = f && f.parentElement; if (f) f.remove(); if (tr) carSync(tr); continue; }
+        const y = (la - d.location.lat) * Math.PI / 180, p1 = d.location.lat * Math.PI / 180, p2 = la * Math.PI / 180, dl = (lo - d.location.lng) * Math.PI / 180;
+        const h = (Math.atan2(Math.sin(dl) * Math.cos(p2), Math.cos(p1) * Math.sin(p2) - Math.sin(p1) * Math.cos(p2) * Math.cos(dl)) * 180 / Math.PI + 360) % 360;
+        if (y || dl) fr.src = svEmbed({ lat: la, lon: lo }, h);
+      } catch (err) { /* без курса панорама всё равно откроется */ }
+    }
   }
   document.addEventListener("error", (e) => {
     const img = e.target;
     if (!img || img.tagName !== "IMG" || !img.closest(".c-media")) return;
     const box = img.closest(".c-media");
+    const slide = img.closest(".car-s");
+    if (slide && box.querySelectorAll(".car-s").length > 1) { const tr = slide.parentElement; slide.remove(); carSync(tr); if (tr.children.length === 1) { box.querySelectorAll(".car-btn,.car-count").forEach((x) => x.remove()); } return; }
     if (img.dataset.map) box.innerHTML = `<iframe src="${img.dataset.map}" loading="lazy" title="${img.dataset.title || "Google Maps"}" tabindex="-1"></iframe><span class="m-tag">Google Maps</span>`;
-    else { box.classList.add("m-empty"); img.remove(); const tg = box.querySelector(".m-tag"); if (tg) tg.remove(); }
+    else { box.classList.add("m-empty"); box.innerHTML = ""; }
   }, true);
   document.addEventListener("load", (e) => {
     const img = e.target;
@@ -500,7 +550,7 @@
       if (!selected || !current.some((s) => s.id === selected)) selected = current[0] ? current[0].id : null;
       const s = all.find((x) => x.id === selected);
       panel.hidden = !s;
-      if (s) panel.innerHTML = detailHTML(s, "p");
+      if (s) { panel.innerHTML = detailHTML(s, "p"); if (svKey()) svAim(panel); }
       $$(".t tbody tr").forEach((tr) => tr.setAttribute("aria-selected", tr.dataset.id === selected));
     } else panel.hidden = true;
     $("#guideTrial").textContent = AUTH.enabled ? t("guide_trial", { date: trialDate() }) : "";
@@ -995,6 +1045,7 @@
     }
     const dlg = $("#detail");
     if (!dlg.open) dlg.showModal();
+    if (svKey()) svAim(body);
     if (s && location.hash !== "#/s/" + encodeURIComponent(id)) history.replaceState(null, "", location.pathname + location.search + "#/s/" + encodeURIComponent(id));
     if (mode === "pro") $$(".p-row").forEach((b) => b.setAttribute("aria-selected", b.dataset.open === selected));
   }

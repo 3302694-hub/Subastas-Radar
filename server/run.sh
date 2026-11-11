@@ -15,6 +15,8 @@ lock() { exec 9>"/tmp/subastica-$1.lock"; flock -n 9 || { echo "уже идёт"
 sync() {
   git remote get-url origin >/dev/null 2>&1 || return 0
   git -c rebase.autoStash=true pull -q --rebase origin main || { git rebase --abort 2>/dev/null; echo "обновить код с GitHub не удалось, работаем на прежнем"; }
+  # расписание тоже берём из репозитория
+  crontab -l 2>/dev/null | diff -q - server/crontab.txt >/dev/null || { crontab server/crontab.txt && echo "расписание обновлено"; }
 }
 
 commit() {
