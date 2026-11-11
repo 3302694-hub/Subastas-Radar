@@ -1641,7 +1641,7 @@
   function prep(s) {
       s._prov = window.normProvince(s.provincia);
       s._risk = riskOf(s);
-      s._text = [s.id, s.titulo, s.localidad, s.provincia, s.direccion, s.cp, s.autoridad, s.tipo,
+      s._text = [s.id, s.titulo, s.localidad, s.provincia, s.direccion, s.cp, s.tipo,
         ...(s.bienes || []).map((b) => [b.descripcion, b.ref_catastral, b.matricula].join(" "))]
         .join(" ").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   }
