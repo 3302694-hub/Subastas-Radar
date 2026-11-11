@@ -1,0 +1,16 @@
+{
+ "id": "SUB-AT-2026-26R3886002006",
+ "bienes": [
+  {
+   "titulo": "Bien 1 - Vehículo (Turismos)",
+   "tipo_bien": "Turismos",
+   "descripcion": "TURISMO NACIONAL/IMPORTAC 5657MJV CITROEN C5 AIRCROSS PLUG-IN HY",
+   "visitable": "No consta",
+   "cargas": "0,00 €",
+   "matricula": "5657MJV",
+   "marca": "CITROEN",
+   "modelo": "C5 AIRCROSS PLUG-IN HY",
+   "fecha_matriculacion": "10-08-2023"
+  }
+ ]
+}
