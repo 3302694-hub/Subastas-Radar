@@ -16,6 +16,11 @@ SITE = 'subastica.es'
 NAME = 'Subástica'
 INSTAGRAM = '@subastica.es'
 _F = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fonts')
+# Корпоративные файлы логотипа (архив subastica-logo-molotok, 11.11.2026) — tools/reels/logo/
+_L = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logo')
+LOGO_ON_DARK = f'file://{_L}/subastica-logo-on-dark.png'    # светлый вариант без фона (из logo-dark)
+LOGO_ON_LIGHT = f'file://{_L}/subastica-logo-on-light.png'  # тёмный текст без фона (logo-transparent)
+AVATAR = f'file://{_L}/subastica-avatar.png'
 
 GREEN, GREEN_INK, PAPER, INK, SEAL, SEAL_TXT = '#1F4D3A', '#143326', '#F4F1EA', '#1A1F1C', '#D4A017', '#E6B83A'
 
@@ -42,8 +47,13 @@ body.paper{{background:{PAPER};color:{INK}}}
 body.paper .bg{{background:{PAPER}}}
 body.paper .bg::after{{border-color:rgba(26,31,28,.12)}}
 .tag{{display:inline-flex;align-self:flex-start;gap:14px;align-items:center;border:2px solid rgba(244,241,234,.35);border-radius:8px;padding:12px 24px;font-size:32px;font-weight:600;letter-spacing:.12em;text-transform:uppercase}}
+/* логотип — файлы из tools/reels/logo */
+.brand img{{height:84px;display:block}}
+.brand .lg-l,body.paper .brand .lg-d{{display:none}}
+body.paper .brand .lg-l{{display:block}}
+.avatar{{display:block;border-radius:22%;box-shadow:0 18px 50px rgba(0,0,0,.35)}}
 body.paper .tag{{border-color:rgba(26,31,28,.3)}}
-.brand{{position:absolute;right:64px;bottom:260px;flex-direction:row-reverse;display:flex;gap:20px;align-items:center}}
+.brand{{position:absolute;right:64px;bottom:260px;display:flex;gap:20px;align-items:center}}
 .mark{{width:84px;height:84px;font-size:47px;border-radius:50%;background:{PAPER};color:{GREEN};position:relative;display:flex;align-items:center;justify-content:center;flex:none}}
 .mark::after{{content:"";position:absolute;right:-.10em;top:-.08em;width:.78em;height:.78em;background:{SEAL};-webkit-mask:{GAVEL};mask:{GAVEL}}}
 body.paper .mark{{background:{GREEN};color:{PAPER}}}
@@ -73,12 +83,14 @@ body.paper .pill{{background:rgba(31,77,58,.06);border-color:rgba(31,77,58,.18)}
 '''
 
 def brand(extra_style=''):
-    """Знак + словесный знак SUBÁSTICA: правый нижний угол, приподнят (над подписью Instagram)."""
-    return f'<div class="brand" style="{extra_style}"><div class="mark">{ICON}</div><span class="wm">SUB<i>A</i>STICA</span></div>'
+    """Логотип Subástica (корпоративный файл): правый нижний угол, приподнят над подписью Instagram.
+    На тёмном/фото — светлый вариант, на кадрах body.paper — тёмный."""
+    return (f'<div class="brand" style="{extra_style}"><img class="lg-d" src="{LOGO_ON_DARK}">'
+            f'<img class="lg-l" src="{LOGO_ON_LIGHT}"></div>')
 
 def mark(size=200):
-    """Крупный знак для финального кадра."""
-    return f'<div class="mark" style="width:{size}px;height:{size}px;font-size:{int(size*.56)}px"><span class="mk-s" style="font-size:{int(size*.58)}px">S</span></div>'
+    """Крупный знак для финального кадра — аватар из корпоративного набора."""
+    return f'<img class="avatar" src="{AVATAR}" style="width:{size}px;height:{size}px;margin:0 auto">'
 
 def page(body_html, paper=False, css=None):
     return f'<html><head><meta charset="utf-8"><style>{css or CSS}</style></head><body class="{"paper" if paper else ""}">{body_html}</body></html>'
