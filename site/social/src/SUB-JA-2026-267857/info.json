@@ -1,0 +1,31 @@
+{
+ "id": "SUB-JA-2026-267857",
+ "bienes": [
+  {
+   "titulo": "Bien 1 - Inmueble (Vivienda)",
+   "tipo_bien": "Vivienda",
+   "descripcion": "PISO DE 49,08 METROS CUADRADOS DE SUPERFICIE CONSTRUIDA, EN CALLE CARRETAS, 33, 2º 2ª, DE BARCELONA",
+   "direccion": "CALLE CARRETAS, 33, 2º 2ª",
+   "cp": "08001",
+   "localidad": "BARCELONA",
+   "provincia": "Barcelona",
+   "ref_catastral": "0412621DF3801C0008LJ",
+   "situacion_posesoria": "No consta",
+   "visitable": "No",
+   "cargas": "SEGUN NOTA DEL REGISTRO",
+   "vivienda_habitual": "No"
+  }
+ ],
+ "catastro": [
+  {
+   "rc": "0412621DF3801C0008LJ",
+   "sup": 57.0,
+   "anio": 1870,
+   "uso": "Residencial",
+   "dir": "CL CARRETES 33 Pl:02 Pt:02 08001 BARCELONA (BARCELONA)",
+   "mapa": "https://www1.sedecatastro.gob.es/Cartografia/mapa.aspx?del=8&mun=900&refcat=0412621DF3801C",
+   "lat": 41.377689796796,
+   "lon": 2.16734195988729
+  }
+ ]
+}

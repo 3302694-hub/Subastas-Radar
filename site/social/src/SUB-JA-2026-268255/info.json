@@ -1,0 +1,28 @@
+{
+ "id": "SUB-JA-2026-268255",
+ "bienes": [
+  {
+   "titulo": "Bien 1 - Inmueble (Vivienda)",
+   "tipo_bien": "Vivienda",
+   "descripcion": "URBANA: 35.- URBANA: NUMERO TREINTA Y CINCO. PISO PRIMERO B, del edificio sito en la hoy Calle Menorca Roncero número ocho Inscrita en el Registro de la Propiedad nº 2 de Móstoles, al tomo 1776 , libro 615 sección 1ª folio 216 finca registral número 31181. REFERENCIA CATASTRAL: 7341304VK2674SO113BW IDENTIFICADOR UNICO: 28122000470983",
+   "direccion": "CALLE MENORCA Nº 1, ESC. 4, 1º B",
+   "cp": "28937",
+   "localidad": "MOSTOLES",
+   "provincia": "Madrid",
+   "ref_catastral": "7341304VK2674SO113BW",
+   "situacion_posesoria": "No consta",
+   "visitable": "No consta",
+   "cargas": "SEGUN CERTIFICACIÓN DE CARGAS ADJUNTA",
+   "vivienda_habitual": "No",
+   "idufir": "28122000470983"
+  }
+ ],
+ "catastro": [
+  {
+   "rc": "7341304VK2674SO113BW",
+   "mapa": "https://www1.sedecatastro.gob.es/Cartografia/mapa.aspx?refcat=7341304VK2674S",
+   "lat": 40.3231613331379,
+   "lon": -3.85708624336864
+  }
+ ]
+}

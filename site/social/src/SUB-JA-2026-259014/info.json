@@ -1,0 +1,31 @@
+{
+ "id": "SUB-JA-2026-259014",
+ "bienes": [
+  {
+   "titulo": "Bien 1 - Inmueble (Vivienda)",
+   "tipo_bien": "Vivienda",
+   "descripcion": "LOTE 1.- Urbana: departamento número CUARENTA Y UNO. Vivienda en planta alta a la derecha del bloque TRES en el que se integra, según se mira su frente. Tipo D. Forma parte de un edificio sito en el término municipal de Blanca, Barriada de la Estación, con fachada a las calles o Avenidas de la Estación y Escolar, aún sin número. Dirección catastral: AV ESTACION FC 41(A) Es:3 Pl:01 Pt:D FINCA REG Nº11907; C.P. 30540 BLANCA, ESTACION FERREA. Se compone de vestíbulo, distribuidor, estar-comedor, tres dormitorios, cuarto de baño, cuarto de aseo, cocina y lavadero. Tiene una superficie construida de 98,44 m2..",
+   "direccion": "Avda. Estación, 41. Estación de Blanca",
+   "cp": "30540",
+   "localidad": "Blanca",
+   "provincia": "Murcia",
+   "ref_catastral": "6722302XH4362B0044EK",
+   "situacion_posesoria": "No consta (Según Decreto de subasta, no consta la situación posesoria de la finca.)",
+   "visitable": "No consta (La inspección del inmueble solo puede ser autorizada por quien sea poseedor u ocupante actual del inmueble)",
+   "cargas": "Se cancelan la carga registral que da lugar a esta subasta y todas las posteriores. Se mantendrán las cargas o gravámenes anteriores o del mismo rango, y quien se adjudique el inmueble se subroga en la responsabilidad que garantizan. Los interesados han de comprobar qué cargas existen y su estado actual. Además del precio ofrecido y esas posibles cargas, se han de abonar otros gastos e impuestos, por lo que antes de participar es conveniente consultar con expertos.",
+   "idufir": "30015000741793"
+  }
+ ],
+ "catastro": [
+  {
+   "rc": "6722302XH4362B0044EK",
+   "sup": 98.0,
+   "anio": 2006,
+   "uso": "Residencial",
+   "dir": "AV ESTACION FC 41(A) Es:3 Pl:01 Pt:D FINCA REG Nº11907 30540 BLANCA (ESTACION FERREA) (MURCIA)",
+   "mapa": "https://www1.sedecatastro.gob.es/Cartografia/mapa.aspx?del=30&mun=11&refcat=6722302XH4362B",
+   "lat": 38.2237477923216,
+   "lon": -1.32523012307327
+  }
+ ]
+}
