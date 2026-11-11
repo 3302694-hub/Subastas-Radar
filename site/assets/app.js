@@ -1131,7 +1131,7 @@
   }
 
   // ---------- аккаунт и доступ
-  function trialDate() { return day(AUTH.trialUntil || "2026-12-31"); }
+  function trialDate() { return day(AUTH.trialUntil || "2027-12-31"); }
   function renderAccount() {
     if (!AUTH.enabled) { $("#account").hidden = true; $("#setAccount").innerHTML = ""; return; }
     $("#account").hidden = false;
