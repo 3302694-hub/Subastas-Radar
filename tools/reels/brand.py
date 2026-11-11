@@ -1,6 +1,7 @@
 """Фирменный стиль Subástica для слайдов рилс и сторис (1080x1920).
 
-Стиль Sello, как на сайте subastica.es: тёмно-зелёный #1F4D3A, бумага #F4F1EA, горчичная печать #D4A017,
+Стиль Sello, как на сайте subastica.es: тёмно-зелёный #1F4D3A, бумага #F4F1EA, горчичная печать #D4A017
+(знак — горчичный молоток аукциониста),
 заголовки IBM Plex Serif, цифры и текст IBM Plex Sans. Шрифты лежат в tools/reels/fonts (лицензия OFL).
 
 Использование в скрипте слайдов:
@@ -25,6 +26,9 @@ FONTS = ''.join([_ff('IBM Plex Sans', 'IBMPlexSans-Regular.ttf', 400), _ff('IBM 
                  _ff('IBM Plex Sans', 'IBMPlexSans-SemiBold.ttf', 600), _ff('IBM Plex Sans', 'IBMPlexSans-Bold.ttf', 700),
                  _ff('IBM Plex Serif', 'IBMPlexSerif-Medium.ttf', 500), _ff('IBM Plex Serif', 'IBMPlexSerif-SemiBold.ttf', 600)])
 
+# Молоток аукциониста (горчичный) — как на сайте с 11.11.2026, вместо прежнего ромба
+GAVEL = '''url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 32 32'%3E%3Cg transform='rotate(135 12 12)'%3E%3Crect x='2' y='12.5' width='20' height='8' rx='2.4'/%3E%3Crect x='9.8' y='3' width='4.4' height='9.5' rx='2'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat'''
+
 # ICON — буква знака; оставлено для старых скриптов, где он вставлялся внутрь .mark
 ICON = '<span class="mk-s">S</span>'
 
@@ -40,14 +44,14 @@ body.paper .bg::after{{border-color:rgba(26,31,28,.12)}}
 .tag{{display:inline-flex;align-self:flex-start;gap:14px;align-items:center;border:2px solid rgba(244,241,234,.35);border-radius:8px;padding:12px 24px;font-size:32px;font-weight:600;letter-spacing:.12em;text-transform:uppercase}}
 body.paper .tag{{border-color:rgba(26,31,28,.3)}}
 .brand{{position:absolute;right:64px;bottom:260px;flex-direction:row-reverse;display:flex;gap:20px;align-items:center}}
-.mark{{width:84px;height:84px;border-radius:50%;background:{PAPER};color:{GREEN};position:relative;display:flex;align-items:center;justify-content:center;flex:none}}
-.mark::after{{content:"";position:absolute;right:7%;top:7%;width:18%;height:18%;background:{SEAL};transform:rotate(45deg)}}
+.mark{{width:84px;height:84px;font-size:47px;border-radius:50%;background:{PAPER};color:{GREEN};position:relative;display:flex;align-items:center;justify-content:center;flex:none}}
+.mark::after{{content:"";position:absolute;right:-.10em;top:-.08em;width:.78em;height:.78em;background:{SEAL};-webkit-mask:{GAVEL};mask:{GAVEL}}}
 body.paper .mark{{background:{GREEN};color:{PAPER}}}
 .mk-s{{font:600 1em/1 'IBM Plex Serif',serif;font-size:inherit}}
 .mark .mk-s{{font-size:48px}}
 .wm{{font:600 40px/1 'IBM Plex Serif',serif;letter-spacing:.1em}}
 .wm i{{font-style:normal;position:relative;display:inline-block}}
-.wm i::after{{content:"";position:absolute;left:.29em;top:-.22em;width:.2em;height:.2em;background:{SEAL};transform:rotate(45deg)}}
+.wm i::after{{content:"";position:absolute;left:.26em;top:-.26em;width:.58em;height:.58em;background:{SEAL};-webkit-mask:{GAVEL};mask:{GAVEL}}}
 .disc{{position:absolute;left:64px;right:64px;bottom:60px;font-size:24px;opacity:.65}}
 h1{{font-family:'IBM Plex Serif',serif;font-size:104px;line-height:1.02;font-weight:600;letter-spacing:-.01em}}
 .serif{{font-family:'IBM Plex Serif',serif}}
@@ -74,7 +78,7 @@ def brand(extra_style=''):
 
 def mark(size=200):
     """Крупный знак для финального кадра."""
-    return f'<div class="mark" style="width:{size}px;height:{size}px"><span class="mk-s" style="font-size:{int(size*.58)}px">S</span></div>'
+    return f'<div class="mark" style="width:{size}px;height:{size}px;font-size:{int(size*.56)}px"><span class="mk-s" style="font-size:{int(size*.58)}px">S</span></div>'
 
 def page(body_html, paper=False, css=None):
     return f'<html><head><meta charset="utf-8"><style>{css or CSS}</style></head><body class="{"paper" if paper else ""}">{body_html}</body></html>'
