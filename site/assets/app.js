@@ -216,7 +216,7 @@
   const exact = (s) => (atLeast("pro") && s._pro && s._pro.lat) ? s._pro : null;
   // Street View: панорама с улицы, камера повёрнута на объект. Нужен ключ Maps Embed API (бесплатно, без лимита)
   const svKey = () => (window.SITE_CONFIG || {}).mapsEmbedKey || "";
-  const svEmbed = (ex, heading) => `https://www.google.com/maps/embed/v1/streetview?key=${encodeURIComponent(svKey())}&location=${ex.lat},${ex.lon}&fov=80&pitch=5${heading != null ? `&heading=${Math.round(heading)}` : ""}&language=${lang}`;
+  const svEmbed = (ex, heading, pano) => `https://www.google.com/maps/embed/v1/streetview?key=${encodeURIComponent(svKey())}&${pano ? `pano=${encodeURIComponent(pano)}` : `location=${ex.lat},${ex.lon}`}&fov=80&pitch=5${heading != null ? `&heading=${Math.round(heading)}` : ""}&language=${lang}`;
   function photoSlides(s) {
     const where = place(s.localidad) || place(s._prov);
     const out = (s.fotos || []).map((src) => {
@@ -270,7 +270,8 @@
         if (d.status !== "OK") { const f = fr.closest(".car-s"); const tr = f && f.parentElement; if (f) f.remove(); if (tr) carSync(tr); continue; }
         const y = (la - d.location.lat) * Math.PI / 180, p1 = d.location.lat * Math.PI / 180, p2 = la * Math.PI / 180, dl = (lo - d.location.lng) * Math.PI / 180;
         const h = (Math.atan2(Math.sin(dl) * Math.cos(p2), Math.cos(p1) * Math.sin(p2) - Math.sin(p1) * Math.cos(p2) * Math.cos(dl)) * 180 / Math.PI + 360) % 360;
-        if (y || dl) fr.src = svEmbed({ lat: la, lon: lo }, h);
+        // та самая панорама, от которой считали курс, — иначе Google может подставить соседнюю
+        if (y || dl) fr.src = svEmbed({ lat: la, lon: lo }, h, /google/i.test(d.copyright || "") ? d.pano_id : null);
       } catch (err) { /* без курса панорама всё равно откроется */ }
     }
   }
