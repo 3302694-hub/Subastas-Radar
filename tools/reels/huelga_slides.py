@@ -27,10 +27,11 @@ bars = '<div class="bars">' + ''.join(
     f'<div class="bar"><span class="l">{l}</span><span class="v">{v}</span><span class="t"><i style="width:{max(v / mx * 100, 1.5):.1f}%"></i></span></div>' for l, v in DAYS) + '</div>'
 
 S = {}
-S['h0'] = f'''{photo(F('SUB-JA-2026-267857', 'aereo_lejos0'), shade='full')}<div class="s">
+S['h0'] = f'''{photo(F('SUB-JA-2026-267857', 'aereo_lejos0'), shade='hero_b')}<div class="s" style="justify-content:flex-start;padding-top:150px">
 <div class="tag">Вчера, 11 ноября</div>
 <div class="kpi" style="margin-top:40px">3</div>
-<div class="sub">новых аукциона за весь день.<br>Почему так мало?</div>{bars}</div>{brand()}{AER}'''
+<div class="sub">новых аукциона за весь день.<br>Почему так мало?</div></div>
+<div style="position:absolute;left:80px;right:80px;bottom:300px">{bars}</div>{brand()}{AER}'''
 S['why'] = f'''{photo(F('SUB-JA-2026-268255', 'aereo_lejos0'), shade='full')}<div class="s">
 <div class="tag">Причина</div>
 <h1 style="margin-top:40px;font-size:100px">Всеобщая<br><span class="hl">забастовка</span></h1>

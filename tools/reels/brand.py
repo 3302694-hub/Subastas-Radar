@@ -20,7 +20,10 @@ THEMES = {
     'wasabi': dict(tint=(12, 12, 12), a=.80, text='#FFFFFF', acc='#C8F031', inv='#111111', chip='#C8F031', chipt='#111111', pill='rgba(255,255,255,.07)', pillb='rgba(200,240,49,.35)', logo='dark'),
     'ciruela': dict(tint=(59, 18, 54), a=.84, text='#FFFFFF', acc='#FF2E93', inv='#FFFFFF', chip='#FF2E93', chipt='#FFFFFF', pill='rgba(255,255,255,.08)', pillb='rgba(255,46,147,.4)', logo='dark'),
 }
-THEME = THEMES.get(os.environ.get('THEME', ''))
+# По умолчанию — wasabi (шартрёз): яркий салатовый акцент на тёмном фоне, фото открыто и чёткое.
+# Другую тему можно задать через env THEME=naranja|ciruela, выключить — THEME=none.
+_T = os.environ.get('THEME', 'wasabi')
+THEME = None if _T == 'none' else THEMES.get(_T, THEMES['wasabi'])
 NAME = 'Subástica'
 INSTAGRAM = '@subastica.es'
 _F = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fonts')
@@ -115,25 +118,35 @@ def page(body_html, paper=False, css=None):
     return f'<html><head><meta charset="utf-8"><style>{css or CSS}{theme_css()}</style></head><body class="{"paper" if paper else ""}">{body_html}</body></html>'
 
 
-def photo(src, pos='50% 50%', shade='both', blur=0, scale=1.0):
+def photo(src, pos='50% 50%', shade='both', blur=0, scale=1.0, sharp=True):
     """Фотография на весь кадр + затемнение, чтобы текст читался.
-    shade: both (сверху и снизу), hero (текст сверху, фото открыто в середине), bottom, top, full (ровно по всему кадру)."""
+    shade:
+      hero_b — вариант B: фото открыто во всю середину, затемнены только верх и низ под текстом (для первого кадра/обложки);
+      both — затемнение сверху и снизу, середина приоткрыта;
+      hero — текст сверху, фото открыто в середине;
+      bottom, top, full — соответственно.
+    sharp=True добавляет лёгкую резкость и насыщенность (contrast/saturate), чтобы фон не выглядел мутным."""
     if THEME:
         r, gg, b = THEME['tint']; A = THEME['a']
         c = lambda x: f'rgba({r},{gg},{b},{min(1, x):.2f})'
-        g = {'both': f'linear-gradient(180deg,{c(A+.1)} 0%,{c(A-.1)} 28%,{c(.15)} 48%,{c(.3)} 62%,{c(A+.1)} 100%)',
+        g = {'hero_b': f'linear-gradient(180deg,{c(A+.12)} 0%,{c(A-.05)} 24%,{c(0)} 40%,{c(0)} 56%,{c(A-.05)} 74%,{c(A+.14)} 100%)',
+             'both': f'linear-gradient(180deg,{c(A+.1)} 0%,{c(A-.1)} 28%,{c(.12)} 48%,{c(.28)} 62%,{c(A+.1)} 100%)',
              'hero': f'linear-gradient(180deg,{c(A+.1)} 0%,{c(A)} 30%,{c(0)} 46%,{c(0)} 76%,{c(A)} 92%)',
              'bottom': f'linear-gradient(180deg,{c(.2)} 0%,{c(.05)} 35%,{c(A)} 68%,{c(A+.1)} 100%)',
              'top': f'linear-gradient(180deg,{c(A+.1)} 0%,{c(A-.2)} 35%,{c(0)} 60%)',
              'full': c(A)}[shade]
     else:
         g = None
-    g = g or {'both': 'linear-gradient(180deg,rgba(20,51,38,.94) 0%,rgba(20,51,38,.7) 28%,rgba(20,51,38,.12) 48%,rgba(20,51,38,.3) 62%,rgba(20,51,38,.95) 100%)',
+    g = g or {'hero_b': 'linear-gradient(180deg,rgba(20,51,38,.95) 0%,rgba(20,51,38,.65) 24%,rgba(20,51,38,0) 40%,rgba(20,51,38,0) 56%,rgba(20,51,38,.7) 74%,rgba(20,51,38,.96) 100%)',
+         'both': 'linear-gradient(180deg,rgba(20,51,38,.94) 0%,rgba(20,51,38,.7) 28%,rgba(20,51,38,.12) 48%,rgba(20,51,38,.3) 62%,rgba(20,51,38,.95) 100%)',
          'bottom': 'linear-gradient(180deg,rgba(20,51,38,.25) 0%,rgba(20,51,38,.1) 35%,rgba(20,51,38,.9) 68%,rgba(20,51,38,.97) 100%)',
          'top': 'linear-gradient(180deg,rgba(20,51,38,.95) 0%,rgba(20,51,38,.6) 35%,rgba(20,51,38,0) 60%)',
          'hero': 'linear-gradient(180deg,rgba(20,51,38,.95) 0%,rgba(20,51,38,.8) 30%,rgba(20,51,38,0) 46%,rgba(20,51,38,0) 76%,rgba(20,51,38,.92) 92%)',
          'full': 'rgba(20,51,38,.62)'}[shade]
-    f = f'filter:blur({blur}px);' if blur else ''
+    fx = []
+    if blur: fx.append(f'blur({blur}px)')
+    if sharp: fx.append('contrast(1.08) saturate(1.18)')
+    f = f'filter:{" ".join(fx)};' if fx else ''
     t = f'transform:scale({scale});' if scale != 1.0 else ''
     return (f'<img src="{src}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:{pos};{f}{t}">'
             f'<div style="position:absolute;inset:0;background:{g}"></div>')
@@ -150,7 +163,8 @@ def blur_boxes(src, dst, boxes, radius=18):
 
 def photo_card(src, top=230, height=720, pos='50% 50%'):
     """Горизонтальное фото целиком: размытый фон из того же снимка + чёткая карточка сверху.
-    Текст кадра ставить ниже карточки (padding-top ≈ top + height + 60)."""
+    Текст кадра ставить ниже карточки (padding-top ≈ top + height + 60).
+    Карточка — с лёгкой резкостью (contrast/saturate), чтобы снимок не выглядел мутным."""
     return (f'<img src="{src}" style="position:absolute;inset:-60px;width:calc(100% + 120px);height:calc(100% + 120px);object-fit:cover;filter:blur(36px) brightness(.7)">'
             f'<div style="position:absolute;inset:0;background:{("rgba(%d,%d,%d,.6)" % THEME["tint"]) if THEME else "rgba(20,51,38,.55)"}"></div>'
-            f'<img src="{src}" style="position:absolute;left:40px;right:40px;top:{top}px;width:1000px;height:{height}px;object-fit:cover;object-position:{pos};border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.45)">')
+            f'<img src="{src}" style="position:absolute;left:40px;right:40px;top:{top}px;width:1000px;height:{height}px;object-fit:cover;object-position:{pos};filter:contrast(1.08) saturate(1.18);border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.45)">')
