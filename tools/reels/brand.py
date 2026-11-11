@@ -117,3 +117,11 @@ def blur_boxes(src, dst, boxes, radius=18):
     for b in boxes:
         reg = im.crop(b).filter(ImageFilter.GaussianBlur(radius)); im.paste(reg, b[:2])
     im.save(dst, quality=92)
+
+
+def photo_card(src, top=230, height=720, pos='50% 50%'):
+    """Горизонтальное фото целиком: размытый фон из того же снимка + чёткая карточка сверху.
+    Текст кадра ставить ниже карточки (padding-top ≈ top + height + 60)."""
+    return (f'<img src="{src}" style="position:absolute;inset:-60px;width:calc(100% + 120px);height:calc(100% + 120px);object-fit:cover;filter:blur(36px) brightness(.7)">'
+            f'<div style="position:absolute;inset:0;background:rgba(20,51,38,.55)"></div>'
+            f'<img src="{src}" style="position:absolute;left:40px;right:40px;top:{top}px;width:1000px;height:{height}px;object-fit:cover;object-position:{pos};border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.45)">')
