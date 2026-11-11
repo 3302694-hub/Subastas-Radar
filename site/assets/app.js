@@ -1681,8 +1681,10 @@
       const parts = await Promise.all(months.map((m) => fetch(`data/historico/${m}.json?v=${v}`).then((x) => x.json()).then((d) => d.subastas || []).catch(() => [])));
       hist = parts.flat();
       // координаты архивных лотов (по кадастровому номеру) — для точной карты и Street View в тарифе Про
-      const geo = await fetch(`data/historico/geo.json?v=${v}`).then((x) => (x.ok ? x.json() : {})).catch(() => ({}));
-      hist.forEach((s) => { const g = geo[s.id]; if (g && !s._pro) s._pro = { lat: g[0], lon: g[1] }; });
+      if (AUTH.enabled && AUTH.archivoGeo && atLeast("pro")) {
+        const geo = await AUTH.archivoGeo().catch(() => ({}));
+        hist.forEach((s) => { const g = geo[s.id]; if (g && !s._pro) s._pro = { lat: g[0], lon: g[1] }; });
+      }
       hist.forEach(prep);
       mergeHist();
     })();

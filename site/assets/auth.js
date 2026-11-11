@@ -130,6 +130,18 @@
   // Вход по токену Google Identity Services (кнопка Google на самом сайте)
   A.googleIdToken = (token, nonce) => client.auth.signInWithIdToken({ provider: "google", token, nonce });
 
+  // Координаты архивных лотов (RLS: только тариф Про)
+  A.archivoGeo = async function () {
+    if (!enabled || !A.session) return {};
+    const out = {};
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await client.from("archivo_geo").select("id,lat,lon").order("id").range(from, from + 999);
+      if (error) { console.error("archivo_geo", error); return out; }
+      data.forEach((r) => { out[r.id] = [r.lat, r.lon]; });
+      if (data.length < 1000) return out;
+    }
+  };
+
   // Почтовые оповещения о новых аукционах (таблица alertas, RLS: только свои)
   A.alertas = {
     list: async () => { const { data, error } = await client.from("alertas").select("id,provincia,categoria,max_valor,idioma,activa,created_at").order("id"); if (error) throw error; return data || []; },
