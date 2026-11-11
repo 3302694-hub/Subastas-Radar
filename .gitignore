@@ -11,3 +11,5 @@ site/ru/
 site/sitemap.xml
 site/robots.txt
 site/data/debug_*.html
+site/data/historico/geo.json
+.cache/
