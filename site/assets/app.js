@@ -234,7 +234,7 @@
     const where = place(s.localidad) || place(s._prov);
     const fb = m ? ` data-map="${esc(gmapEmbed(m))}" data-title="${esc(t("map_of", { place: where }))}"` : "";
     const slides = photoSlides(s).map((x, i) => `<figure class="car-s"><img src="${esc(x.src)}" loading="${i ? "lazy" : big ? "eager" : "lazy"}" alt="${esc(x.alt)}"${fb}><span class="m-tag">${esc(x.tag)}</span></figure>`);
-    if (big && ex && svKey() && !NO_MAP.includes(s.categoria)) slides.push(`<figure class="car-s sv"><iframe data-sv="${ex.lat},${ex.lon}" src="${esc(svEmbed(ex))}" loading="lazy" title="${esc(t("sv_title", { place: where }))}" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe><span class="m-tag">Google Street View</span></figure>`);
+    if (big && ex && svKey() && !NO_MAP.includes(s.categoria)) slides.push(`<figure class="car-s sv"><iframe data-sv="${ex.lat},${ex.lon}" data-r="${["solar", "rustica"].includes(s.categoria) ? 250 : 60}" src="${esc(svEmbed(ex))}" loading="lazy" title="${esc(t("sv_title", { place: where }))}" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe><span class="m-tag">Google Street View</span></figure>`);
     if (slides.length > 1) return `<div class="${cls} car"${fb}><div class="car-track" tabindex="0"${big ? "" : ` data-open="${esc(s.id)}"`} aria-label="${esc(t("photos_n", { n: slides.length }))}">${slides.join("")}</div>
       <button type="button" class="car-btn prev" data-car="-1" aria-label="${esc(t("prev_photo"))}" hidden>${ic("chev-l")}</button><button type="button" class="car-btn next" data-car="1" aria-label="${esc(t("next_photo"))}">${ic("chev-r")}</button><span class="car-count">1 / ${slides.length}</span></div>`;
     if (slides.length === 1) return `<div class="${cls}"${fb}>${slides[0].replace(/^<figure class="car-s[^"]*">|<\/figure>$/g, "")}</div>`;
@@ -264,8 +264,9 @@
   async function svAim(root) {
     for (const fr of root.querySelectorAll("iframe[data-sv]")) {
       const [la, lo] = fr.dataset.sv.split(",").map(Number); fr.removeAttribute("data-sv");
+      const rad = +fr.dataset.r || 60; // у участков и земли дорога бывает дальше — ищем панораму в большем радиусе
       try {
-        const r = await fetch(`https://maps.googleapis.com/maps/api/streetview/metadata?location=${la},${lo}&radius=60&source=outdoor&key=${encodeURIComponent(svKey())}`);
+        const r = await fetch(`https://maps.googleapis.com/maps/api/streetview/metadata?location=${la},${lo}&radius=${rad}&source=outdoor&key=${encodeURIComponent(svKey())}`);
         const d = await r.json();
         if (d.status !== "OK") { const f = fr.closest(".car-s"); const tr = f && f.parentElement; if (f) f.remove(); if (tr) carSync(tr); continue; }
         const y = (la - d.location.lat) * Math.PI / 180, p1 = d.location.lat * Math.PI / 180, p2 = la * Math.PI / 180, dl = (lo - d.location.lng) * Math.PI / 180;

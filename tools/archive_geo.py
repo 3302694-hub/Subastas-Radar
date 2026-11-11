@@ -23,7 +23,7 @@ from scrape import Fetcher  # noqa: E402
 HIST = ROOT / "site" / "data" / "historico"
 GEO = HIST / "geo.json"
 TRIED = ROOT / ".cache" / "archive_geo_tried.json"   # номера, по которым Catastro координат не дал
-BUILDINGS = {"vivienda", "local", "nave", "garaje", "trastero", "inmueble"}  # участкам Street View не нужен
+BUILDINGS = {"vivienda", "local", "nave", "garaje", "trastero", "inmueble", "solar", "rustica"}  # вся недвижимость, включая участки и землю
 
 
 def load(p: Path, default):
