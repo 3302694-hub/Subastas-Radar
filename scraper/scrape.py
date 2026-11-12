@@ -36,6 +36,7 @@ import boe  # noqa: E402
 from store import SupabaseStore  # noqa: E402
 import enrich as enrich_mod  # noqa: E402
 import tgss  # noqa: E402
+import patrimonio  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 SITE = ROOT / "site"
@@ -529,6 +530,24 @@ def main() -> int:
                         s["estado_cambio"] = now.isoformat()
         except Exception as e:  # noqa: BLE001 — TGSS не должен ломать основной сбор
             log(f"TGSS: ошибка {e!r}")
+
+    # Patrimonio del Estado: аукционы госимущества из BOE секции V-B
+    if os.environ.get("PATRIMONIO", "1") == "1":
+        had_pat = any(s.get("fuente") == "patrimonio" for s in db.values())
+        try:
+            recs, checked = patrimonio.collect(
+                Fetcher(delay=float(os.environ.get("PATRIMONIO_DELAY", "3"))),
+                set(db),
+                int(os.environ.get("PATRIMONIO_MAX", "200")),
+                log,
+                days_back=int(os.environ.get("PATRIMONIO_DAYS", "90")),
+            )
+            for r in recs:
+                db[r["id"]] = r
+                if had_pat:
+                    new_ids.append(r["id"])
+        except Exception as e:  # noqa: BLE001 — Patrimonio не должен ломать основной сбор
+            log(f"Patrimonio: ошибка {e!r}")
 
     try:
         recheck_missing(fetcher, db, listing, now, int(os.environ.get("RECHECK", "150")), 10 * 60)
