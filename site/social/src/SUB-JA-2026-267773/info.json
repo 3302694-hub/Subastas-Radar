@@ -1,0 +1,27 @@
+{
+ "id": "SUB-JA-2026-267773",
+ "bienes": [
+  {
+   "titulo": "Bien 1 - Inmueble (Vivienda)",
+   "tipo_bien": "Vivienda",
+   "descripcion": "URBANA.- Parcela de terreno número TRESCIENTOS OCHENTA Y DOS, Fase 1ª de la ampliación del Plan Parcial de la Urbanización Los Balcones, sita en Campo de Salinas y partido de la Rambla, término de Torrevieja, con una superficie de ochocientos cincuenta y nueve metros cuadrados. Dentro de su perímetro, e incluida en su supeifzcie, se encuentran finalizadas las siguientes edificaciones: a).- Vivienda unifamiliar, compuesta de planta baja, con una superficie construida de ciento treinta y tres metros y cuatro decímetros cuadrados, distribuida en diferentes habitaciones y servicios, y planta piso, con una supeificie construida de ciento doce metros y treinta y ocho decímetros cuadrados, distribuida en diferentes habitaciones y servicios, comunicadas ambas plantas por escalera interior. b).- Piscina, compuesta de vaso de piscina, que ocupa una supeificie construida de cincuenta y cuatro metros cuadrados, y caseta de motores, en planta baja, con una supeificie construida de veinte metros cuadrados. Linda todo: Norte, en línea de veinticuatro metros, Avenida de Orihuela de la Urbanización; Sur, en igual longitud, resto de la que se segregó; Este, en línea de treinta y cinco metros con cincuenta centímetros, propiedad de las señoras Baró Soler, y Oeste, en la de treinta y cinco metros setenta centímetros, dicho resto.",
+   "direccion": "Urbanizacion Los Balcones, calle, C/RAÚL FERRÁNDEZ GIMÉNEZ, 53, TORREVIEJA.",
+   "cp": "03186",
+   "localidad": "TORREVIEJA",
+   "provincia": "Alicante/Alacant",
+   "ref_catastral": "NO CONSTA",
+   "situacion_posesoria": "No consta",
+   "visitable": "No",
+   "vivienda_habitual": "No",
+   "idufir": "03051000060584"
+  }
+ ],
+ "catastro": [
+  {},
+  {
+   "lat": 37.9642008,
+   "lon": -0.7291123,
+   "fuente": "coordenadas manuales"
+  }
+ ]
+}
