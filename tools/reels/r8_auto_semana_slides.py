@@ -33,7 +33,8 @@ S['h0'] = f'''{photo_card(P('foto_05'))}{CAP}<div class="tag" style="position:ab
 <div class="s" style="justify-content:flex-start;padding-top:1010px">
 <h1 style="font-size:92px">Гибрид 2023 года</h1>
 <div class="sub" style="margin-top:6px">Citroën C5 Aircross Plug-in Hybrid</div>
-<div class="kpi" style="margin-top:24px;font-size:170px">15&nbsp;544&nbsp;€</div><div class="sub" style="font-size:40px">оценка для торгов · аукцион Налогового агентства</div></div>{brand()}{DISC}'''
+<div class="old" style="margin-top:20px;font-size:60px;opacity:.72">оценка 15&nbsp;544&nbsp;€</div>
+<div class="kpi" style="margin-top:2px;font-size:158px">8&nbsp;054,40&nbsp;€</div><div class="sub" style="font-size:40px">текущая ставка · аукцион идёт</div></div>{brand()}{DISC}'''
 S['spec'] = f'''{photo_card(P('foto_03'))}{CAP}<div class="tag" style="position:absolute;top:140px;left:56px">Что за машина</div><div class="s" style="justify-content:flex-start;padding-top:1000px">
 <div class="row" style="margin-top:0">
 <div class="pill">Подключаемый гибрид<small>бензин + электромотор, заряжается от розетки</small></div>
