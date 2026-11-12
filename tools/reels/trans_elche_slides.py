@@ -14,7 +14,7 @@ DESPUES = f'file://{OUT}/despues.jpg'
 
 CSS += '''.kpi{font-size:190px;font-weight:700;letter-spacing:-.03em;line-height:.95;color:#C8F031;white-space:nowrap}
 .sub{font-size:46px;font-weight:600;line-height:1.2;margin-top:14px}
-.badge{position:absolute;top:150px;right:56px;background:#C8F031;color:#111;font-size:30px;font-weight:700;letter-spacing:.04em;padding:12px 22px;border-radius:12px;text-transform:uppercase}
+.badge{position:absolute;top:150px;right:120px;background:#C8F031;color:#111;font-size:30px;font-weight:700;letter-spacing:.04em;padding:12px 22px;border-radius:12px;text-transform:uppercase}
 .pill{font-size:42px;padding:22px 30px}.pill small{font-size:28px}.row{gap:14px}
 '''
 
@@ -28,13 +28,13 @@ S['antes'] = f'''{photo(ANTES, pos='50% 42%', shade='hero_b')}<div class="s" sty
 <div class="disc">Valor de subasta (AEAT), no precio de mercado. Foto del inmueble.</div>'''
 # 2 — ПОСЛЕ: рекреация с ИИ (помечено)
 S['despues'] = f'''{photo_card(DESPUES, top=300, height=620)}<div class="badge">Recreación · IA</div>
-<div class="tag" style="position:absolute;top:150px;left:56px">El potencial</div>
+<div class="tag" style="position:absolute;top:150px;left:120px">El potencial</div>
 <div class="s" style="justify-content:flex-start;padding-top:1010px">
 <h1 style="font-size:88px">¿Y si fuera<br><span class="hl">así?</span></h1>
 <div class="sub" style="margin-top:14px">Parcela urbana · se puede construir</div></div>{brand()}
 <div class="disc">Recreación con IA: idea del potencial. No es el estado actual ni una promesa de resultado.</div>'''
 # 3 — ФАКТЫ
-S['datos'] = f'''{photo(ANTES, pos='50% 42%', shade='both', blur=8)}<div class="tag" style="position:absolute;top:150px;left:56px">Los datos</div>
+S['datos'] = f'''{photo(ANTES, pos='50% 42%', shade='both', blur=8)}<div class="tag" style="position:absolute;top:150px;left:120px">Los datos</div>
 <div class="s" style="justify-content:center">
 <div class="row">
 <div class="pill">Parcela urbana · 4.692 m²<small>Elche (Altabix), Alicante</small></div>
