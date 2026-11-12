@@ -9,6 +9,10 @@ on:
         description: "Ссылка на музыку (необязательно)"
         required: false
         default: ""
+      coords:
+        description: "Координаты lat,lon для аэро без кадастра (необязательно)"
+        required: false
+        default: ""
 permissions:
   contents: write
 jobs:
@@ -23,6 +27,7 @@ jobs:
         env:
           IDS: ${{ inputs.ids }}
           MUSIC: ${{ inputs.music }}
+          COORDS: ${{ inputs.coords }}
           SUPABASE_URL: ${{ vars.SUPABASE_URL || 'https://jkxvxdhmothlamhotecu.supabase.co' }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |

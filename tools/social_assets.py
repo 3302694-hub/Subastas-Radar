@@ -91,6 +91,16 @@ def main(args):
                         (d / f"{name}{n}.jpg").write_bytes(ortho(cat["lat"], cat["lon"], w, h))
                     except Exception as e:  # noqa: BLE001
                         print(sid, name, e)
+        # Ручные координаты (env COORDS="lat,lon") — для лотов без кадастра: аэро PNOA по точке
+        coords = os.environ.get("COORDS", "").strip()
+        if coords and not list(d.glob("aereo_lejos*.jpg")):
+            la, lo = (float(x) for x in coords.split(",")[:2])
+            info.setdefault("catastro", []).append({"lat": la, "lon": lo, "fuente": "coordenadas manuales"})
+            for name, (w, h) in {"aereo_cerca": (70, 125), "aereo_medio": (160, 285), "aereo_lejos": (600, 1065)}.items():
+                try:
+                    (d / f"{name}0.jpg").write_bytes(ortho(la, lo, w, h))
+                except Exception as e:  # noqa: BLE001
+                    print(sid, name, e)
         try:
             lot_photos(sid, d)
         except Exception as e:  # noqa: BLE001
