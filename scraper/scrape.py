@@ -39,6 +39,7 @@ import tgss  # noqa: E402
 import patrimonio  # noqa: E402
 import placsp  # noqa: E402
 import avra  # noqa: E402
+import patrimonioand  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 SITE = ROOT / "site"
@@ -586,6 +587,24 @@ def main() -> int:
                     new_ids.append(r["id"])
         except Exception as e:  # noqa: BLE001 — AVRA не должен ломать основной сбор
             log(f"AVRA: ошибка {e!r}")
+
+    # PATJUNTA: Patrimonio Junta de Andalucía из BOJA s54 + портал Junta
+    if os.environ.get("PATJUNTA", "1") == "1":
+        had_patjunta = any(s.get("fuente") == "patrimonioand" for s in db.values())
+        try:
+            recs, checked = patrimonioand.collect(
+                Fetcher(delay=float(os.environ.get("PATJUNTA_DELAY", "2"))),
+                set(db),
+                int(os.environ.get("PATJUNTA_MAX", "20")),
+                log,
+                days=int(os.environ.get("PATJUNTA_DAYS", "120")),
+            )
+            for r in recs:
+                db[r["id"]] = r
+                if had_patjunta:
+                    new_ids.append(r["id"])
+        except Exception as e:  # noqa: BLE001 — PATJUNTA не должен ломать основной сбор
+            log(f"PATJUNTA: ошибка {e!r}")
 
     try:
         recheck_missing(fetcher, db, listing, now, int(os.environ.get("RECHECK", "150")), 10 * 60)
