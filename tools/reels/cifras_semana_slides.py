@@ -23,7 +23,7 @@ BG = dict(h0=F('SUB-JA-2026-267857', 'aereo_lejos0'), cats=F('SUB-JA-2026-268255
           cta=F('SUB-JA-2026-268255', 'aereo_lejos0'))
 n = lambda x: f'{x:,}'.replace(',', '&nbsp;')
 
-CSS += '''.cap{position:absolute;right:80px;top:120px;font-size:24px;opacity:.8}
+CSS += '''.cap{position:absolute;right:120px;top:120px;font-size:24px;opacity:.8}
 .bars{display:flex;flex-direction:column;gap:26px;margin-top:50px}
 .bar{display:grid;grid-template-columns:1fr auto;gap:6px 20px;align-items:end}
 .bar .l{font-size:40px;font-weight:600}
@@ -64,7 +64,7 @@ S['ritmo'] = f'''{photo(BG['ritmo'], shade='full')}<div class="cap">Торрев
 <div class="kpi" style="margin-top:70px;font-size:200px">{n(D['terminan'])}</div><div class="sub">закончатся до {D['hasta']} —<br>успейте посмотреть</div></div>{brand()}'''
 S['arte'] = f'''{photo(BG['arte'], pos='50% 45%', shade='bottom')}<div class="cap">фото: документы аукциона BOE</div>
 <div class="s" style="justify-content:flex-end">
-<div class="tag" style="position:absolute;top:170px;left:80px;background:rgba(20,51,38,.7)">Лот недели</div>
+<div class="tag" style="position:absolute;top:170px;left:120px;background:rgba(20,51,38,.7)">Лот недели</div>
 <h1 style="font-size:96px">Бронзовый<br><span class="hl">Дали</span></h1>
 <div class="sub">«Траян на коне», оценка 600&nbsp;000 € —<br>торги до 23 ноября</div></div>{brand()}'''
 S['cta'] = f'''{photo(BG['cta'], shade='full')}<div class="s" style="align-items:center;text-align:center;justify-content:center">

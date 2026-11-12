@@ -26,8 +26,8 @@ P = lambda n: f'file://{OUT}/{n}'
 
 CSS += '''.rank{font-family:'IBM Plex Serif',serif;font-size:120px;font-weight:600;line-height:.9;color:#D4A017}
 .ttl{font-family:'IBM Plex Serif',serif;font-size:70px;font-weight:600;line-height:1.05;margin-top:14px}
-.fac{position:absolute;right:80px;top:560px;width:460px;height:328px;object-fit:cover;border-radius:10px;border:6px solid #F4F1EA;box-shadow:0 20px 50px rgba(0,0,0,.45)}
-.faccap{position:absolute;right:80px;top:902px;font-size:24px;opacity:.85;text-shadow:0 1px 6px rgba(0,0,0,.7)}
+.fac{position:absolute;right:120px;top:560px;width:460px;height:328px;object-fit:cover;border-radius:10px;border:6px solid #F4F1EA;box-shadow:0 20px 50px rgba(0,0,0,.45)}
+.faccap{position:absolute;right:120px;top:902px;font-size:24px;opacity:.85;text-shadow:0 1px 6px rgba(0,0,0,.7)}
 .price{display:flex;align-items:baseline;gap:22px;margin-top:20px;font-size:46px;font-weight:600}
 .price s{opacity:.6}
 .price b{font-size:96px;color:#E6B83A;font-weight:700}

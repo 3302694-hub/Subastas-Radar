@@ -29,7 +29,7 @@ S['h0'] = f'''{photo(CERCA, shade='hero_b')}<div class="s" style="justify-conten
 <div class="sub" style="margin-top:20px">…и вот она снова на торгах</div></div>{brand()}
 <div class="disc">Аэрофото © IGN-PNOA. Вилла с бассейном, урбанизация Los Balcones.</div>'''
 
-S['historia'] = f'''{photo(MEDIO, shade='both')}<div class="tag" style="position:absolute;top:150px;left:80px">Что было</div>
+S['historia'] = f'''{photo(MEDIO, shade='both')}<div class="tag" style="position:absolute;top:150px;left:120px">Что было</div>
 <div class="s" style="justify-content:center">
 <div class="sub" style="margin-top:0">Стартовая цена торгов</div>
 <div class="kpi" style="font-size:150px">528&nbsp;000&nbsp;€</div>
@@ -38,7 +38,7 @@ S['historia'] = f'''{photo(MEDIO, shade='both')}<div class="tag" style="position
 <div class="pct" style="display:inline-block;align-self:flex-start;margin-top:18px">56&nbsp;% от стартовой цены</div>
 <div class="sub" style="font-size:40px;margin-top:22px">Торги завершились 7 сентября 2026</div></div>{brand()}{AER}'''
 
-S['ahora'] = f'''{photo(CERCA, shade='both')}<div class="tag" style="position:absolute;top:150px;left:80px">Что сейчас</div>
+S['ahora'] = f'''{photo(CERCA, shade='both')}<div class="tag" style="position:absolute;top:150px;left:120px">Что сейчас</div>
 <div class="s" style="justify-content:center">
 <h1 style="font-size:92px">Снова на<br><span class="hl">аукционе</span></h1>
 <div class="row" style="margin-top:40px">
@@ -46,7 +46,7 @@ S['ahora'] = f'''{photo(CERCA, shade='both')}<div class="tag" style="position:ab
 <div class="pill">Та же вилла, новые торги<small>второй заход после завершённого аукциона</small></div>
 </div></div>{brand()}{AER}'''
 
-S['ojo'] = f'''{photo(MEDIO, shade='both', blur=4)}<div class="tag" style="position:absolute;top:150px;left:80px">⚠️ Проверьте перед ставкой</div>
+S['ojo'] = f'''{photo(MEDIO, shade='both', blur=4)}<div class="tag" style="position:absolute;top:150px;left:120px">⚠️ Проверьте перед ставкой</div>
 <div class="s" style="justify-content:center">
 <div class="row" style="margin-top:0">
 <div class="pill">Нет данных о жильцах<small>кто занимает дом — в объявлении не указано</small></div>

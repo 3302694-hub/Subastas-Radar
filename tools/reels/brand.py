@@ -51,8 +51,8 @@ ICON = '<span class="mk-s">S</span>'
 CSS = FONTS + f'''*{{box-sizing:border-box;margin:0}}
 body{{width:1080px;height:1920px;overflow:hidden;font-family:'IBM Plex Sans',sans-serif;color:{PAPER};background:{GREEN};font-variant-numeric:tabular-nums}}
 body.paper{{background:{PAPER};color:{INK}}}
-.s{{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:170px 80px 380px}}
-.s>.tag{{position:absolute;top:170px;left:80px}}
+.s{{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:170px 120px 380px}}
+.s>.tag{{position:absolute;top:170px;left:120px}}
 .bg{{position:absolute;inset:0;background:radial-gradient(120% 75% at 50% 0%,#2C6A51 0%,{GREEN} 50%,{GREEN_INK} 100%)}}
 .bg::after{{content:"";position:absolute;inset:40px;border:2px solid rgba(244,241,234,.12);border-radius:10px}}
 body.paper .bg{{background:{PAPER}}}
@@ -64,7 +64,7 @@ body.paper .bg::after{{border-color:rgba(26,31,28,.12)}}
 body.paper .brand .lg-l{{display:block}}
 .avatar{{display:block;border-radius:22%;box-shadow:0 18px 50px rgba(0,0,0,.35)}}
 body.paper .tag{{border-color:rgba(26,31,28,.3)}}
-.brand{{position:absolute;right:64px;bottom:260px;display:flex;gap:20px;align-items:center}}
+.brand{{position:absolute;right:120px;bottom:260px;display:flex;gap:20px;align-items:center}}
 .mark{{width:84px;height:84px;font-size:47px;border-radius:50%;background:{PAPER};color:{GREEN};position:relative;display:flex;align-items:center;justify-content:center;flex:none}}
 .mark::after{{content:"";position:absolute;right:-.10em;top:-.08em;width:.78em;height:.78em;background:{SEAL};-webkit-mask:{GAVEL};mask:{GAVEL}}}
 body.paper .mark{{background:{GREEN};color:{PAPER}}}
@@ -73,7 +73,7 @@ body.paper .mark{{background:{GREEN};color:{PAPER}}}
 .wm{{font:600 40px/1 'IBM Plex Serif',serif;letter-spacing:.1em}}
 .wm i{{font-style:normal;position:relative;display:inline-block}}
 .wm i::after{{content:"";position:absolute;left:.26em;top:-.26em;width:.58em;height:.58em;background:{SEAL};-webkit-mask:{GAVEL};mask:{GAVEL}}}
-.disc{{position:absolute;left:64px;right:64px;bottom:60px;font-size:24px;opacity:.65}}
+.disc{{position:absolute;left:120px;right:120px;bottom:60px;font-size:24px;opacity:.65}}
 h1{{font-family:'IBM Plex Serif',serif;font-size:104px;line-height:1.02;font-weight:600;letter-spacing:-.01em}}
 .serif{{font-family:'IBM Plex Serif',serif}}
 .big{{white-space:nowrap;font-size:200px;font-weight:700;letter-spacing:-.03em;line-height:1}}

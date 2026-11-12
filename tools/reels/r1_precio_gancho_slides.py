@@ -6,10 +6,10 @@ DISC='<div class="disc">Оценка по открытым данным (MIVAU),
 S={}
 S['s1']=f'''<div class="s" style="padding:0;justify-content:flex-start"><img src="bg.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.55">
 <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,51,38,.85) 0%,rgba(20,51,38,.2) 40%,rgba(20,51,38,.9) 100%)"></div>
-<div style="position:relative;padding:170px 80px 0"><div class="tag">● АУКЦИОН BOE · МАДРИД</div>
+<div style="position:relative;padding:170px 120px 0"><div class="tag">● АУКЦИОН BOE · МАДРИД</div>
 <h1 style="margin-top:44px;font-size:104px">Квартира<br>в Мадриде</h1></div>
 <img src="card.jpg" style="position:relative;margin:56px 60px 0;width:960px;height:555px;object-fit:cover;border-radius:12px;box-shadow:0 30px 80px rgba(0,0,0,.5)">
-<div style="position:relative;padding:50px 80px 0"><div class="mid muted" style="font-size:52px">на аукционе за</div><div class="big lime" style="font-size:190px">80 000 €</div></div>
+<div style="position:relative;padding:50px 120px 0"><div class="mid muted" style="font-size:52px">на аукционе за</div><div class="big lime" style="font-size:190px">80 000 €</div></div>
 <div class="disc" style="bottom:60px">Фото: Dirección General del Catastro</div></div>{brand().replace('bottom:110px','')}'''
 S['s2']=f'''<div class="bg"></div><div class="s"><div class="tag">ОБЪЕКТ</div>
 <div class="row" style="margin-top:60px">

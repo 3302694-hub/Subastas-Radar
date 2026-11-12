@@ -10,7 +10,7 @@ OUT = sys.argv[1] if len(sys.argv) > 1 else '/tmp/dali'
 os.makedirs(OUT, exist_ok=True)
 SRC_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'site/social/src/SUB-AT-2026-26R3386002007'))
 def F(n, pos='50% 50%', shade='both'): return photo(f'file://{SRC_DIR}/foto_{n:02d}.jpg', pos=pos, shade=shade) + '<div class="cap">фото: документы аукциона BOE</div>'
-CSS += '''.cap{position:absolute;right:80px;top:120px;font-size:24px;opacity:.75}
+CSS += '''.cap{position:absolute;right:120px;top:120px;font-size:24px;opacity:.75}
 .bz{position:absolute;inset:0;background:radial-gradient(110% 70% at 50% 10%,#6B4A24 0%,#3A2A14 45%,#160F07 100%)}
 .bz::after{content:"";position:absolute;inset:40px;border:2px solid rgba(244,241,234,.12);border-radius:10px}
 '''
@@ -18,7 +18,7 @@ SRC = '<div class="disc">Данные: BOE, аукцион SUB-AT-2026-26R338600
 
 S = {}
 S['h0'] = f'''{F(1, '50% 45%', 'bottom')}<div class="s" style="justify-content:flex-end;padding-bottom:380px">
-<div class="tag" style="position:absolute;top:170px;left:80px;background:rgba(20,51,38,.7)">● Аукцион BOE · идут торги</div>
+<div class="tag" style="position:absolute;top:170px;left:120px;background:rgba(20,51,38,.7)">● Аукцион BOE · идут торги</div>
 <h1 style="font-size:112px">Налоговая Испании<br>продаёт <span class="gold">Дали</span></h1>
 <div class="mid" style="margin-top:30px;font-size:46px">Бронзовая скульптура — на том же<br>аукционе, где продают квартиры</div></div>{brand()}{SRC}'''
 S['what'] = f'''{F(6, '50% 30%', 'full')}<div class="s"><div class="tag">ЧТО ПРОДАЮТ</div>

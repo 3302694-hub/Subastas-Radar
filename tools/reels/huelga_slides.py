@@ -31,7 +31,7 @@ S['h0'] = f'''{photo(F('SUB-JA-2026-267857', 'aereo_lejos0'), shade='hero_b')}<d
 <div class="tag">Вчера, 11 ноября</div>
 <div class="kpi" style="margin-top:40px">3</div>
 <div class="sub">новых аукциона за весь день.<br>Почему так мало?</div></div>
-<div style="position:absolute;left:80px;right:80px;bottom:300px">{bars}</div>{brand()}{AER}'''
+<div style="position:absolute;left:120px;right:120px;bottom:300px">{bars}</div>{brand()}{AER}'''
 S['why'] = f'''{photo(F('SUB-JA-2026-268255', 'aereo_lejos0'), shade='full')}<div class="s">
 <div class="tag">Причина</div>
 <h1 style="margin-top:40px;font-size:100px">Всеобщая<br><span class="hl">забастовка</span></h1>

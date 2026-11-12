@@ -30,7 +30,7 @@ S['h0'] = f'''{photo_card(FACH, top=240, height=680)}{CAP}<div class="tag" style
 <div class="kpi" style="margin-top:18px;font-size:172px">11&nbsp;858&nbsp;€</div>
 <div class="sub" style="font-size:40px">целый дом, два этажа · оценка для торгов</div></div>{brand()}{DISC}'''
 
-S['casa'] = f'''{photo(MEDIO, shade='both')}<div class="tag" style="position:absolute;top:150px;left:80px">Что за дом</div>
+S['casa'] = f'''{photo(MEDIO, shade='both')}<div class="tag" style="position:absolute;top:150px;left:120px">Что за дом</div>
 <div class="s" style="justify-content:center">
 <div class="row">
 <div class="pill">Каменный дом в два этажа<small>calle Herrería 8, село Embún</small></div>
@@ -39,7 +39,7 @@ S['casa'] = f'''{photo(MEDIO, shade='both')}<div class="tag" style="position:abs
 <div class="pill">Продаётся 100 % дома<small>полная собственность, не доля</small></div>
 </div></div>{brand()}{DISC}'''
 
-S['precio'] = f'''{photo(CERCA, shade='both')}<div class="tag" style="position:absolute;top:150px;left:80px">Сколько и как</div>
+S['precio'] = f'''{photo(CERCA, shade='both')}<div class="tag" style="position:absolute;top:150px;left:120px">Сколько и как</div>
 <div class="s" style="justify-content:center">
 <div class="sub" style="margin-top:0">Оценка для торгов</div>
 <div class="kpi">11&nbsp;858&nbsp;€</div>
@@ -48,7 +48,7 @@ S['precio'] = f'''{photo(CERCA, shade='both')}<div class="tag" style="position:a
 <div class="pill">Ставки до 16 ноября<small>продавец — Налоговое агентство (AEAT)</small></div>
 </div></div>{brand()}{DISC}'''
 
-S['ojo'] = f'''{photo(MEDIO, shade='both', blur=4)}<div class="tag" style="position:absolute;top:150px;left:80px">⚠️ Проверьте перед ставкой</div>
+S['ojo'] = f'''{photo(MEDIO, shade='both', blur=4)}<div class="tag" style="position:absolute;top:150px;left:120px">⚠️ Проверьте перед ставкой</div>
 <div class="s" style="justify-content:center">
 <div class="row" style="margin-top:0">
 <div class="pill">Кто живёт — не указано<small>situación posesoria: no consta</small></div>

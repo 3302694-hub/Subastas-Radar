@@ -52,7 +52,7 @@ S['ejemplo'] = f'''<img src="{SHOT}" style="position:absolute;inset:0;width:100%
 
 # 4 — причины, список на подложке
 S['porque'] = f'''{photo(MEDIO, shade='both', blur=6)}<div class="s" style="justify-content:center">
-<div class="tag" style="position:absolute;top:150px;left:80px">Почему возвращается</div>
+<div class="tag" style="position:absolute;top:150px;left:120px">Почему возвращается</div>
 <div class="panel">
 <div class="li"><span class="num">1</span><span>Не было ставок<br><span style="font-weight:400;opacity:.8;font-size:34px">торги признали несостоявшимися (desierta)</span></span></div>
 <div class="li"><span class="num">2</span><span>Ставки не дотянули<br><span style="font-weight:400;opacity:.8;font-size:34px">максимум оказался ниже порога продажи</span></span></div>
@@ -60,7 +60,7 @@ S['porque'] = f'''{photo(MEDIO, shade='both', blur=6)}<div class="s" style="just
 </div></div>{brand()}'''
 
 # 5 — что даёт покупателю (pills уже с фоном)
-S['para_ti'] = f'''{photo(CERCA, shade='both')}<div class="tag" style="position:absolute;top:150px;left:80px">Что это даёт покупателю</div>
+S['para_ti'] = f'''{photo(CERCA, shade='both')}<div class="tag" style="position:absolute;top:150px;left:120px">Что это даёт покупателю</div>
 <div class="s" style="justify-content:center">
 <div class="panel"><div class="row" style="margin-top:0">
 <div class="pill">Второй шанс<small>объект, который ты мог упустить, снова доступен</small></div>

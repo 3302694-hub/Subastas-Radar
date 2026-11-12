@@ -29,7 +29,7 @@ CSS += '''.rank{font-family:'IBM Plex Serif',serif;font-size:200px;font-weight:6
 .price{font-size:210px;font-weight:700;letter-spacing:-.03em;line-height:1;color:#E6B83A;white-space:nowrap;margin-top:6px}
 body.paper .price{color:#1F4D3A}
 body.paper .chip{border-color:rgba(26,31,28,.3)}
-.cap{position:absolute;right:80px;top:120px;font-size:24px;opacity:.75}
+.cap{position:absolute;right:120px;top:120px;font-size:24px;opacity:.75}
 '''
 DISC = '<div class="disc">Максимальная ставка на аукционе BOE (архив 2026); не цена сделки. Оценка — сумма, назначенная для торгов.</div>'
 NOPHOTO = '<div class="cap">фото в аукционе нет</div>'
