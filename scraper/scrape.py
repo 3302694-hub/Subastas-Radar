@@ -38,6 +38,7 @@ import enrich as enrich_mod  # noqa: E402
 import tgss  # noqa: E402
 import patrimonio  # noqa: E402
 import placsp  # noqa: E402
+import avra  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 SITE = ROOT / "site"
@@ -567,6 +568,24 @@ def main() -> int:
                     new_ids.append(r["id"])
         except Exception as e:  # noqa: BLE001 — PLACSP не должен ломать основной сбор
             log(f"PLACSP: ошибка {e!r}")
+
+    # AVRA: ежемесячные конвокатории enajenación inmuebles из BOJA (Junta de Andalucía)
+    if os.environ.get("AVRA", "1") == "1":
+        had_avra = any(s.get("fuente") == "avra" for s in db.values())
+        try:
+            recs, checked = avra.collect(
+                Fetcher(delay=float(os.environ.get("AVRA_DELAY", "2"))),
+                set(db),
+                int(os.environ.get("AVRA_MAX", "50")),
+                log,
+                days=int(os.environ.get("AVRA_DAYS", "90")),
+            )
+            for r in recs:
+                db[r["id"]] = r
+                if had_avra:
+                    new_ids.append(r["id"])
+        except Exception as e:  # noqa: BLE001 — AVRA не должен ломать основной сбор
+            log(f"AVRA: ошибка {e!r}")
 
     try:
         recheck_missing(fetcher, db, listing, now, int(os.environ.get("RECHECK", "150")), 10 * 60)
