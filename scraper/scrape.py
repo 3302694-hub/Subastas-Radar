@@ -37,6 +37,7 @@ from store import SupabaseStore  # noqa: E402
 import enrich as enrich_mod  # noqa: E402
 import tgss  # noqa: E402
 import patrimonio  # noqa: E402
+import placsp  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 SITE = ROOT / "site"
@@ -548,6 +549,24 @@ def main() -> int:
                     new_ids.append(r["id"])
         except Exception as e:  # noqa: BLE001 — Patrimonio не должен ломать основной сбор
             log(f"Patrimonio: ошибка {e!r}")
+
+    # PLACSP: лицитации типа Patrimonial (TypeCode=7) — enajenación de inmuebles
+    if os.environ.get("PLACSP", "1") == "1":
+        had_placsp = any(s.get("fuente") == "placsp" for s in db.values())
+        try:
+            recs, pages = placsp.collect(
+                Fetcher(delay=float(os.environ.get("PLACSP_DELAY", "2"))),
+                set(db),
+                int(os.environ.get("PLACSP_MAX", "300")),
+                log,
+                max_pages=int(os.environ.get("PLACSP_PAGES", "30")),
+            )
+            for r in recs:
+                db[r["id"]] = r
+                if had_placsp:
+                    new_ids.append(r["id"])
+        except Exception as e:  # noqa: BLE001 — PLACSP не должен ломать основной сбор
+            log(f"PLACSP: ошибка {e!r}")
 
     try:
         recheck_missing(fetcher, db, listing, now, int(os.environ.get("RECHECK", "150")), 10 * 60)
