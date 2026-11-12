@@ -1,0 +1,31 @@
+{
+ "id": "SUB-AT-2026-26R0886001336",
+ "bienes": [
+  {
+   "titulo": "Bien 1 - Inmueble (Vivienda)",
+   "tipo_bien": "Vivienda",
+   "descripcion": "CASA DE DOS PLANTAS EN LA CALLE HERRERIA, Nº 8, DE EMBÚN, TÉRMINO MUNICIPAL DE HECHO. OCUPA UN SOLAR DE SETENTA Y UN METROS SESENTA DECÍMETROS CUADRADOS Y LA SUPERFICIE DE CADA PLANTA ES LA SIGUIENTE: PLANTA BAJA, SETENTA Y UN METROS CUADRADOS PLANTA PRIMERA, SETENTA Y UN METROS CUADRADOS.",
+   "direccion": "CL HERRERIA AG.EMBUN 8",
+   "cp": "22720",
+   "localidad": "VALLE DE HECHO",
+   "provincia": "Huesca",
+   "ref_catastral": "6720204XN8262S0001XY",
+   "situacion_posesoria": "No consta",
+   "visitable": "No consta",
+   "cargas": "0,00 €",
+   "idufir": "22006001034640"
+  }
+ ],
+ "catastro": [
+  {
+   "rc": "6720204XN8262S0001XY",
+   "sup": 168.0,
+   "anio": 1896,
+   "uso": "Residencial",
+   "dir": "CL HERRERIA AG.EMBUN 8 22720 VALLE DE HECHO (HUESCA)",
+   "mapa": "https://www1.sedecatastro.gob.es/Cartografia/mapa.aspx?del=22&mun=168&refcat=6720204XN8262S",
+   "lat": 42.6264920377546,
+   "lon": -0.724255106944175
+  }
+ ]
+}
