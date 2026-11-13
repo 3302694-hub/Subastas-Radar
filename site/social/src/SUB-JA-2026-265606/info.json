@@ -1,0 +1,22 @@
+{
+ "id": "SUB-JA-2026-265606",
+ "bienes": [
+  {
+   "titulo": "Bien 1 - Inmueble (Local comercial)",
+   "tipo_bien": "Local comercial",
+   "descripcion": "URBANA.- SETENTA Y UNO.- Local comercial en planta baja del edificio denominado \"RESIDENCIAL TIARE\", sito en Torrevieja, calle Diego Ramirez, haciendo esquina a calle Rambla Juan Mateo. Tlene una superficie construida de CIEN METROS CUADRADOS, sin distribución interior. Linda: frente. calle Diego Ramirez; derecna, Antonio Samper y otros; izquierda, resto de la finca de donde está se segrega; y al fondo, zaguan de entrada a a los pisos de alzada. Tiene entrada independiente por la calle Diego Ramirez.",
+   "direccion": "CALLE DIEGO RAMIREZ PLANTA BAJA ED. TIARE",
+   "cp": "03181",
+   "localidad": "TORREVIEJA",
+   "provincia": "Alicante/Alacant",
+   "ref_catastral": "NO CONSTA",
+   "situacion_posesoria": "No consta",
+   "visitable": "No",
+   "vivienda_habitual": "No",
+   "idufir": "03052000934721"
+  }
+ ],
+ "catastro": [
+  {}
+ ]
+}
