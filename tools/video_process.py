@@ -45,6 +45,12 @@ run(["ffmpeg","-y","-i","/tmp/clean.mp4","-filter_complex_script","/tmp/fc.txt",
      "-map","[vs]","-map","[as]","-c:v","libx264","-preset","veryfast","-crf","20",
      "-c:a","aac","-b:a","160k","-movflags","+faststart","/tmp/fast.mp4"])
 
+# без субтитров — отдаём ускоренную версию как есть
+import shutil
+if os.environ.get("SUBS", "1") != "1":
+    shutil.copy("/tmp/fast.mp4", OUT)
+    print("DONE (no subs)", OUT, "dur=", probe_dur(OUT)); sys.exit(0)
+
 # 4) субтитры: whisper с word-level таймингами (RU)
 from faster_whisper import WhisperModel
 model = WhisperModel("small", device="cpu", compute_type="int8")
