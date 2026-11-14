@@ -1,0 +1,41 @@
+name: video-process
+on:
+  workflow_dispatch:
+    inputs:
+      file_id:
+        description: "Google Drive file id (доступ по ссылке)"
+        required: true
+      speed:
+        description: "Скорость"
+        default: "1.1"
+      branch:
+        description: "Ветка для результата"
+        default: "tmp-video-out"
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-dejavu-core
+      - run: pip install -q "gdown>=5" faster-whisper
+      - name: download
+        run: |
+          gdown "https://drive.google.com/uc?id=${{ github.event.inputs.file_id }}" -O /tmp/in.mp4 --fuzzy \
+            || gdown "${{ github.event.inputs.file_id }}" -O /tmp/in.mp4
+          ls -la /tmp/in.mp4
+      - name: process
+        run: SPEED=${{ github.event.inputs.speed }} python tools/video_process.py /tmp/in.mp4 /tmp/out.mp4
+      - name: publish to branch
+        run: |
+          git config user.email "bot@users.noreply.github.com"
+          git config user.name "video-bot"
+          mkdir -p out && cp /tmp/out.mp4 "out/IMG_5617_reel.mp4"
+          du -h out/IMG_5617_reel.mp4
+          git checkout -b "${{ github.event.inputs.branch }}"
+          git add -f "out/IMG_5617_reel.mp4"
+          git commit -m "video process output (denoise, cut pauses, x${{ github.event.inputs.speed }}, subs)"
+          git push -f origin "${{ github.event.inputs.branch }}"
