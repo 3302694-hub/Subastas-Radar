@@ -11,6 +11,9 @@ on:
       subs:
         description: "Субтитры (1=да, 0=нет)"
         default: "1"
+      tail:
+        description: "Добавить секунд в конце"
+        default: "0"
       branch:
         description: "Ветка для результата"
         default: "tmp-video-out"
@@ -31,7 +34,7 @@ jobs:
             || gdown "${{ github.event.inputs.file_id }}" -O /tmp/in.mp4
           ls -la /tmp/in.mp4
       - name: process
-        run: SPEED=${{ github.event.inputs.speed }} SUBS=${{ github.event.inputs.subs }} python tools/video_process.py /tmp/in.mp4 /tmp/out.mp4
+        run: SPEED=${{ github.event.inputs.speed }} SUBS=${{ github.event.inputs.subs }} TAIL=${{ github.event.inputs.tail }} python tools/video_process.py /tmp/in.mp4 /tmp/out.mp4
       - name: publish to branch
         run: |
           git config user.email "bot@users.noreply.github.com"

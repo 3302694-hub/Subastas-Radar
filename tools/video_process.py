@@ -29,6 +29,7 @@ for s, e in zip(starts, ends):
     cur = max(cur, e - pad)
 if dur - cur > 0.12: keep.append((cur, dur))
 if not keep: keep = [(0.0, dur)]
+keep[-1] = (keep[-1][0], dur)   # хвост до конца — не обрезаем последнее слово
 print(f"keep segments: {len(keep)}  (было тишины: {len(starts)})")
 
 # 3) вырезать паузы + ускорить + вписать по ширине 1080 (для Reels и размера)
@@ -47,8 +48,14 @@ run(["ffmpeg","-y","-i","/tmp/clean.mp4","-filter_complex_script","/tmp/fc.txt",
 
 # без субтитров — отдаём ускоренную версию как есть
 import shutil
+TAIL = float(os.environ.get("TAIL", "0"))
 if os.environ.get("SUBS", "1") != "1":
-    shutil.copy("/tmp/fast.mp4", OUT)
+    if TAIL > 0:
+        run(["ffmpeg","-y","-i","/tmp/fast.mp4","-vf",f"tpad=stop_duration={TAIL}:stop_mode=clone",
+             "-af",f"apad=pad_dur={TAIL}","-c:v","libx264","-preset","veryfast","-crf","20",
+             "-c:a","aac","-b:a","160k","-movflags","+faststart",OUT])
+    else:
+        shutil.copy("/tmp/fast.mp4", OUT)
     print("DONE (no subs)", OUT, "dur=", probe_dur(OUT)); sys.exit(0)
 
 # 4) субтитры: whisper с word-level таймингами (RU)
